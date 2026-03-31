@@ -170,7 +170,7 @@ export interface MaterialTier {
 export const MATERIAL_TIERS: MaterialTier[] = [
   {
     id: "pt",
-    label: "Pressure-Treated Pine",
+    label: "Pressure-Treated (PT) Wood",
     shortLabel: "Budget PT",
     description: "5/4×6 Southern Yellow Pine, AWPA UC4A/UC4B treated. Most affordable option.",
     examples: ["5/4×6 PT #2 SYP", "2×6 PT framing", "PT wood railing"],

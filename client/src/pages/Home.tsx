@@ -750,24 +750,13 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Permit cost slider */}
+                    {/* Permit jurisdiction selector */}
                     {includePermit && (
                       <div>
-                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
+                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
                           Estimated Permit Cost
                         </div>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="range" min={100} max={1500} step={50}
-                            value={permitCost}
-                            onChange={(e) => setPermitCost(Number(e.target.value))}
-                            className="flex-1 accent-emerald-500"
-                          />
-                          <span className="font-mono text-sm text-emerald-400 w-20 text-right">
-                            ${permitCost.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 mt-3">
+                        <div className="grid grid-cols-3 gap-2">
                           {[
                             { label: "Rural / Small town", range: "$100–$250", value: 175 },
                             { label: "Suburban", range: "$250–$500", value: 350 },
@@ -777,14 +766,17 @@ export default function Home() {
                               key={p.label}
                               onClick={() => setPermitCost(p.value)}
                               className={cn(
-                                "p-2 rounded border text-left transition-all",
+                                "p-3 rounded-lg border text-left transition-all",
                                 permitCost === p.value
                                   ? "border-emerald-500 bg-emerald-500/10"
                                   : "border-white/10 bg-white/[0.03] hover:border-white/20"
                               )}
                             >
                               <div className="text-xs font-semibold text-white">{p.label}</div>
-                              <div className="text-xs font-mono text-emerald-400">{p.range}</div>
+                              <div className="text-sm font-mono text-emerald-400 mt-1">{p.range}</div>
+                              {permitCost === p.value && (
+                                <div className="text-xs text-emerald-500 mt-1">✓ Selected</div>
+                              )}
                             </button>
                           ))}
                         </div>
