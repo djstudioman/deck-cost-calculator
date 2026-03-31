@@ -342,6 +342,145 @@ export interface CostBreakdown {
   note: string;
 }
 
+// ─── TOOL RENTAL OPTIONS (DIY) ────────────────────────────────────────────────
+export interface ToolRentalOption {
+  id: string;
+  label: string;
+  description: string;
+  dailyRentLow: number;
+  dailyRentHigh: number;
+  daysNeeded: number;
+  neededFor: string[];
+}
+
+export const TOOL_RENTAL_OPTIONS: ToolRentalOption[] = [
+  {
+    id: "circular-saw",
+    label: "Circular Saw",
+    description: "For cutting decking boards and framing lumber",
+    dailyRentLow: 35,
+    dailyRentHigh: 55,
+    daysNeeded: 2,
+    neededFor: ["pt", "composite", "pvc"],
+  },
+  {
+    id: "post-hole-digger",
+    label: "Power Auger / Post-Hole Digger",
+    description: "For drilling footings — essential for frost-depth regions",
+    dailyRentLow: 75,
+    dailyRentHigh: 120,
+    daysNeeded: 1,
+    neededFor: ["pt", "composite", "pvc"],
+  },
+  {
+    id: "impact-driver",
+    label: "Impact Driver + Drill Set",
+    description: "For driving screws and fasteners",
+    dailyRentLow: 25,
+    dailyRentHigh: 40,
+    daysNeeded: 3,
+    neededFor: ["pt", "composite", "pvc"],
+  },
+  {
+    id: "miter-saw",
+    label: "Miter / Chop Saw",
+    description: "For precise angle cuts on railing and trim",
+    dailyRentLow: 45,
+    dailyRentHigh: 70,
+    daysNeeded: 2,
+    neededFor: ["composite", "pvc"],
+  },
+  {
+    id: "concrete-mixer",
+    label: "Concrete Mixer",
+    description: "For mixing footing concrete on-site",
+    dailyRentLow: 40,
+    dailyRentHigh: 65,
+    daysNeeded: 1,
+    neededFor: ["pt", "composite", "pvc"],
+  },
+  {
+    id: "jigsaw",
+    label: "Jigsaw",
+    description: "For curved cuts — only needed for custom designs",
+    dailyRentLow: 20,
+    dailyRentHigh: 35,
+    daysNeeded: 1,
+    neededFor: ["composite", "pvc"],
+  },
+];
+
+export const DIY_SKILL_LEVELS = [
+  {
+    id: "beginner",
+    label: "Beginner",
+    description: "First deck build. Comfortable with basic power tools.",
+    wasteFactor: 0.18,
+    timeMultiplier: 2.0,
+    notes: [
+      "Add 18% material waste for cutting errors and learning curve",
+      "Budget extra time — a 320 sq ft deck may take 3–4 weekends",
+      "Consider hiring a framing contractor for footings and ledger",
+    ],
+  },
+  {
+    id: "intermediate",
+    label: "Intermediate",
+    description: "Have completed home improvement projects. Comfortable with framing.",
+    wasteFactor: 0.12,
+    timeMultiplier: 1.4,
+    notes: [
+      "Add 12% material waste — standard industry allowance",
+      "A 320 sq ft deck typically takes 2–3 weekends for an intermediate DIYer",
+    ],
+  },
+  {
+    id: "experienced",
+    label: "Experienced",
+    description: "Built decks or similar structures before.",
+    wasteFactor: 0.08,
+    timeMultiplier: 1.0,
+    notes: [
+      "Standard 8–10% waste factor for experienced builders",
+    ],
+  },
+];
+
+// ─── CONTRACTOR MARKUP TIERS ───────────────────────────────────────────────────
+export const CONTRACTOR_MARKUP_TIERS = [
+  {
+    id: "low",
+    label: "Competitive / Volume",
+    description: "Lower margin, high volume. Typical for established contractors with repeat clients.",
+    materialMarkup: 0.15,
+    laborMarkup: 0.20,
+    overheadPct: 0.10,
+  },
+  {
+    id: "standard",
+    label: "Standard Market Rate",
+    description: "Typical residential contractor margin. Covers overhead, insurance, warranty.",
+    materialMarkup: 0.20,
+    laborMarkup: 0.25,
+    overheadPct: 0.12,
+  },
+  {
+    id: "premium",
+    label: "Premium / Custom",
+    description: "High-end or specialty contractor. Full design service, warranty, premium materials.",
+    materialMarkup: 0.30,
+    laborMarkup: 0.35,
+    overheadPct: 0.15,
+  },
+];
+
+export const CREW_SIZES = [
+  { id: "solo", label: "Solo Contractor", size: 1, laborEfficiencyFactor: 0.7 },
+  { id: "two", label: "2-Person Crew", size: 2, laborEfficiencyFactor: 1.0 },
+  { id: "three", label: "3-Person Crew", size: 3, laborEfficiencyFactor: 1.3 },
+  { id: "four-plus", label: "4+ Person Crew", size: 4, laborEfficiencyFactor: 1.5 },
+];
+
 // ─── CALCULATION ENGINE ────────────────────────────────────────────────────────
 export interface CalculatorInputs {
   audience: AudienceType;
@@ -353,6 +492,16 @@ export interface CalculatorInputs {
   railingLF: number;
   includeStairs: boolean;
   stairSteps: number;
+  // DIY-specific
+  skillLevelId?: string;
+  selectedTools?: string[];
+  includePermit?: boolean;
+  permitCost?: number;
+  // Contractor-specific
+  markupTierId?: string;
+  crewSizeId?: string;
+  subFootings?: boolean;
+  markupMaterials?: boolean;
 }
 
 export interface CalculatorResult {
@@ -382,6 +531,38 @@ export interface CalculatorResult {
   complexity: Complexity;
   railing: RailingSystem;
   isDIY: boolean;
+  isContractor: boolean;
+  // DIY extras
+  diy?: {
+    skillLevel: typeof DIY_SKILL_LEVELS[number];
+    wasteFactor: number;
+    wastedMaterialCost: number;
+    toolRentalLow: number;
+    toolRentalHigh: number;
+    selectedTools: ToolRentalOption[];
+    permitCost: number;
+    totalWithExtrasLow: number;
+    totalWithExtrasHigh: number;
+    estimatedWeekends: number;
+    savingsVsHiring: number;
+  };
+  // Contractor extras
+  contractor?: {
+    markupTier: typeof CONTRACTOR_MARKUP_TIERS[number];
+    crewSize: typeof CREW_SIZES[number];
+    materialCostRaw: number;
+    laborCostRaw: number;
+    materialWithMarkup: number;
+    laborWithMarkup: number;
+    overhead: number;
+    totalBidLow: number;
+    totalBidHigh: number;
+    grossMarginPct: number;
+    estimatedDays: number;
+    subFootingsCost: number;
+    perSqFtBidLow: number;
+    perSqFtBidHigh: number;
+  };
 }
 
 export function calculate(inputs: CalculatorInputs): CalculatorResult {
@@ -391,6 +572,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const complexity = COMPLEXITIES.find((c) => c.id === inputs.complexityId)!;
   const railing = RAILING_SYSTEMS.find((r) => r.id === inputs.railingId)!;
   const isDIY = inputs.audience === "diy";
+  const isContractor = inputs.audience === "contractor";
 
   // Base installed cost from lookup table
   const baseInstalled = INSTALLED_COST_TABLE[inputs.sizeId][inputs.tierId];
@@ -554,6 +736,92 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     );
   }
 
+  // ── DIY extras ────────────────────────────────────────────────────────────
+  let diyExtras: CalculatorResult["diy"] | undefined;
+  if (isDIY) {
+    const skillLevel = DIY_SKILL_LEVELS.find((s) => s.id === (inputs.skillLevelId ?? "intermediate"))!;
+    const wasteFactor = skillLevel.wasteFactor;
+    const wastedMaterialCost = Math.round(materialsLow * wasteFactor);
+
+    const selectedToolIds = inputs.selectedTools ?? [];
+    const selectedTools = TOOL_RENTAL_OPTIONS.filter((t) => selectedToolIds.includes(t.id));
+    const toolRentalLow = selectedTools.reduce((sum, t) => sum + t.dailyRentLow * t.daysNeeded, 0);
+    const toolRentalHigh = selectedTools.reduce((sum, t) => sum + t.dailyRentHigh * t.daysNeeded, 0);
+
+    const permitCost = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
+
+    const totalWithExtrasLow = totalLow + wastedMaterialCost + toolRentalLow + permitCost;
+    const totalWithExtrasHigh = totalHigh + Math.round(materialsHigh * wasteFactor) + toolRentalHigh + permitCost;
+
+    // Savings vs hiring (compare to homeowner installed cost)
+    const installedMid = Math.round(
+      (baseInstalled.low * materialFraction + baseInstalled.low * laborFraction * regionMultiplier * complexityMultiplier +
+       baseInstalled.high * materialFraction + baseInstalled.high * laborFraction * regionMultiplier * complexityMultiplier) / 2
+    );
+    const savingsVsHiring = Math.max(0, installedMid - Math.round((totalWithExtrasLow + totalWithExtrasHigh) / 2));
+
+    const estimatedWeekends = Math.round(size.sqFt / 80 * skillLevel.timeMultiplier);
+
+    diyExtras = {
+      skillLevel,
+      wasteFactor,
+      wastedMaterialCost,
+      toolRentalLow,
+      toolRentalHigh,
+      selectedTools,
+      permitCost,
+      totalWithExtrasLow,
+      totalWithExtrasHigh,
+      estimatedWeekends,
+      savingsVsHiring,
+    };
+  }
+
+  // ── Contractor extras ─────────────────────────────────────────────────────
+  let contractorExtras: CalculatorResult["contractor"] | undefined;
+  if (isContractor) {
+    const markupTier = CONTRACTOR_MARKUP_TIERS.find((m) => m.id === (inputs.markupTierId ?? "standard"))!;
+    const crewSize = CREW_SIZES.find((c) => c.id === (inputs.crewSizeId ?? "two"))!;
+
+    const materialCostRaw = Math.round((materialsLow + materialsHigh) / 2);
+    const laborCostRaw = Math.round((laborLow + laborHigh) / 2);
+
+    const materialWithMarkup = Math.round(materialCostRaw * (1 + markupTier.materialMarkup));
+    const laborWithMarkup = Math.round(laborCostRaw * (1 + markupTier.laborMarkup));
+    const overhead = Math.round((materialWithMarkup + laborWithMarkup) * markupTier.overheadPct);
+
+    const subFootingsCost = inputs.subFootings ? Math.round((footingLow + footingHigh) / 2 * 1.15) : 0;
+
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + subFootingsCost;
+    const bidVariance = 0.08; // ±8% range
+    const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
+    const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
+
+    const grossMarginPct = Math.round(
+      ((baseBidMid - materialCostRaw - laborCostRaw) / baseBidMid) * 100
+    );
+
+    // Estimated days: baseline 1 day per 40 sqFt for 2-person crew, adjusted by crew efficiency
+    const estimatedDays = Math.max(1, Math.round((size.sqFt / 40 / crewSize.laborEfficiencyFactor) * complexity.laborMultiplier));
+
+    contractorExtras = {
+      markupTier,
+      crewSize,
+      materialCostRaw,
+      laborCostRaw,
+      materialWithMarkup,
+      laborWithMarkup,
+      overhead,
+      totalBidLow,
+      totalBidHigh,
+      grossMarginPct,
+      estimatedDays,
+      subFootingsCost,
+      perSqFtBidLow: Math.round(totalBidLow / size.sqFt),
+      perSqFtBidHigh: Math.round(totalBidHigh / size.sqFt),
+    };
+  }
+
   return {
     totalLow,
     totalHigh,
@@ -581,6 +849,9 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     complexity,
     railing,
     isDIY,
+    isContractor,
+    diy: diyExtras,
+    contractor: contractorExtras,
   };
 }
 
