@@ -272,7 +272,7 @@ export default function Home() {
               {/* ── STEP 0: AUDIENCE ── */}
               {step === 0 && (
                 <StepCard
-                  title="Who are you building for?"
+                  title="Who is building this?"
                   subtitle="We'll tailor the estimate — and the questions — to your situation."
                   onNext={goNext}
                   nextLabel="Continue"
