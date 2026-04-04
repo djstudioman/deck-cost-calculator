@@ -180,3 +180,38 @@
     }
   }
 }
+/* ─── PRINT STYLES ──────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide everything on screen except the print estimate */
+  body > #root > * {
+    display: none !important;
+  }
+
+  /* Show the print estimate */
+  #print-estimate {
+    display: block !important;
+  }
+
+  /* Reset background and colors for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* Ensure tables don't break across pages awkwardly */
+  table {
+    page-break-inside: avoid;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 0.75in;
+    size: letter portrait;
+  }
+}

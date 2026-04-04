@@ -23,6 +23,7 @@ import {
   formatCurrency,
 } from "@/lib/deckData";
 import { cn } from "@/lib/utils";
+import PrintEstimate from "@/components/PrintEstimate";
 
 interface ResultsPanelProps {
   result: CalculatorResult;
@@ -176,7 +177,7 @@ function ActionButtons({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, delay: 0.4 }}
-      className="flex gap-3"
+      className="flex gap-3 flex-wrap"
     >
       <button
         onClick={onBack}
@@ -193,9 +194,15 @@ function ActionButtons({
       </button>
       <button
         onClick={() => window.print()}
-        className="ml-auto px-4 py-2.5 text-sm text-slate-400 hover:text-white border border-white/10 rounded-lg hover:border-white/20 transition-colors"
+        className="ml-auto flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors"
+        style={{ borderColor: `${accent}66`, color: accent }}
       >
-        Print / Save
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+        Download Estimate
       </button>
     </motion.div>
   );
@@ -716,11 +723,18 @@ function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
 export default function ResultsPanel(props: ResultsPanelProps) {
   const { result } = props;
 
-  if (result.isDIY && result.diy) {
-    return <DIYPanel {...props} />;
-  }
-  if (result.isContractor && result.contractor) {
-    return <ContractorPanel {...props} />;
-  }
-  return <HomeownerPanel {...props} />;
+  return (
+    <>
+      {/* Screen UI */}
+      {result.isDIY && result.diy ? (
+        <DIYPanel {...props} />
+      ) : result.isContractor && result.contractor ? (
+        <ContractorPanel {...props} />
+      ) : (
+        <HomeownerPanel {...props} />
+      )}
+      {/* Print-only layer — hidden on screen, shown only via @media print */}
+      <PrintEstimate result={result} />
+    </>
+  );
 }
