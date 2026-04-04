@@ -718,68 +718,66 @@ export default function Home() {
                   onBack={goBack}
                   nextLabel="See My Estimate →"
                 >
-                  <div className="space-y-5">
-                    {/* Permit toggle */}
-                    <div className={cn(
-                      "p-4 rounded-lg border transition-all",
-                      includePermit ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-white/[0.03]"
-                    )}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-sm text-white">Include building permit cost?</div>
-                          <div className="text-xs text-slate-400 mt-1">
-                            Typical range: $100–$500 depending on jurisdiction. California and major metros can reach $1,000+.
-                            Pulling your own permit as a homeowner is legal in most states.
+                  <div className="space-y-4">
+                    <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                      Select your permit situation
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* No permit card */}
+                      <button
+                        onClick={() => { setIncludePermit(false); setPermitCost(0); }}
+                        className={cn(
+                          "p-4 rounded-lg border text-left transition-all col-span-2",
+                          !includePermit
+                            ? "border-slate-400 bg-slate-500/10"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-xl">🚫</span>
+                          <div className="flex-1">
+                            <div className="font-semibold text-sm text-white">No permit needed</div>
+                            <div className="text-xs text-slate-400 mt-1">
+                              Ground-level decks under 30" high, or decks under 200 sq ft, are exempt from permits in many jurisdictions. Verify with your local building department.
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1">$0 permit cost</div>
                           </div>
-                          <div className="text-xs text-slate-500 mt-2">
-                            ⚠️ Skipping a permit can void homeowner's insurance and create issues at resale.
-                          </div>
+                          {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
                         </div>
+                      </button>
+
+                      {/* Jurisdiction cards */}
+                      {[
+                        { label: "Rural / Small town", desc: "Low-density areas, rural counties", range: "$100–$250", value: 175, icon: "🌾" },
+                        { label: "Suburban", desc: "Most metro suburbs and mid-size cities", range: "$250–$500", value: 350, icon: "🏘️" },
+                        { label: "Urban / Major metro", desc: "Dense cities, strict code enforcement", range: "$500–$1,000", value: 750, icon: "🏙️" },
+                        { label: "California / High-cost", desc: "CA jurisdictions, NYC, Seattle, etc.", range: "$1,000–$2,000+", value: 1500, icon: "💰" },
+                      ].map((p) => (
                         <button
-                          onClick={() => setIncludePermit((v) => !v)}
+                          key={p.label}
+                          onClick={() => { setIncludePermit(true); setPermitCost(p.value); }}
                           className={cn(
-                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
-                            includePermit ? "bg-emerald-500" : "bg-white/20"
+                            "p-3 rounded-lg border text-left transition-all",
+                            includePermit && permitCost === p.value
+                              ? "border-emerald-500 bg-emerald-500/10"
+                              : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
-                          <span className={cn(
-                            "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform",
-                            includePermit ? "translate-x-5" : "translate-x-0.5"
-                          )} />
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base">{p.icon}</span>
+                            <div className="text-xs font-semibold text-white">{p.label}</div>
+                          </div>
+                          <div className="text-xs text-slate-400">{p.desc}</div>
+                          <div className="text-sm font-mono text-emerald-400 mt-2">{p.range}</div>
+                          {includePermit && permitCost === p.value && (
+                            <div className="text-xs text-emerald-500 mt-1">✓ Selected</div>
+                          )}
                         </button>
-                      </div>
+                      ))}
                     </div>
-
-                    {/* Permit jurisdiction selector */}
                     {includePermit && (
-                      <div>
-                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
-                          Estimated Permit Cost
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { label: "Rural / Small town", range: "$100–$250", value: 175 },
-                            { label: "Suburban", range: "$250–$500", value: 350 },
-                            { label: "Urban / CA", range: "$500–$1,500", value: 750 },
-                          ].map((p) => (
-                            <button
-                              key={p.label}
-                              onClick={() => setPermitCost(p.value)}
-                              className={cn(
-                                "p-3 rounded-lg border text-left transition-all",
-                                permitCost === p.value
-                                  ? "border-emerald-500 bg-emerald-500/10"
-                                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
-                              )}
-                            >
-                              <div className="text-xs font-semibold text-white">{p.label}</div>
-                              <div className="text-sm font-mono text-emerald-400 mt-1">{p.range}</div>
-                              {permitCost === p.value && (
-                                <div className="text-xs text-emerald-500 mt-1">✓ Selected</div>
-                              )}
-                            </button>
-                          ))}
-                        </div>
+                      <div className="text-xs text-slate-500 pt-1">
+                        ⚠️ Pulling your own permit as a homeowner is legal in most states. Skipping a required permit can void homeowner's insurance and create issues at resale.
                       </div>
                     )}
                   </div>
