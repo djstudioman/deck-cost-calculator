@@ -269,7 +269,7 @@ export const RAILING_SYSTEMS: RailingSystem[] = [
   { id: "pt-wood", label: "PT Wood", materialPerLFMin: 10, materialPerLFMax: 20, installedPerLFMin: 20, installedPerLFMax: 45 },
   { id: "composite-select", label: "Composite (Trex Select / TimberTech)", materialPerLFMin: 22, materialPerLFMax: 35, installedPerLFMin: 38, installedPerLFMax: 65 },
   { id: "composite-premium", label: "Composite Premium (Trex Transcend)", materialPerLFMin: 35, materialPerLFMax: 50, installedPerLFMin: 50, installedPerLFMax: 80 },
-  { id: "aluminum", label: "Aluminum (Deckorators ALX / Westbury)", materialPerLFMin: 34, materialPerLFMax: 65, installedPerLFMin: 55, installedPerLFMax: 100 },
+  { id: "aluminum", label: "Aluminum Picket Railing", materialPerLFMin: 34, materialPerLFMax: 65, installedPerLFMin: 55, installedPerLFMax: 100 },
   { id: "cable", label: "Cable Rail (Feeney / Muzata)", materialPerLFMin: 40, materialPerLFMax: 90, installedPerLFMin: 75, installedPerLFMax: 175 },
   { id: "glass", label: "Glass (Framed)", materialPerLFMin: 80, materialPerLFMax: 200, installedPerLFMin: 150, installedPerLFMax: 350 },
 ];
