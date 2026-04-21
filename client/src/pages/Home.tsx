@@ -77,6 +77,7 @@ export default function Home() {
   const [includeStairs, setIncludeStairs] = useState(true);
   const [stairSteps, setStairSteps] = useState(4);
   const [stairWidthFt, setStairWidthFt] = useState(4);
+  const [includeStairRailing, setIncludeStairRailing] = useState(false);
 
   // DIY-specific inputs
   const [skillLevelId, setSkillLevelId] = useState("intermediate");
@@ -108,6 +109,7 @@ export default function Home() {
       includeStairs,
       stairSteps,
       stairWidthFt,
+      includeStairRailing,
       skillLevelId,
       selectedTools,
       includePermit,
@@ -120,7 +122,7 @@ export default function Home() {
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, railingLF,
-      includeStairs, stairSteps, stairWidthFt, skillLevelId, selectedTools, includePermit,
+      includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     ]
   );
@@ -630,6 +632,7 @@ title="Railing & extras"
                         </button>
                       </div>
                        {includeStairs && (
+                         <>
                          <div className="space-y-3 mt-1">
                            <div className="flex items-center gap-3">
                              <span className="text-xs text-slate-400 w-16 shrink-0">Steps</span>
@@ -659,6 +662,27 @@ title="Railing & extras"
                              </span>
                            </div>
                          </div>
+                         </>
+                         )}
+                         {includeStairs && (
+                         <>
+                         {/* Stair railing toggle */}
+                         <div className="flex items-center justify-between pt-1">
+                           <div>
+                             <div className="text-xs font-semibold text-slate-300">Include stair railing</div>
+                             <div className="text-xs text-slate-500 mt-0.5">Matches your deck railing system</div>
+                           </div>
+                           <button
+                             onClick={() => setIncludeStairRailing(v => !v)}
+                             className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairRailing ? "bg-amber-500" : "bg-white/20")}
+                           >
+                             <span
+                               className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                               style={{ transform: includeStairRailing ? 'translateX(20px)' : 'translateX(2px)' }}
+                             />
+                           </button>
+                         </div>
+                         </>
                        )}
                     </div>
                   </div>

@@ -493,6 +493,7 @@ export interface CalculatorInputs {
   includeStairs: boolean;
   stairSteps: number;
   stairWidthFt?: number; // 4–8 ft, base 4ft, +$100/step per extra foot
+  includeStairRailing?: boolean; // opt-in, uses same system as deck railing
   // DIY-specific
   skillLevelId?: string;
   selectedTools?: string[];
@@ -521,6 +522,8 @@ export interface CalculatorResult {
   footingHigh: number;
   stairsLow: number;
   stairsHigh: number;
+  stairRailingLow: number;
+  stairRailingHigh: number;
   climatePremium: number;
   perSqFtLow: number;
   perSqFtHigh: number;
@@ -640,12 +643,28 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
       : inputs.stairSteps * ((tier.id === "pt" ? 60 : tier.id === "composite" ? 100 : 120) + widthPremiumPerStep)
     : 0;
 
+  // Stair railing — uses same system as deck railing, per-LF rates
+  // TODO: verify stair railing per-LF rates match real-world pricing (currently reuses deck railing rates)
+  const stairRailingLF = inputs.includeStairs && inputs.includeStairRailing
+    ? Math.round(inputs.stairSteps * 0.75 * 2) // ~0.75 LF of railing per step, both sides
+    : 0;
+  const stairRailingLow = stairRailingLF > 0
+    ? (isDIY
+        ? Math.round(railing.materialPerLFMin * stairRailingLF * railingPremiumMultiplier)
+        : Math.round(railing.installedPerLFMin * stairRailingLF * railingPremiumMultiplier))
+    : 0;
+  const stairRailingHigh = stairRailingLF > 0
+    ? (isDIY
+        ? Math.round(railing.materialPerLFMax * stairRailingLF * railingPremiumMultiplier)
+        : Math.round(railing.installedPerLFMax * stairRailingLF * railingPremiumMultiplier))
+    : 0;
+
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + climatePremium;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + climatePremium;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -699,6 +718,17 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
             low: stairsLow,
             high: stairsHigh,
             note: `${inputs.stairSteps}-step staircase`,
+          },
+        ]
+      : []),
+    ...(stairRailingLow > 0
+      ? [
+          {
+            category: "Stair Railing",
+            pctOfTotal: 0,
+            low: stairRailingLow,
+            high: stairRailingHigh,
+            note: `${railing.label} — ${stairRailingLF} LF (both sides)`,
           },
         ]
       : []),
@@ -849,6 +879,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     footingHigh,
     stairsLow,
     stairsHigh,
+    stairRailingLow,
+    stairRailingHigh,
     climatePremium,
     perSqFtLow,
     perSqFtHigh,
