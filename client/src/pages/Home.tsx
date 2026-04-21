@@ -583,13 +583,13 @@ export default function Home() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Include Stairs?</div>
-                        <button
+                          <button
                           onClick={() => setIncludeStairs((v) => !v)}
                           className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairs ? "bg-amber-500" : "bg-white/20")}
                         >
                           <span className={cn(
-                            "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform",
-                            includeStairs ? "translate-x-5" : "translate-x-0.5"
+                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform",
+                            includeStairs ? "translate-x-[20px]" : "translate-x-[2px]"
                           )} />
                         </button>
                       </div>
@@ -904,8 +904,8 @@ export default function Home() {
                           )}
                         >
                           <span className={cn(
-                            "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform",
-                            subFootings ? "translate-x-5" : "translate-x-0.5"
+                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform",
+                            subFootings ? "translate-x-[20px]" : "translate-x-[2px]"
                           )} />
                         </button>
                       </div>
