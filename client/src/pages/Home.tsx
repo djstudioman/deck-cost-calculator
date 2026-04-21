@@ -72,7 +72,7 @@ export default function Home() {
   const [sizeId, setSizeId] = useState("320");
   const [tierId, setTierId] = useState("composite");
   const [complexityId, setComplexityId] = useState("standard");
-  const [railingId, setRailingId] = useState("composite-select");
+  const [railingId, setRailingId] = useState<string | null>(null);
   const [confirmedRailing, setConfirmedRailing] = useState(false);
   const [railingLF, setRailingLF] = useState(52);
   const [includeStairs, setIncludeStairs] = useState(true);
@@ -105,7 +105,7 @@ export default function Home() {
       sizeId,
       tierId,
       complexityId,
-      railingId,
+      railingId: railingId ?? "composite-select",
       railingLF,
       includeStairs,
       stairSteps,
@@ -174,7 +174,13 @@ export default function Home() {
 
   // Live estimate label changes by audience
   const liveLabel = audience === "contractor" ? "Bid estimate" : "Live estimate";
-  const liveRange = audience === "contractor" && result.contractor
+  // On the railing step, hide the estimate until the user picks a railing card.
+  // This ensures the ticker always visibly updates on first card click (even if
+  // the user picks the composite default, which would otherwise produce the same number).
+  const isRailingStepUnconfirmed = step === 5 && !confirmedRailing && !showResults;
+  const liveRange = isRailingStepUnconfirmed
+    ? "— select railing —"
+    : audience === "contractor" && result.contractor
     ? formatRange(result.contractor.totalBidLow, result.contractor.totalBidHigh)
     : audience === "diy" && result.diy
     ? formatRange(result.diy.totalWithExtrasLow, result.diy.totalWithExtrasHigh)
