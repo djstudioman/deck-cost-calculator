@@ -488,7 +488,7 @@ export interface CalculatorInputs {
   sizeId: string;
   tierId: string;
   complexityId: string;
-  railingId: string;
+  railingId: string | null;
   railingLF: number;
   includeStairs: boolean;
   stairSteps: number;
@@ -577,7 +577,12 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const size = DECK_SIZES.find((s) => s.id === inputs.sizeId)!;
   const tier = MATERIAL_TIERS.find((t) => t.id === inputs.tierId)!;
   const complexity = COMPLEXITIES.find((c) => c.id === inputs.complexityId)!;
-  const railing = RAILING_SYSTEMS.find((r) => r.id === inputs.railingId)!;
+  // When railingId is null (user hasn't selected yet), use composite-select as the
+  // display/label fallback but produce ZERO railing cost so the ticker visibly updates
+  // on first card click regardless of which card is chosen.
+  const railing = RAILING_SYSTEMS.find((r) => r.id === inputs.railingId)
+    ?? RAILING_SYSTEMS.find((r) => r.id === "composite-select")!;
+  const hasRailingSelection = inputs.railingId !== null;
   const isDIY = inputs.audience === "diy";
   const isContractor = inputs.audience === "contractor";
 
@@ -606,14 +611,19 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
       );
 
   // Railing cost — 25% premium applied to all systems except cable and glass
+  // Zero cost until user makes an explicit selection (hasRailingSelection)
   const railingLF = inputs.railingLF;
   const railingPremiumMultiplier = (railing.id === "cable" || railing.id === "glass") ? 1.0 : 1.25;
-  const railingLow = isDIY
-    ? Math.round(railing.materialPerLFMin * railingLF * railingPremiumMultiplier)
-    : Math.round(railing.installedPerLFMin * railingLF * railingPremiumMultiplier);
-  const railingHigh = isDIY
-    ? Math.round(railing.materialPerLFMax * railingLF * railingPremiumMultiplier)
-    : Math.round(railing.installedPerLFMax * railingLF * railingPremiumMultiplier);
+  const railingLow = hasRailingSelection
+    ? (isDIY
+        ? Math.round(railing.materialPerLFMin * railingLF * railingPremiumMultiplier)
+        : Math.round(railing.installedPerLFMin * railingLF * railingPremiumMultiplier))
+    : 0;
+  const railingHigh = hasRailingSelection
+    ? (isDIY
+        ? Math.round(railing.materialPerLFMax * railingLF * railingPremiumMultiplier)
+        : Math.round(railing.installedPerLFMax * railingLF * railingPremiumMultiplier))
+    : 0;
 
   // Footing cost based on region frost depth
   const footingCount = size.sqFt <= 200 ? 6 : size.sqFt <= 350 ? 10 : size.sqFt <= 500 ? 12 : 16;
