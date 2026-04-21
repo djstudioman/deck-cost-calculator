@@ -809,10 +809,10 @@ title="Permit & inspection"
 
                       {/* Jurisdiction cards */}
                       {[
-                        { label: "Rural / Small town", desc: "Low-density areas, rural counties", range: "$100–$250", value: 175, icon: "🌾" },
-                        { label: "Suburban", desc: "Most metro suburbs and mid-size cities", range: "$250–$500", value: 350, icon: "🏘️" },
-                        { label: "Urban / Major metro", desc: "Dense cities, strict code enforcement", range: "$500–$1,000", value: 750, icon: "🏙️" },
-                        { label: "California / High-cost", desc: "CA jurisdictions, NYC, Seattle, etc.", range: "$1,000–$2,000+", value: 1500, icon: "💰" },
+{ label: "Rural / Small town", desc: "Low-density areas, rural counties", range: "$200–$500", value: 350, icon: "🌾" },
+                         { label: "Suburban", desc: "Most metro suburbs and mid-size cities", range: "$500–$1,000", value: 700, icon: "🏘️" },
+                         { label: "Urban / Major metro", desc: "Dense cities, strict code enforcement", range: "$1,000–$2,000", value: 1500, icon: "🏙️" },
+                         { label: "California / High-cost", desc: "CA jurisdictions, NYC, Seattle, etc.", range: "$2,000–$4,000+", value: 3000, icon: "💰" },
                       ].map((p) => (
                         <button
                           key={p.label}
@@ -875,7 +875,7 @@ title="Permit & inspection"
                           {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
                         </div>
                       </button>
-                      {[{ label: "Rural / Small town", value: 150, range: "$75–$250", icon: "🏘️" }, { label: "Suburban", value: 350, range: "$200–$500", icon: "🏡" }, { label: "Urban / Major metro", value: 600, range: "$400–$800", icon: "🏙️" }, { label: "California / High-cost", value: 1000, range: "$600–$1,500+", icon: "☀️" }].map((p) => (
+                      {[{ label: "Rural / Small town", value: 300, range: "$150–$500", icon: "🏘️" }, { label: "Suburban", value: 700, range: "$400–$1,000", icon: "🏡" }, { label: "Urban / Major metro", value: 1200, range: "$800–$1,600", icon: "🏙️" }, { label: "California / High-cost", value: 2000, range: "$1,200–$3,000+", icon: "☀️" }].map((p) => (
                         <button
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
@@ -1139,7 +1139,7 @@ title="Subcontracting"
                           {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
                         </div>
                       </button>
-                      {[{ label: "Rural / Small town", value: 150, range: "$75–$250", icon: "🏘️" }, { label: "Suburban", value: 350, range: "$200–$500", icon: "🏡" }, { label: "Urban / Major metro", value: 600, range: "$400–$800", icon: "🏙️" }, { label: "California / High-cost", value: 1000, range: "$600–$1,500+", icon: "☀️" }].map((p) => (
+                      {[{ label: "Rural / Small town", value: 300, range: "$150–$500", icon: "🏘️" }, { label: "Suburban", value: 700, range: "$400–$1,000", icon: "🏡" }, { label: "Urban / Major metro", value: 1200, range: "$800–$1,600", icon: "🏙️" }, { label: "California / High-cost", value: 2000, range: "$1,200–$3,000+", icon: "☀️" }].map((p) => (
                         <button
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
