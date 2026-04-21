@@ -499,7 +499,9 @@ export interface CalculatorInputs {
   permitCost?: number;
   // Contractor-specific
   markupTierId?: string;
+  includeMarkup?: boolean;
   crewSizeId?: string;
+  includeCrew?: boolean;
   subFootings?: boolean;
   markupMaterials?: boolean;
 }
@@ -780,8 +782,14 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // ── Contractor extras ─────────────────────────────────────────────────────
   let contractorExtras: CalculatorResult["contractor"] | undefined;
   if (isContractor) {
-    const markupTier = CONTRACTOR_MARKUP_TIERS.find((m) => m.id === (inputs.markupTierId ?? "standard"))!;
-    const crewSize = CREW_SIZES.find((c) => c.id === (inputs.crewSizeId ?? "two"))!;
+    const useMarkup = inputs.includeMarkup !== false;
+    const useCrew = inputs.includeCrew !== false;
+    const markupTier = useMarkup
+      ? CONTRACTOR_MARKUP_TIERS.find((m) => m.id === (inputs.markupTierId ?? "standard"))!
+      : { ...CONTRACTOR_MARKUP_TIERS[0], materialMarkup: 0, laborMarkup: 0, overheadPct: 0, id: "none", label: "No Markup", description: "" };
+    const crewSize = useCrew
+      ? CREW_SIZES.find((c) => c.id === (inputs.crewSizeId ?? "two"))!
+      : { ...CREW_SIZES[1], laborEfficiencyFactor: 1.0, id: "none", label: "Not specified" };
 
     const materialCostRaw = Math.round((materialsLow + materialsHigh) / 2);
     const laborCostRaw = Math.round((laborLow + laborHigh) / 2);

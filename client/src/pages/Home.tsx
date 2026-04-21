@@ -87,7 +87,9 @@ export default function Home() {
 
   // Contractor-specific inputs
   const [markupTierId, setMarkupTierId] = useState("standard");
+  const [includeCrew, setIncludeCrew] = useState(true);
   const [crewSizeId, setCrewSizeId] = useState("two");
+  const [includeMarkup, setIncludeMarkup] = useState(true);
   const [subFootings, setSubFootings] = useState(false);
 
   const totalSteps = getTotalSteps(audience);
@@ -109,13 +111,15 @@ export default function Home() {
       includePermit,
       permitCost,
       markupTierId,
+      includeMarkup,
       crewSizeId,
+      includeCrew,
       subFootings,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, railingLF,
       includeStairs, stairSteps, skillLevelId, selectedTools, includePermit,
-      permitCost, markupTierId, crewSizeId, subFootings,
+      permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     ]
   );
 
@@ -152,6 +156,8 @@ export default function Home() {
     setStep(0);
     setShowResults(false);
     setConfirmedStep(null);
+    setIncludeMarkup(true);
+    setIncludeCrew(true);
   }, []);
 
   const toggleTool = (id: string) => {
@@ -830,10 +836,25 @@ title="Markup & crew size"
                   <div className="space-y-6">
                     {/* Markup tier */}
                     <div>
-                      <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-3">
-                        Margin Tier
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Margin Tier</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">{includeMarkup ? "On" : "Off"}</span>
+                          <button
+                            onClick={() => setIncludeMarkup(!includeMarkup)}
+                            className={cn(
+                              "relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none",
+                              includeMarkup ? "bg-blue-500" : "bg-white/20"
+                            )}
+                          >
+                            <span className={cn(
+                              "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+                              includeMarkup ? "translate-x-[22px]" : "translate-x-0.5"
+                            )} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className={cn("flex flex-col gap-2 transition-opacity", !includeMarkup && "opacity-30 pointer-events-none")}>
                         {CONTRACTOR_MARKUP_TIERS.map((m) => (
                           <button
                             key={m.id}
@@ -869,10 +890,25 @@ title="Markup & crew size"
 
                     {/* Crew size */}
                     <div>
-                      <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-3">
-                        Crew Size
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                       <div className="flex items-center justify-between mb-3">
+                         <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Crew Size</div>
+                         <div className="flex items-center gap-2">
+                           <span className="text-xs text-slate-400">{includeCrew ? "On" : "Off"}</span>
+                           <button
+                             onClick={() => setIncludeCrew(!includeCrew)}
+                             className={cn(
+                               "relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none",
+                               includeCrew ? "bg-blue-500" : "bg-white/20"
+                             )}
+                           >
+                             <span className={cn(
+                               "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
+                               includeCrew ? "translate-x-[22px]" : "translate-x-0.5"
+                             )} />
+                           </button>
+                         </div>
+                       </div>
+                       <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity", !includeCrew && "opacity-30 pointer-events-none")}>
                         {CREW_SIZES.map((c) => (
                           <button
                             key={c.id}
