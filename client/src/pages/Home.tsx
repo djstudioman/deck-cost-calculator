@@ -301,7 +301,7 @@ export default function Home() {
               {/* ── STEP 0: AUDIENCE ── */}
               {step === 0 && (
                 <StepCard
-title="Who is building this?"
+title="Who are you?"
                    subtitle="We'll tailor the estimate — and the questions — to your situation."
                    onNext={goNext}
                    showTapHint={confirmedStep === step}
