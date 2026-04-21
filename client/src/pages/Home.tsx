@@ -622,7 +622,7 @@ title="Railing & extras"
                       </div>
                       {includeStairs && (
                         <div className="flex items-center gap-3">
-                          <input type="range" min={2} max={12} step={1} value={stairSteps}
+                          <input type="range" min={2} max={18} step={1} value={stairSteps}
                             onChange={(e) => setStairSteps(Number(e.target.value))}
                             className="flex-1 accent-amber-500" />
                           <span className="font-mono text-sm text-amber-400 w-20 text-right">{stairSteps} steps</span>
