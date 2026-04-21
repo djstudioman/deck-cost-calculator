@@ -32,11 +32,6 @@ export default function StepCard({
 
       <div className="mb-6">{children}</div>
 
-      {showTapHint && (
-        <div className="mb-3 text-xs text-amber-400/70 animate-pulse text-center">
-          Tap the selected option again to continue →
-        </div>
-      )}
       <div className="flex items-center gap-3">
         {onBack && (
           <button
