@@ -62,6 +62,9 @@ function getTotalSteps(audience: AudienceType): number {
 export default function Home() {
   const [step, setStep] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  // Tracks which step has had its selection "confirmed" (i.e. clicked once already).
+  // First click on a card selects it; second click on the already-selected card advances.
+  const [confirmedStep, setConfirmedStep] = useState<number | null>(null);
 
   // Shared inputs
   const [audience, setAudience] = useState<AudienceType>("homeowner");
@@ -119,11 +122,28 @@ export default function Home() {
   const result: CalculatorResult = useMemo(() => calculate(inputs), [inputs]);
 
   const goNext = useCallback(() => {
+    setConfirmedStep(null); // reset confirmation for the next step
     if (step < totalSteps - 1) setStep((s) => s + 1);
     else setShowResults(true);
   }, [step, totalSteps]);
 
+  // Call this from every single-select card handler.
+  // First call: marks the step as confirmed (highlights the card).
+  // Second call on the same already-selected option: advances.
+  const selectOrAdvance = useCallback(
+    (isAlreadySelected: boolean, selectFn: () => void) => {
+      if (isAlreadySelected && confirmedStep === step) {
+        goNext();
+      } else {
+        selectFn();
+        setConfirmedStep(step);
+      }
+    },
+    [confirmedStep, step, goNext]
+  );
+
   const goBack = useCallback(() => {
+    setConfirmedStep(null);
     if (showResults) setShowResults(false);
     else if (step > 0) setStep((s) => s - 1);
   }, [step, showResults]);
@@ -131,6 +151,7 @@ export default function Home() {
   const restart = useCallback(() => {
     setStep(0);
     setShowResults(false);
+    setConfirmedStep(null);
   }, []);
 
   const toggleTool = (id: string) => {
@@ -272,9 +293,10 @@ export default function Home() {
               {/* ── STEP 0: AUDIENCE ── */}
               {step === 0 && (
                 <StepCard
-                  title="Who is building this?"
-                  subtitle="We'll tailor the estimate — and the questions — to your situation."
-                  onNext={goNext}
+title="Who is building this?"
+                   subtitle="We'll tailor the estimate — and the questions — to your situation."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   nextLabel="Continue"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -306,7 +328,7 @@ export default function Home() {
                     ].map((opt) => (
                       <button
                         key={opt.id}
-                        onClick={() => { if (audience === opt.id) { goNext(); } else { setAudience(opt.id as AudienceType); } }}
+                        onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
                           audience === opt.id
@@ -340,16 +362,17 @@ export default function Home() {
               {/* ── STEP 1: REGION ── */}
               {step === 1 && (
                 <StepCard
-                  title="Where is your deck?"
-                  subtitle="Regional labor rates and climate factors significantly affect total cost."
-                  onNext={goNext}
+title="Where is your deck?"
+                   subtitle="Regional labor rates and climate factors significantly affect total cost."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {REGIONS.map((r) => (
                       <button
                         key={r.id}
-                        onClick={() => { if (regionId === r.id) { goNext(); } else { setRegionId(r.id); } }}
+                        onClick={() => selectOrAdvance(regionId === r.id, () => setRegionId(r.id))}
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
@@ -386,9 +409,10 @@ export default function Home() {
               {/* ── STEP 2: SIZE ── */}
               {step === 2 && (
                 <StepCard
-                  title="How large is your deck?"
-                  subtitle="Larger decks have lower per-sq-ft costs due to economies of scale."
-                  onNext={goNext}
+title="How large is your deck?"
+                   subtitle="Larger decks have lower per-sq-ft costs due to economies of scale."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -404,7 +428,7 @@ export default function Home() {
                       return (
                         <button
                           key={s.id}
-                          onClick={() => { if (sizeId === s.id) { goNext(); } else { setSizeId(s.id); } }}
+                          onClick={() => selectOrAdvance(sizeId === s.id, () => setSizeId(s.id))}
                           className={cn(
                             "text-left p-3 rounded-lg border transition-all",
                             sizeId === s.id
@@ -434,16 +458,17 @@ export default function Home() {
               {/* ── STEP 3: MATERIAL TIER ── */}
               {step === 3 && (
                 <StepCard
-                  title="What material tier?"
-                  subtitle="The single biggest driver of cost after labor."
-                  onNext={goNext}
+title="What material tier?"
+                   subtitle="The single biggest driver of cost after labor."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                 >
                   <div className="flex flex-col gap-3">
                     {MATERIAL_TIERS.map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => { if (tierId === t.id) { goNext(); } else { setTierId(t.id); } }}
+                        onClick={() => selectOrAdvance(tierId === t.id, () => setTierId(t.id))}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
@@ -499,12 +524,13 @@ export default function Home() {
                   }
                   onNext={goNext}
                   onBack={goBack}
+                  showTapHint={confirmedStep === step}
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {COMPLEXITIES.map((c) => (
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                     {COMPLEXITIES.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => { if (complexityId === c.id) { goNext(); } else { setComplexityId(c.id); } }}
+                        onClick={() => selectOrAdvance(complexityId === c.id, () => setComplexityId(c.id))}
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
@@ -534,9 +560,10 @@ export default function Home() {
               {/* ── STEP 5: RAILING & EXTRAS ── */}
               {step === 5 && (
                 <StepCard
-                  title="Railing & extras"
-                  subtitle="Railing can represent 15–30% of total project cost."
-                  onNext={goNext}
+title="Railing & extras"
+                   subtitle="Railing can represent 15–30% of total project cost."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel={audience === "homeowner" ? "See My Estimate →" : "Continue →"}
                 >
@@ -547,7 +574,7 @@ export default function Home() {
                         {RAILING_SYSTEMS.map((r) => (
                           <button
                             key={r.id}
-                            onClick={() => { if (railingId === r.id) { goNext(); } else { setRailingId(r.id); } }}
+                            onClick={() => selectOrAdvance(railingId === r.id, () => setRailingId(r.id))}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               railingId === r.id
@@ -613,9 +640,10 @@ export default function Home() {
               {/* ── DIY STEP 6: SKILL LEVEL & TOOL RENTAL ── */}
               {step === 6 && audience === "diy" && (
                 <StepCard
-                  title="Your skill level & tools"
-                  subtitle="Skill level affects material waste. Tool rental adds to your true project cost."
-                  onNext={goNext}
+title="Your skill level & tools"
+                   subtitle="Skill level affects material waste. Tool rental adds to your true project cost."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="Continue →"
                 >
@@ -629,7 +657,7 @@ export default function Home() {
                         {DIY_SKILL_LEVELS.map((s) => (
                           <button
                             key={s.id}
-                            onClick={() => { if (skillLevelId === s.id) { goNext(); } else { setSkillLevelId(s.id); } }}
+                            onClick={() => selectOrAdvance(skillLevelId === s.id, () => setSkillLevelId(s.id))}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               skillLevelId === s.id
@@ -712,9 +740,10 @@ export default function Home() {
               {/* ── DIY STEP 7: PERMIT ── */}
               {step === 7 && audience === "diy" && (
                 <StepCard
-                  title="Permit & inspection"
-                  subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
-                  onNext={goNext}
+title="Permit & inspection"
+                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="See My Estimate →"
                 >
@@ -725,7 +754,7 @@ export default function Home() {
                     <div className="grid grid-cols-2 gap-3">
                       {/* No permit card */}
                       <button
-                        onClick={() => { if (!includePermit) { goNext(); } else { setIncludePermit(false); setPermitCost(0); } }}
+                        onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
                           "p-4 rounded-lg border text-left transition-all col-span-2",
                           !includePermit
@@ -755,7 +784,7 @@ export default function Home() {
                       ].map((p) => (
                         <button
                           key={p.label}
-                          onClick={() => { if (includePermit && permitCost === p.value) { goNext(); } else { setIncludePermit(true); setPermitCost(p.value); } }}
+                          onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
                             includePermit && permitCost === p.value
@@ -791,9 +820,10 @@ export default function Home() {
               {/* ── CONTRACTOR STEP 6: MARKUP & CREW ── */}
               {step === 6 && audience === "contractor" && (
                 <StepCard
-                  title="Markup & crew size"
-                  subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
-                  onNext={goNext}
+title="Markup & crew size"
+                   subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="Continue →"
                 >
@@ -807,7 +837,7 @@ export default function Home() {
                         {CONTRACTOR_MARKUP_TIERS.map((m) => (
                           <button
                             key={m.id}
-                            onClick={() => { if (markupTierId === m.id) { goNext(); } else { setMarkupTierId(m.id); } }}
+                            onClick={() => selectOrAdvance(markupTierId === m.id, () => setMarkupTierId(m.id))}
                             className={cn(
                               "text-left p-4 rounded-lg border transition-all",
                               markupTierId === m.id
@@ -846,7 +876,7 @@ export default function Home() {
                         {CREW_SIZES.map((c) => (
                           <button
                             key={c.id}
-                            onClick={() => { if (crewSizeId === c.id) { goNext(); } else { setCrewSizeId(c.id); } }}
+                            onClick={() => selectOrAdvance(crewSizeId === c.id, () => setCrewSizeId(c.id))}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               crewSizeId === c.id
@@ -869,9 +899,10 @@ export default function Home() {
               {/* ── CONTRACTOR STEP 7: SUBCONTRACTING ── */}
               {step === 7 && audience === "contractor" && (
                 <StepCard
-                  title="Subcontracting"
-                  subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
-                  onNext={goNext}
+title="Subcontracting"
+                   subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
+                   onNext={goNext}
+                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="See My Bid Estimate →"
                 >
