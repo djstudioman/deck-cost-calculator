@@ -601,14 +601,15 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
           baseInstalled.high * laborFraction * regionMultiplier * complexityMultiplier
       );
 
-  // Railing cost
+  // Railing cost — 25% premium applied to all systems except cable and glass
   const railingLF = inputs.railingLF;
+  const railingPremiumMultiplier = (railing.id === "cable" || railing.id === "glass") ? 1.0 : 1.25;
   const railingLow = isDIY
-    ? Math.round(railing.materialPerLFMin * railingLF)
-    : Math.round(railing.installedPerLFMin * railingLF);
+    ? Math.round(railing.materialPerLFMin * railingLF * railingPremiumMultiplier)
+    : Math.round(railing.installedPerLFMin * railingLF * railingPremiumMultiplier);
   const railingHigh = isDIY
-    ? Math.round(railing.materialPerLFMax * railingLF)
-    : Math.round(railing.installedPerLFMax * railingLF);
+    ? Math.round(railing.materialPerLFMax * railingLF * railingPremiumMultiplier)
+    : Math.round(railing.installedPerLFMax * railingLF * railingPremiumMultiplier);
 
   // Footing cost based on region frost depth
   const footingCount = size.sqFt <= 200 ? 6 : size.sqFt <= 350 ? 10 : size.sqFt <= 500 ? 12 : 16;
