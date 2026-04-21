@@ -76,6 +76,7 @@ export default function Home() {
   const [railingLF, setRailingLF] = useState(52);
   const [includeStairs, setIncludeStairs] = useState(true);
   const [stairSteps, setStairSteps] = useState(4);
+  const [stairWidthFt, setStairWidthFt] = useState(4);
 
   // DIY-specific inputs
   const [skillLevelId, setSkillLevelId] = useState("intermediate");
@@ -106,6 +107,7 @@ export default function Home() {
       railingLF,
       includeStairs,
       stairSteps,
+      stairWidthFt,
       skillLevelId,
       selectedTools,
       includePermit,
@@ -118,7 +120,7 @@ export default function Home() {
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, railingLF,
-      includeStairs, stairSteps, skillLevelId, selectedTools, includePermit,
+      includeStairs, stairSteps, stairWidthFt, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     ]
   );
@@ -627,14 +629,37 @@ title="Railing & extras"
                            />
                         </button>
                       </div>
-                      {includeStairs && (
-                        <div className="flex items-center gap-3">
-                          <input type="range" min={2} max={18} step={1} value={stairSteps}
-                            onChange={(e) => setStairSteps(Number(e.target.value))}
-                            className="flex-1 accent-amber-500" />
-                          <span className="font-mono text-sm text-amber-400 w-20 text-right">{stairSteps} steps</span>
-                        </div>
-                      )}
+                       {includeStairs && (
+                         <div className="space-y-3 mt-1">
+                           <div className="flex items-center gap-3">
+                             <span className="text-xs text-slate-400 w-16 shrink-0">Steps</span>
+                             <input type="range" min={2} max={18} step={1} value={stairSteps}
+                               onChange={(e) => setStairSteps(Number(e.target.value))}
+                               className="flex-1 accent-amber-500" />
+                             <span className="font-mono text-sm text-amber-400 w-16 text-right">{stairSteps} steps</span>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             <span className="text-xs text-slate-400 w-16 shrink-0">Width</span>
+                             <div className="flex flex-1 gap-1">
+                               {[4,5,6,7,8].map(w => (
+                                 <button
+                                   key={w}
+                                   onClick={() => setStairWidthFt(w)}
+                                   className={cn(
+                                     "flex-1 py-1 rounded text-xs font-semibold border transition-colors",
+                                     stairWidthFt === w
+                                       ? "bg-amber-500 border-amber-500 text-slate-900"
+                                       : "bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/50"
+                                   )}
+                                 >{w}ft</button>
+                               ))}
+                             </div>
+                             <span className="font-mono text-sm text-amber-400 w-16 text-right">
+                               {stairWidthFt === 4 ? 'base' : `+$${(stairWidthFt - 4) * 100}/step`}
+                             </span>
+                           </div>
+                         </div>
+                       )}
                     </div>
                   </div>
                 </StepCard>

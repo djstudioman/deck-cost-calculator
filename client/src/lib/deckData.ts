@@ -492,6 +492,7 @@ export interface CalculatorInputs {
   railingLF: number;
   includeStairs: boolean;
   stairSteps: number;
+  stairWidthFt?: number; // 4–8 ft, base 4ft, +$100/step per extra foot
   // DIY-specific
   skillLevelId?: string;
   selectedTools?: string[];
@@ -624,15 +625,17 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     : Math.round(footingCostPerUnit * footingCount * 2.0);
 
   // Stairs
+  const stairWidthFt = inputs.stairWidthFt ?? 4;
+  const widthPremiumPerStep = Math.max(0, stairWidthFt - 4) * 100; // +$100/step per ft over 4ft base
   const stairsLow = inputs.includeStairs
     ? isDIY
       ? inputs.stairSteps * (tier.id === "pt" ? 15 : tier.id === "composite" ? 35 : 40)
-      : inputs.stairSteps * (tier.id === "pt" ? 30 : tier.id === "composite" ? 50 : 60)
+      : inputs.stairSteps * ((tier.id === "pt" ? 30 : tier.id === "composite" ? 50 : 60) + widthPremiumPerStep)
     : 0;
   const stairsHigh = inputs.includeStairs
     ? isDIY
       ? inputs.stairSteps * (tier.id === "pt" ? 30 : tier.id === "composite" ? 75 : 80)
-      : inputs.stairSteps * (tier.id === "pt" ? 60 : tier.id === "composite" ? 100 : 120)
+      : inputs.stairSteps * ((tier.id === "pt" ? 60 : tier.id === "composite" ? 100 : 120) + widthPremiumPerStep)
     : 0;
 
   // Climate premium (only for professional installs)
