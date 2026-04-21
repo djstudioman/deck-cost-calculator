@@ -836,6 +836,15 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
       ? CREW_SIZES.find((c) => c.id === (inputs.crewSizeId ?? "two"))!
       : { ...CREW_SIZES[1], laborEfficiencyFactor: 1.0, id: "none", label: "Not specified" };
 
+    // Include all cost components in the bid base (railing, footings, stairs, climate)
+    // so the ticker updates when any of these change.
+    const extrasMid = Math.round(
+      (railingLow + railingHigh) / 2 +
+      (footingLow + footingHigh) / 2 +
+      (stairsLow + stairsHigh) / 2 +
+      (stairRailingLow + stairRailingHigh) / 2 +
+      climatePremium
+    );
     const materialCostRaw = Math.round((materialsLow + materialsHigh) / 2);
     const laborCostRaw = Math.round((laborLow + laborHigh) / 2);
 
@@ -843,9 +852,12 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const laborWithMarkup = Math.round(laborCostRaw * (1 + markupTier.laborMarkup));
     const overhead = Math.round((materialWithMarkup + laborWithMarkup) * markupTier.overheadPct);
 
+    // Apply markup to extras as well (railing, footings, stairs are billable line items)
+    const extrasWithMarkup = Math.round(extrasMid * (1 + markupTier.materialMarkup));
+
     const subFootingsCost = inputs.subFootings ? Math.round((footingLow + footingHigh) / 2 * 1.15) : 0;
 
-    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + subFootingsCost;
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost;
     const bidVariance = 0.08; // ±8% range
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
