@@ -849,7 +849,7 @@ title="Markup & crew size"
                           >
                             <span className={cn(
                               "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
-                              includeMarkup ? "translate-x-[22px]" : "translate-x-0.5"
+                              includeMarkup ? "translate-x-[20px]" : "translate-x-0.5"
                             )} />
                           </button>
                         </div>
@@ -903,7 +903,7 @@ title="Markup & crew size"
                            >
                              <span className={cn(
                                "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
-                               includeCrew ? "translate-x-[22px]" : "translate-x-0.5"
+                               includeCrew ? "translate-x-[20px]" : "translate-x-0.5"
                              )} />
                            </button>
                          </div>
