@@ -244,6 +244,26 @@ function HomeownerPanel({ result, onBack, onRestart }: ResultsPanelProps) {
 
       <BreakdownChart result={result} colors={CATEGORY_COLORS} accent="#F59E0B" />
 
+      {/* Permit line item */}
+      {result.permitCost > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-4"
+        >
+          <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase mb-3">Permit &amp; Inspection</div>
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full shrink-0 bg-amber-400" />
+              <span className="text-slate-300">Building permit fee</span>
+            </div>
+            <span className="font-mono font-semibold text-amber-400">{formatCurrencyFull(result.permitCost)}</span>
+          </div>
+          <div className="text-xs text-slate-500 mt-2">Permit fees are typically passed through to the client. Confirm this is included in your contractor&apos;s quote.</div>
+        </motion.div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -601,6 +621,15 @@ function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
                   marked: c.subFootingsCost,
                   note: "Subcontracted at cost + 15%",
                   color: "#A78BFA",
+                }]
+              : []),
+            ...(result.permitCost > 0
+              ? [{
+                  label: "Permit & inspection",
+                  basis: result.permitCost,
+                  marked: result.permitCost,
+                  note: "Passed through at cost",
+                  color: "#FB923C",
                 }]
               : []),
           ].map((row) => (

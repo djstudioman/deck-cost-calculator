@@ -535,6 +535,7 @@ export interface CalculatorResult {
   railing: RailingSystem;
   isDIY: boolean;
   isContractor: boolean;
+  permitCost: number;
   // DIY extras
   diy?: {
     skillLevel: typeof DIY_SKILL_LEVELS[number];
@@ -862,6 +863,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     railing,
     isDIY,
     isContractor,
+    permitCost: inputs.includePermit ? (inputs.permitCost ?? 350) : 0,
     diy: diyExtras,
     contractor: contractorExtras,
   };
