@@ -621,9 +621,10 @@ title="Railing & extras"
                           className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairs ? "bg-amber-500" : "bg-white/20")}
                         >
                           <span className={cn(
-                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform",
-                            includeStairs ? "translate-x-[20px]" : "translate-x-[2px]"
-                          )} />
+                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                           )}
+                           style={{ transform: includeStairs ? 'translateX(20px)' : 'translateX(2px)' }}
+                           />
                         </button>
                       </div>
                       {includeStairs && (
@@ -847,10 +848,10 @@ title="Markup & crew size"
                               includeMarkup ? "bg-blue-500" : "bg-white/20"
                             )}
                           >
-                            <span className={cn(
-                              "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
-                              includeMarkup ? "translate-x-[20px]" : "translate-x-0.5"
-                            )} />
+                            <span
+                              className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
+                              style={{ transform: includeMarkup ? 'translateX(20px)' : 'translateX(2px)' }}
+                            />
                           </button>
                         </div>
                       </div>
@@ -901,10 +902,10 @@ title="Markup & crew size"
                                includeCrew ? "bg-blue-500" : "bg-white/20"
                              )}
                            >
-                             <span className={cn(
-                               "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200",
-                               includeCrew ? "translate-x-[20px]" : "translate-x-0.5"
-                             )} />
+                             <span
+                               className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
+                               style={{ transform: includeCrew ? 'translateX(20px)' : 'translateX(2px)' }}
+                             />
                            </button>
                          </div>
                        </div>
@@ -971,9 +972,10 @@ title="Subcontracting"
                           )}
                         >
                           <span className={cn(
-                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform",
-                            subFootings ? "translate-x-[20px]" : "translate-x-[2px]"
-                          )} />
+                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                           )}
+                           style={{ transform: subFootings ? 'translateX(20px)' : 'translateX(2px)' }}
+                           />
                         </button>
                       </div>
                     </div>
