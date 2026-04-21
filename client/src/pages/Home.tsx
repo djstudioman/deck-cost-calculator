@@ -46,12 +46,12 @@ const SHARED_STEP_LABELS = [
 ];
 
 const DIY_EXTRA_LABELS = ["Skill & Tools", "Permit"];
-const CONTRACTOR_EXTRA_LABELS = ["Markup & Crew", "Subcontracting"];
+const CONTRACTOR_EXTRA_LABELS = ["Markup & Crew", "Subcontracting", "Permit"];
 
 function getStepLabels(audience: AudienceType): string[] {
   if (audience === "diy") return [...SHARED_STEP_LABELS, ...DIY_EXTRA_LABELS];
   if (audience === "contractor") return [...SHARED_STEP_LABELS, ...CONTRACTOR_EXTRA_LABELS];
-  return SHARED_STEP_LABELS;
+  return [...SHARED_STEP_LABELS, "Permit"]; // homeowner
 }
 
 function getTotalSteps(audience: AudienceType): number {
@@ -573,7 +573,7 @@ title="Railing & extras"
                    onNext={goNext}
                    showTapHint={confirmedStep === step}
                   onBack={goBack}
-                  nextLabel={audience === "homeowner" ? "See My Estimate →" : "Continue →"}
+                  nextLabel="Continue →"
                 >
                   <div className="space-y-5">
                     <div>
@@ -845,8 +845,61 @@ title="Permit & inspection"
                 </StepCard>
               )}
 
+              {/* ── HOMEOWNER STEP 6: PERMIT ── */}
+              {step === 6 && audience === "homeowner" && (
+                <StepCard
+                  title="Permit & inspection"
+                  subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
+                  onBack={goBack}
+                  nextLabel="See My Estimate →"
+                >
+                  <div className="space-y-3">
+                    <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Select your permit situation</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
+                        className={cn(
+                          "p-4 rounded-lg border text-left transition-all col-span-2",
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-lg">🚫</span>
+                          <div className="flex-1">
+                            <div className="font-semibold text-sm text-white">No permit needed</div>
+                            <div className="text-xs text-slate-400 mt-1">Ground-level decks under 30" high, or decks under 200 sq ft, are exempt from permits in many jurisdictions. Verify with your local building department.</div>
+                            <div className="text-xs text-slate-500 mt-1">$0 permit cost</div>
+                          </div>
+                          {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
+                        </div>
+                      </button>
+                      {[{ label: "Rural / Small town", value: 150, range: "$75–$250", icon: "🏘️" }, { label: "Suburban", value: 350, range: "$200–$500", icon: "🏡" }, { label: "Urban / Major metro", value: 600, range: "$400–$800", icon: "🏙️" }, { label: "California / High-cost", value: 1000, range: "$600–$1,500+", icon: "☀️" }].map((p) => (
+                        <button
+                          key={p.label}
+                          onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
+                          className={cn(
+                            "p-3 rounded-lg border text-left transition-all",
+                            includePermit && permitCost === p.value ? "border-amber-500 bg-amber-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                          )}
+                        >
+                          <div className="text-lg mb-1">{p.icon}</div>
+                          <div className="font-semibold text-xs text-white">{p.label}</div>
+                          <div className="text-sm font-mono text-amber-400 mt-2">{p.range}</div>
+                          {includePermit && permitCost === p.value && <div className="text-xs text-amber-500 mt-1">✓ Selected</div>}
+                        </button>
+                      ))}
+                    </div>
+                    {includePermit && (
+                      <div className="text-xs text-slate-500 pt-1">⚠️ Your contractor typically handles permit pulling. Confirm this is included in their quote — some contractors charge separately for permit fees.</div>
+                    )}
+                  </div>
+                </StepCard>
+              )}
+
               {/* ══════════════════════════════════════════════════════════════
-                  CONTRACTOR-SPECIFIC STEPS 6–7
+                  CONTRACTOR-SPECIFIC STEPS 6–8
               ══════════════════════════════════════════════════════════════ */}
 
               {/* ── CONTRACTOR STEP 6: MARKUP & CREW ── */}
@@ -966,7 +1019,7 @@ title="Subcontracting"
                    onNext={goNext}
                    showTapHint={confirmedStep === step}
                   onBack={goBack}
-                  nextLabel="See My Bid Estimate →"
+                  nextLabel="Continue →"
                 >
                   <div className="space-y-4">
                     {/* Sub footings toggle */}
@@ -1051,6 +1104,59 @@ title="Subcontracting"
                           </div>
                         </div>
                       </div>
+                    )}
+                  </div>
+                </StepCard>
+              )}
+
+              {/* ── CONTRACTOR STEP 8: PERMIT ── */}
+              {step === 8 && audience === "contractor" && (
+                <StepCard
+                  title="Permit & inspection"
+                  subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
+                  onBack={goBack}
+                  nextLabel="See My Bid Estimate →"
+                >
+                  <div className="space-y-3">
+                    <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Select your permit situation</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
+                        className={cn(
+                          "p-4 rounded-lg border text-left transition-all col-span-2",
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-lg">🚫</span>
+                          <div className="flex-1">
+                            <div className="font-semibold text-sm text-white">No permit needed</div>
+                            <div className="text-xs text-slate-400 mt-1">Ground-level decks under 30" high, or decks under 200 sq ft, are exempt from permits in many jurisdictions. Verify with your local building department.</div>
+                            <div className="text-xs text-slate-500 mt-1">$0 permit cost</div>
+                          </div>
+                          {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
+                        </div>
+                      </button>
+                      {[{ label: "Rural / Small town", value: 150, range: "$75–$250", icon: "🏘️" }, { label: "Suburban", value: 350, range: "$200–$500", icon: "🏡" }, { label: "Urban / Major metro", value: 600, range: "$400–$800", icon: "🏙️" }, { label: "California / High-cost", value: 1000, range: "$600–$1,500+", icon: "☀️" }].map((p) => (
+                        <button
+                          key={p.label}
+                          onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
+                          className={cn(
+                            "p-3 rounded-lg border text-left transition-all",
+                            includePermit && permitCost === p.value ? "border-blue-500 bg-blue-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                          )}
+                        >
+                          <div className="text-lg mb-1">{p.icon}</div>
+                          <div className="font-semibold text-xs text-white">{p.label}</div>
+                          <div className="text-sm font-mono text-blue-400 mt-2">{p.range}</div>
+                          {includePermit && permitCost === p.value && <div className="text-xs text-blue-500 mt-1">✓ Selected</div>}
+                        </button>
+                      ))}
+                    </div>
+                    {includePermit && (
+                      <div className="text-xs text-slate-500 pt-1">⚠️ Permit fees are typically passed through to the client at cost. Confirm whether your quote includes permit pulling as a line item or as a separate charge.</div>
                     )}
                   </div>
                 </StepCard>
