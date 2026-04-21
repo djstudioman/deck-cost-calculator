@@ -73,6 +73,7 @@ export default function Home() {
   const [tierId, setTierId] = useState("composite");
   const [complexityId, setComplexityId] = useState("standard");
   const [railingId, setRailingId] = useState("composite-select");
+  const [confirmedRailing, setConfirmedRailing] = useState(false);
   const [railingLF, setRailingLF] = useState(52);
   const [includeStairs, setIncludeStairs] = useState(true);
   const [stairSteps, setStairSteps] = useState(4);
@@ -160,6 +161,7 @@ export default function Home() {
     setStep(0);
     setShowResults(false);
     setConfirmedStep(null);
+    setConfirmedRailing(false);
     setIncludeMarkup(true);
     setIncludeCrew(true);
   }, []);
@@ -584,10 +586,19 @@ title="Railing & extras"
                         {RAILING_SYSTEMS.map((r) => (
                           <button
                             key={r.id}
-                            onClick={() => selectOrAdvance(railingId === r.id, () => setRailingId(r.id))}
+                            onClick={() => {
+                              if (!confirmedRailing) {
+                                // First interaction: select and mark confirmed
+                                setRailingId(r.id);
+                                setConfirmedRailing(true);
+                                setConfirmedStep(step);
+                              } else {
+                                selectOrAdvance(railingId === r.id, () => setRailingId(r.id));
+                              }
+                            }}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
-                              railingId === r.id
+                              confirmedRailing && railingId === r.id
                                 ? "border-amber-500 bg-amber-500/10"
                                 : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
