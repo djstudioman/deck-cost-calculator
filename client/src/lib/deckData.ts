@@ -856,8 +856,10 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const extrasWithMarkup = Math.round(extrasMid * (1 + markupTier.materialMarkup));
 
     const subFootingsCost = inputs.subFootings ? Math.round((footingLow + footingHigh) / 2 * 1.15) : 0;
+    // Permit is a pass-through cost on contractor bids (not marked up)
+    const contractorPermitCost = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
-    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost;
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost;
     const bidVariance = 0.08; // ±8% range
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
