@@ -672,9 +672,15 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
+  // Permit cost — included in all path totals so the ticker updates on selection
+  // DIY: also added to totalWithExtrasLow/High (which adds waste + tool rental on top)
+  //      but we keep it in totalLow/totalHigh as the base so the ticker reacts
+  // Contractor: baseBidMid uses contractorPermitCost separately (not from totalLow)
+  const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
+
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -795,10 +801,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const toolRentalLow = selectedTools.reduce((sum, t) => sum + t.dailyRentLow * t.daysNeeded, 0);
     const toolRentalHigh = selectedTools.reduce((sum, t) => sum + t.dailyRentHigh * t.daysNeeded, 0);
 
+    // permitCost is already included in totalLow/totalHigh via permitCostBase above
     const permitCost = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
-    const totalWithExtrasLow = totalLow + wastedMaterialCost + toolRentalLow + permitCost;
-    const totalWithExtrasHigh = totalHigh + Math.round(materialsHigh * wasteFactor) + toolRentalHigh + permitCost;
+    const totalWithExtrasLow = totalLow + wastedMaterialCost + toolRentalLow;
+    const totalWithExtrasHigh = totalHigh + Math.round(materialsHigh * wasteFactor) + toolRentalHigh;
 
     // Savings vs hiring (compare to homeowner installed cost)
     const installedMid = Math.round(
