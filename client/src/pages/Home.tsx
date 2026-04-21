@@ -306,7 +306,7 @@ export default function Home() {
                     ].map((opt) => (
                       <button
                         key={opt.id}
-                        onClick={() => setAudience(opt.id)}
+                        onClick={() => { if (audience === opt.id) { goNext(); } else { setAudience(opt.id as AudienceType); } }}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
                           audience === opt.id
@@ -349,7 +349,7 @@ export default function Home() {
                     {REGIONS.map((r) => (
                       <button
                         key={r.id}
-                        onClick={() => setRegionId(r.id)}
+                        onClick={() => { if (regionId === r.id) { goNext(); } else { setRegionId(r.id); } }}
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
@@ -404,7 +404,7 @@ export default function Home() {
                       return (
                         <button
                           key={s.id}
-                          onClick={() => setSizeId(s.id)}
+                          onClick={() => { if (sizeId === s.id) { goNext(); } else { setSizeId(s.id); } }}
                           className={cn(
                             "text-left p-3 rounded-lg border transition-all",
                             sizeId === s.id
@@ -443,7 +443,7 @@ export default function Home() {
                     {MATERIAL_TIERS.map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => setTierId(t.id)}
+                        onClick={() => { if (tierId === t.id) { goNext(); } else { setTierId(t.id); } }}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
@@ -504,7 +504,7 @@ export default function Home() {
                     {COMPLEXITIES.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => setComplexityId(c.id)}
+                        onClick={() => { if (complexityId === c.id) { goNext(); } else { setComplexityId(c.id); } }}
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
@@ -547,7 +547,7 @@ export default function Home() {
                         {RAILING_SYSTEMS.map((r) => (
                           <button
                             key={r.id}
-                            onClick={() => setRailingId(r.id)}
+                            onClick={() => { if (railingId === r.id) { goNext(); } else { setRailingId(r.id); } }}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               railingId === r.id
@@ -629,7 +629,7 @@ export default function Home() {
                         {DIY_SKILL_LEVELS.map((s) => (
                           <button
                             key={s.id}
-                            onClick={() => setSkillLevelId(s.id)}
+                            onClick={() => { if (skillLevelId === s.id) { goNext(); } else { setSkillLevelId(s.id); } }}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               skillLevelId === s.id
@@ -725,7 +725,7 @@ export default function Home() {
                     <div className="grid grid-cols-2 gap-3">
                       {/* No permit card */}
                       <button
-                        onClick={() => { setIncludePermit(false); setPermitCost(0); }}
+                        onClick={() => { if (!includePermit) { goNext(); } else { setIncludePermit(false); setPermitCost(0); } }}
                         className={cn(
                           "p-4 rounded-lg border text-left transition-all col-span-2",
                           !includePermit
@@ -755,7 +755,7 @@ export default function Home() {
                       ].map((p) => (
                         <button
                           key={p.label}
-                          onClick={() => { setIncludePermit(true); setPermitCost(p.value); }}
+                          onClick={() => { if (includePermit && permitCost === p.value) { goNext(); } else { setIncludePermit(true); setPermitCost(p.value); } }}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
                             includePermit && permitCost === p.value
@@ -807,7 +807,7 @@ export default function Home() {
                         {CONTRACTOR_MARKUP_TIERS.map((m) => (
                           <button
                             key={m.id}
-                            onClick={() => setMarkupTierId(m.id)}
+                            onClick={() => { if (markupTierId === m.id) { goNext(); } else { setMarkupTierId(m.id); } }}
                             className={cn(
                               "text-left p-4 rounded-lg border transition-all",
                               markupTierId === m.id
@@ -846,7 +846,7 @@ export default function Home() {
                         {CREW_SIZES.map((c) => (
                           <button
                             key={c.id}
-                            onClick={() => setCrewSizeId(c.id)}
+                            onClick={() => { if (crewSizeId === c.id) { goNext(); } else { setCrewSizeId(c.id); } }}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               crewSizeId === c.id
