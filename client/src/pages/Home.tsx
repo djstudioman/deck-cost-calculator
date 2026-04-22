@@ -73,9 +73,11 @@ export default function Home() {
   const [sizeId, setSizeId] = useState("320");
   const [tierId, setTierId] = useState("composite");
   const [complexityId, setComplexityId] = useState("standard");
-  const [railingId, setRailingId] = useState<string | null>(null);
+  const [railingId, setRailingId] = useState<string | null>("pt-wood");
   const [confirmedRailing, setConfirmedRailing] = useState(false);
   const [railingLF, setRailingLF] = useState(52);
+  const [deckHeightIn, setDeckHeightIn] = useState(24); // inches off ground
+  const [includeRailing, setIncludeRailing] = useState(true);
   const [includeStairs, setIncludeStairs] = useState(true);
   const [stairSteps, setStairSteps] = useState(4);
   const [stairWidthFt, setStairWidthFt] = useState(4);
@@ -106,7 +108,7 @@ export default function Home() {
       sizeId,
       tierId,
       complexityId,
-      railingId,
+      railingId: includeRailing ? railingId : null,
       railingLF,
       includeStairs,
       stairSteps,
@@ -123,7 +125,7 @@ export default function Home() {
       subFootings,
     }),
     [
-      audience, regionId, sizeId, tierId, complexityId, railingId, railingLF,
+      audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     ]
@@ -640,7 +642,61 @@ export default function Home() {
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-5">
+
+                    {/* Deck height selector */}
                     <div>
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Deck Height Off Ground</div>
+                      <div className="flex items-center gap-3">
+                        <input type="range" min={6} max={120} step={6} value={deckHeightIn}
+                          onChange={(e) => {
+                            const h = Number(e.target.value);
+                            setDeckHeightIn(h);
+                            // If raised above 30", railing becomes required — force it on
+                            if (h >= 30) setIncludeRailing(true);
+                          }}
+                          className={`flex-1 ${ac.accent}`} />
+                        <span className={`font-mono text-sm ${ac.text} w-20 text-right shrink-0`}>
+                          {deckHeightIn < 12 ? `${deckHeightIn}"` : `${Math.floor(deckHeightIn / 12)}' ${deckHeightIn % 12 > 0 ? `${deckHeightIn % 12}"` : ''}`.trim()}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">Most ground-level decks: 18–24". Raised decks: 36"–8'+</div>
+                    </div>
+
+                    {/* Low-deck railing banner */}
+                    {deckHeightIn < 30 && (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3">
+                        <div className="flex items-start gap-2">
+                          <span className="text-amber-400 text-base shrink-0">⚠️</span>
+                          <div>
+                            <div className="text-xs font-semibold text-amber-300">Railing not required by code at this height</div>
+                            <div className="text-xs text-slate-400 mt-0.5">IRC requires guardrails on decks 30" or more above grade. You can still add railing for aesthetics or resale value.</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="text-xs text-slate-300 font-semibold">Include railing anyway?</span>
+                          <button
+                            onClick={() => {
+                              setIncludeRailing(v => !v);
+                              if (includeRailing) {
+                                // Turning off — clear visual selection
+                                setConfirmedRailing(false);
+                              }
+                            }}
+                            className={cn("relative w-10 h-5 rounded-full transition-colors", includeRailing ? ac.bgSolid : "bg-white/20")}
+                          >
+                            <span
+                              className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                              style={{ transform: includeRailing ? 'translateX(20px)' : 'translateX(2px)' }}
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Railing system grid + length — only shown when railing is included */}
+                    {includeRailing && (
+                      <>
+                      <div>
                       <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Railing System</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {RAILING_SYSTEMS.map((r) => (
@@ -658,7 +714,7 @@ export default function Home() {
                             }}
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
-                              confirmedRailing && railingId === r.id
+                              railingId === r.id
                                 ? `${sel.border} ${sel.bg}`
                                 : "border-white/20 bg-white/[0.03] hover:border-white/30"
                             )}
@@ -687,6 +743,8 @@ export default function Home() {
                       </div>
                       <div className="text-xs text-slate-500 mt-1">Typical 16×20 deck: ~52 LF (three open sides)</div>
                     </div>
+                      </>
+                    )}
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -840,7 +898,7 @@ export default function Home() {
                                       "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
                                       checked ? `${ac.bgSolid} ${ac.border}` : "border-white/30"
                                     )}>
-                                      {checked && <span className="text-[8px] text-black font-bold">✓</span>}
+                                      {checked && <span className="text-[8px] text-white font-bold">✓</span>}
                                     </div>
                                     <span className="font-semibold text-xs text-white">{t.label}</span>
                                   </div>
