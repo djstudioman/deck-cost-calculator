@@ -265,13 +265,16 @@ export interface RailingSystem {
   installedPerLFMax: number;
 }
 
+// Pricing updated April 2026 based on research from HomeAdvisor (Nov 2025), Angi (Mar 2026),
+// HomeGuide, Deck & Rail Supply, Senmit (Dec 2025), Advantage Lumber (Mar 2026).
+// All "installed" figures include materials + professional labor (national average).
 export const RAILING_SYSTEMS: RailingSystem[] = [
-  { id: "pt-wood", label: "PT Wood", materialPerLFMin: 10, materialPerLFMax: 20, installedPerLFMin: 20, installedPerLFMax: 45 },
-  { id: "composite-select", label: "Composite (Trex Select / TimberTech)", materialPerLFMin: 22, materialPerLFMax: 35, installedPerLFMin: 38, installedPerLFMax: 65 },
-  { id: "composite-premium", label: "Composite Premium (Trex Transcend)", materialPerLFMin: 35, materialPerLFMax: 50, installedPerLFMin: 50, installedPerLFMax: 80 },
-  { id: "aluminum", label: "Aluminum Picket Railing", materialPerLFMin: 34, materialPerLFMax: 65, installedPerLFMin: 55, installedPerLFMax: 100 },
-  { id: "cable", label: "Cable Rail (Feeney / Muzata)", materialPerLFMin: 40, materialPerLFMax: 90, installedPerLFMin: 75, installedPerLFMax: 175 },
-  { id: "glass", label: "Glass (Framed)", materialPerLFMin: 80, materialPerLFMax: 200, installedPerLFMin: 150, installedPerLFMax: 350 },
+  { id: "pt-wood",           label: "PT Wood",                              materialPerLFMin: 12,  materialPerLFMax: 25,  installedPerLFMin: 35,  installedPerLFMax: 70  },
+  { id: "composite-select",  label: "Composite (Trex Select / TimberTech)", materialPerLFMin: 22,  materialPerLFMax: 40,  installedPerLFMin: 60,  installedPerLFMax: 110 },
+  { id: "composite-premium", label: "Composite Premium (Trex Transcend)",   materialPerLFMin: 38,  materialPerLFMax: 60,  installedPerLFMin: 80,  installedPerLFMax: 135 },
+  { id: "aluminum",          label: "Aluminum Picket Railing",              materialPerLFMin: 35,  materialPerLFMax: 70,  installedPerLFMin: 65,  installedPerLFMax: 130 },
+  { id: "cable",             label: "Cable Rail (Feeney / Muzata)",         materialPerLFMin: 50,  materialPerLFMax: 110, installedPerLFMin: 100, installedPerLFMax: 250 },
+  { id: "glass",             label: "Glass (Framed)",                       materialPerLFMin: 90,  materialPerLFMax: 220, installedPerLFMin: 150, installedPerLFMax: 500 },
 ];
 
 // ─── INSTALLED COST LOOKUP TABLE ───────────────────────────────────────────────
