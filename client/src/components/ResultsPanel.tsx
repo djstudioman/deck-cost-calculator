@@ -648,6 +648,17 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
   );
   const [copiedCO, setCopiedCO] = useState(false);
 
+  // Draw schedule editable percentages (stored as integers 0–100)
+  const [drawPcts, setDrawPcts] = useState([30, 35, 25, 10]);
+  const drawTotal = drawPcts.reduce((s, p) => s + p, 0);
+  const setDrawPct = (idx: number, val: number) => {
+    setDrawPcts((prev) => {
+      const next = [...prev];
+      next[idx] = Math.max(0, Math.min(100, val));
+      return next;
+    });
+  };
+
   // Custom free-form line items
   interface CustomLineItem { id: string; label: string; amount: number; }
   const [customItems, setCustomItems] = useState<CustomLineItem[]>([]);
@@ -1377,19 +1388,28 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         {/* ── SECTION 2: CASH FLOW DRAW SCHEDULE ── */}
         {(() => {
           const bidMid = Math.round((c.totalBidLow + c.totalBidHigh) / 2);
-          const draws = [
-            { label: "Deposit",              pct: 0.30, when: "Contract signing",       note: "Materials procurement & mobilization" },
-            { label: "Framing draw",         pct: 0.35, when: "Framing complete",        note: "After footings, posts & joists pass inspection" },
-            { label: "Decking draw",         pct: 0.25, when: "Decking complete",        note: "After boards, stairs & railing installed" },
-            { label: "Final payment",        pct: 0.10, when: "Final inspection",        note: "After permit closed & punch list complete" },
+          const DRAW_META = [
+            { label: "Deposit",       when: "Contract signing",  note: "Materials procurement & mobilization" },
+            { label: "Framing draw",  when: "Framing complete",   note: "After footings, posts & joists pass inspection" },
+            { label: "Decking draw",  when: "Decking complete",   note: "After boards, stairs & railing installed" },
+            { label: "Final payment", when: "Final inspection",   note: "After permit closed & punch list complete" },
           ];
+          const isBalanced = drawTotal === 100;
           return (
             <div className="mb-5">
-              <div className="text-xs font-semibold text-slate-300 mb-3">Cash Flow Draw Schedule</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-semibold text-slate-300">Cash Flow Draw Schedule</div>
+                <div className={cn(
+                  "text-[10px] font-mono font-bold px-1.5 py-0.5 rounded",
+                  isBalanced ? "text-green-400 bg-green-500/10" : "text-amber-400 bg-amber-500/10"
+                )}>
+                  {drawTotal}% {isBalanced ? "✓ balanced" : `→ needs ${100 - drawTotal > 0 ? "+" : ""}${100 - drawTotal}%`}
+                </div>
+              </div>
               <div className="space-y-2">
-                {draws.map((d, i) => {
-                  const amount = Math.round(bidMid * d.pct);
-                  const barWidth = d.pct * 100;
+                {DRAW_META.map((d, i) => {
+                  const pct = drawPcts[i];
+                  const amount = Math.round(bidMid * (pct / 100));
                   return (
                     <div key={d.label} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
                       <div className="flex items-center justify-between mb-1.5">
@@ -1402,20 +1422,46 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
                             <div className="text-[10px] text-slate-500">{d.when}</div>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-mono text-sm font-bold text-blue-300">{formatCurrency(amount)}</div>
-                          <div className="text-[10px] text-slate-600">{Math.round(d.pct * 100)}% of bid</div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Editable % input */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setDrawPct(i, pct - 5)}
+                              className="w-5 h-5 rounded bg-white/[0.06] hover:bg-white/[0.12] text-slate-400 text-xs flex items-center justify-center transition-colors"
+                            >-</button>
+                            <input
+                              type="number"
+                              min={0} max={100}
+                              value={pct}
+                              onChange={(e) => setDrawPct(i, parseInt(e.target.value) || 0)}
+                              className="w-10 text-center font-mono text-xs bg-white/[0.06] border border-white/[0.10] rounded text-white py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="text-[10px] text-slate-500">%</span>
+                            <button
+                              onClick={() => setDrawPct(i, pct + 5)}
+                              className="w-5 h-5 rounded bg-white/[0.06] hover:bg-white/[0.12] text-slate-400 text-xs flex items-center justify-center transition-colors"
+                            >+</button>
+                          </div>
+                          <div className="text-right w-20">
+                            <div className="font-mono text-sm font-bold text-blue-300">{formatCurrency(amount)}</div>
+                          </div>
                         </div>
                       </div>
                       <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
-                        <div className="h-full rounded-full bg-blue-500/50" style={{ width: `${barWidth}%` }} />
+                        <div className="h-full rounded-full bg-blue-500/50 transition-all" style={{ width: `${pct}%` }} />
                       </div>
                       <div className="text-[10px] text-slate-600 mt-1">{d.note}</div>
                     </div>
                   );
                 })}
               </div>
-              <div className="mt-2 text-[10px] text-slate-600">Draw schedule based on industry-standard 30/35/25/10 split. Adjust to your contract terms.</div>
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-[10px] text-slate-600">Adjust percentages to match your contract terms. Total must equal 100%.</div>
+                <button
+                  onClick={() => setDrawPcts([30, 35, 25, 10])}
+                  className="text-[10px] text-slate-500 hover:text-slate-300 underline transition-colors shrink-0 ml-2"
+                >Reset to default</button>
+              </div>
             </div>
           );
         })()}
