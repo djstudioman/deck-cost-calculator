@@ -648,6 +648,24 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
   );
   const [copiedCO, setCopiedCO] = useState(false);
 
+  // Custom free-form line items
+  interface CustomLineItem { id: string; label: string; amount: number; }
+  const [customItems, setCustomItems] = useState<CustomLineItem[]>([]);
+  const [customLabel, setCustomLabel] = useState("");
+  const [customAmount, setCustomAmount] = useState("");
+
+  const addCustomItem = () => {
+    const amt = parseFloat(customAmount.replace(/[^0-9.]/g, ""));
+    if (!customLabel.trim() || isNaN(amt) || amt <= 0) return;
+    setCustomItems((prev) => [...prev, { id: `custom-${Date.now()}`, label: customLabel.trim(), amount: Math.round(amt) }]);
+    setCustomLabel("");
+    setCustomAmount("");
+  };
+
+  const removeCustomItem = (id: string) => {
+    setCustomItems((prev) => prev.filter((i) => i.id !== id));
+  };
+
   const toggleItem = (id: ItemId) => {
     setSelectedItems((prev) => {
       const next = new Set(prev);
@@ -674,8 +692,9 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
     return { ...item, qty, totalLow, totalHigh, totalMid };
   });
 
-  const coGrandLow = coLineItems.reduce((s, i) => s + i.totalLow, 0);
-  const coGrandHigh = coLineItems.reduce((s, i) => s + i.totalHigh, 0);
+  const customTotal = customItems.reduce((s, i) => s + i.amount, 0);
+  const coGrandLow = coLineItems.reduce((s, i) => s + i.totalLow, 0) + customTotal;
+  const coGrandHigh = coLineItems.reduce((s, i) => s + i.totalHigh, 0) + customTotal;
 
   // Notify parent whenever change order total changes so the live ticker updates
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -689,6 +708,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
       `Project: ${result.size.sqFt} sq ft ${result.tier.shortLabel} deck — ${result.region.label}`,
       "",
       ...coLineItems.map((i) => `• ${i.label} (${i.qty} ${i.unit}): ${formatRange(i.totalLow, i.totalHigh)}`),
+      ...customItems.map((i) => `• ${i.label}: ${formatCurrency(i.amount)}`),
       "",
       `TOTAL CHANGE ORDER: ${formatRange(coGrandLow, coGrandHigh)}`,
       `(Includes ${Math.round(c.markupTier.materialMarkup * 100)}% material markup, ${Math.round(c.markupTier.laborMarkup * 100)}% labor markup, ${Math.round(c.markupTier.overheadPct * 100)}% overhead)`,
@@ -1175,14 +1195,70 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
           })}
         </div>
 
+        {/* Custom line item entry */}
+        <div className="mt-3 pt-3 border-t border-white/[0.06]">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Custom Line Item</div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Description (e.g. Hot tub blocking)"
+              value={customLabel}
+              onChange={(e) => setCustomLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomItem()}
+              className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.12] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/50 transition-colors"
+            />
+            <input
+              type="text"
+              placeholder="$0"
+              value={customAmount}
+              onChange={(e) => setCustomAmount(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomItem()}
+              className="w-20 bg-white/[0.04] border border-white/[0.12] rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/50 transition-colors font-mono"
+            />
+            <button
+              onClick={addCustomItem}
+              disabled={!customLabel.trim() || !customAmount.trim()}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >Add</button>
+          </div>
+          {customItems.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {customItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">✏️</span>
+                    <span className="text-xs text-slate-300 truncate">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-xs text-blue-300 font-semibold">{formatCurrency(item.amount)}</span>
+                    <button
+                      onClick={() => removeCustomItem(item.id)}
+                      className="w-4 h-4 flex items-center justify-center text-slate-600 hover:text-red-400 transition-colors"
+                      title="Remove"
+                    >
+                      <svg fill="none" viewBox="0 0 10 10" className="w-2.5 h-2.5"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Summary footer — only when items selected */}
-        {coLineItems.length > 0 && (
+        {(coLineItems.length > 0 || customItems.length > 0) && (
           <div className="mt-4 pt-4 border-t border-white/[0.08]">
             <div className="space-y-1.5 mb-3">
               {coLineItems.map((item) => (
                 <div key={item.id} className="flex justify-between text-xs">
                   <span className="text-slate-400">{item.icon} {item.label} × {item.qty} {item.unit}</span>
                   <span className="font-mono text-blue-300">{formatRange(item.totalLow, item.totalHigh)}</span>
+                </div>
+              ))}
+              {customItems.map((item) => (
+                <div key={item.id} className="flex justify-between text-xs">
+                  <span className="text-slate-400">✏️ {item.label}</span>
+                  <span className="font-mono text-blue-300">{formatCurrency(item.amount)}</span>
                 </div>
               ))}
             </div>
@@ -1213,9 +1289,9 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
           </div>
         )}
 
-        {coLineItems.length === 0 && (
+        {coLineItems.length === 0 && customItems.length === 0 && (
           <div className="mt-3 text-center text-xs text-slate-600 py-2">
-            Select one or more scope additions above to generate a change order total.
+            Select scope additions above or add a custom line item to generate a change order total.
           </div>
         )}
       </motion.div>
