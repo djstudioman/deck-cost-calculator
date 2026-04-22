@@ -357,10 +357,6 @@ export default function Home() {
                         desc: "Hiring a contractor. See full installed costs.",
                         extra: "6 questions",
                         color: "amber",
-                        glow: "rgba(245,158,11,0.30)",
-                        borderColor: "#F59E0B",
-                        bgColor: "rgba(245,158,11,0.10)",
-                        textColor: "#FBBF24",
                       },
                       {
                         id: "diy" as AudienceType,
@@ -369,10 +365,6 @@ export default function Home() {
                         desc: "Doing it yourself. Materials + tool rental + permit.",
                         extra: "8 questions",
                         color: "emerald",
-                        glow: "rgba(16,185,129,0.30)",
-                        borderColor: "#10B981",
-                        bgColor: "rgba(16,185,129,0.10)",
-                        textColor: "#34D399",
                       },
                       {
                         id: "contractor" as AudienceType,
@@ -381,34 +373,21 @@ export default function Home() {
                         desc: "Bidding a project. Full markup, crew, and margin analysis.",
                         extra: "8 questions",
                         color: "blue",
-                        glow: "rgba(59,130,246,0.30)",
-                        borderColor: "#3B82F6",
-                        bgColor: "rgba(59,130,246,0.10)",
-                        textColor: "#60A5FA",
                       },
-                    ].map((opt) => {
-                      const isSelected = audience === opt.id;
-                      return (
+                    ].map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
-                          isSelected
+                          audience === opt.id
                             ? opt.color === "emerald"
                               ? "border-emerald-500 bg-emerald-500/10"
                               : opt.color === "blue"
                               ? "border-blue-500 bg-blue-500/10"
                               : "border-amber-500 bg-amber-500/10"
-                            : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
-                        style={isSelected ? {
-                          boxShadow: `0 0 18px 2px ${opt.glow}, 0 0 4px 0 ${opt.glow}`,
-                          transition: "box-shadow 200ms ease",
-                        } : {
-                          boxShadow: "none",
-                          transition: "box-shadow 200ms ease",
-                        }}
                       >
                         <div className="text-2xl mb-2">{opt.icon}</div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
@@ -424,8 +403,7 @@ export default function Home() {
                           {audience === opt.id ? "✓ Selected" : opt.extra}
                         </div>
                       </button>
-                      );
-                    })}
+                    ))}
                   </div>
                 </StepCard>
               )}
@@ -449,7 +427,7 @@ export default function Home() {
                           "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
                             ? `${ac.border} ${ac.bg}`
-                            : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -506,7 +484,7 @@ export default function Home() {
                             "text-left p-3 rounded-lg border transition-all",
                             sizeId === s.id
                               ? `${ac.border} ${ac.bg}`
-                              : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                              : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
                           <div className="flex items-start justify-between">
@@ -547,7 +525,7 @@ export default function Home() {
                           "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
                             ? `${ac.border} ${ac.bg}`
-                            : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -610,7 +588,7 @@ export default function Home() {
                           "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
                             ? `${ac.border} ${ac.bg}`
-                            : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
                         <div className="font-semibold text-sm text-white">{c.label}</div>
@@ -664,7 +642,7 @@ export default function Home() {
                               "text-left p-3 rounded-lg border transition-all",
                               confirmedRailing && railingId === r.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                                : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{r.label}</div>
@@ -794,7 +772,7 @@ export default function Home() {
                               "text-left p-3 rounded-lg border transition-all",
                               skillLevelId === s.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                                : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{s.label}</div>
@@ -834,7 +812,7 @@ export default function Home() {
                                 "text-left p-3 rounded-lg border transition-all",
                                 checked
                                   ? `${ac.border} ${ac.bg}`
-                                  : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
                               )}
                             >
                               <div className="flex items-start justify-between gap-2">
@@ -842,7 +820,7 @@ export default function Home() {
                                   <div className="flex items-center gap-2">
                                     <div className={cn(
                                       "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
-                                      checked ? `${ac.bgSolid} ${ac.border}` : "border-2 border-white/20"
+                                      checked ? `${ac.bgSolid} ${ac.border}` : "border-white/30"
                                     )}>
                                       {checked && <span className="text-[8px] text-black font-bold">✓</span>}
                                     </div>
@@ -892,7 +870,7 @@ export default function Home() {
                           "p-4 rounded-lg border text-left transition-all col-span-2",
                           !includePermit
                             ? "border-slate-400 bg-slate-500/10"
-                            : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -922,7 +900,7 @@ export default function Home() {
                             "p-3 rounded-lg border text-left transition-all",
                             includePermit && permitCost === p.value
                               ? `${ac.border} ${ac.bg}`
-                              : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                              : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
                           <div className="flex items-center gap-2 mb-1">
@@ -964,7 +942,7 @@ export default function Home() {
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
                           "p-4 rounded-lg border text-left transition-all col-span-2",
-                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -983,7 +961,7 @@ export default function Home() {
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
-                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
@@ -1045,7 +1023,7 @@ export default function Home() {
                               "text-left p-4 rounded-lg border transition-all",
                               markupTierId === m.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                                : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -1099,7 +1077,7 @@ export default function Home() {
                               "text-left p-3 rounded-lg border transition-all",
                               crewSizeId === c.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                                : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="font-semibold text-xs text-white">{c.label}</div>
@@ -1129,7 +1107,7 @@ export default function Home() {
                     {/* Sub footings toggle */}
                     <div className={cn(
                       "p-4 rounded-lg border transition-all",
-                      subFootings ? `${ac.border} ${ac.bg}` : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                      subFootings ? `${ac.border} ${ac.bg}` : "border-white/10 bg-white/[0.03]"
                     )}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1231,7 +1209,7 @@ export default function Home() {
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
                           "p-4 rounded-lg border text-left transition-all col-span-2",
-                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -1250,7 +1228,7 @@ export default function Home() {
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
-                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-2 border-white/20 bg-white/[0.03] hover:border-white/40"
+                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
