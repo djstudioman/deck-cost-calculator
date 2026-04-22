@@ -414,7 +414,7 @@ export default function Home() {
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                 <path d="M2 2h9v9.5L6.5 9.5 2 11.5V2z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
               </svg>
-              <span className="hidden sm:block">Saved</span>
+              <span className="hidden sm:block">Save</span>
               {savedEstimates.length > 0 && (
                 <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${ac.bgSolid} text-[9px] font-bold text-[#0B1120] flex items-center justify-center`}>
                   {savedEstimates.length}
