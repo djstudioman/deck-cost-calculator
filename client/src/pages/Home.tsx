@@ -388,6 +388,13 @@ export default function Home() {
                               : "border-amber-500 bg-amber-500/10"
                             : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
+                        style={audience === opt.id ? {
+                          boxShadow: opt.color === "emerald"
+                            ? "0 0 18px 2px rgba(16,185,129,0.30), 0 0 4px 0 rgba(16,185,129,0.20)"
+                            : opt.color === "blue"
+                            ? "0 0 18px 2px rgba(59,130,246,0.30), 0 0 4px 0 rgba(59,130,246,0.20)"
+                            : "0 0 18px 2px rgba(245,158,11,0.30), 0 0 4px 0 rgba(245,158,11,0.20)"
+                        } : undefined}
                       >
                         <div className="text-2xl mb-2">{opt.icon}</div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
