@@ -1891,24 +1891,6 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
             ))}
           </div>
 
-          {/* Visual grid diagram */}
-          <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 mb-3">
-            <div className="text-[10px] text-slate-500 mb-2">Suggested footing grid ({cols}×{rows})</div>
-            <div
-              className="grid gap-2 mx-auto"
-              style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, maxWidth: `${cols * 40}px` }}
-            >
-              {Array.from({ length: footingCount }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center"
-                >
-                  <span className="text-[9px] font-bold text-amber-400">{i + 1}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="space-y-1.5">
             <div className="flex items-start gap-2 text-[10px]">
               <span className="text-amber-400 shrink-0">▸</span>

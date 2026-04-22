@@ -200,10 +200,10 @@ export const MATERIAL_TIERS: MaterialTier[] = [
   },
   {
     id: "pvc",
-    label: "Premium PVC / Cable Rail",
+    label: "Premium Composite / PVC",
     shortLabel: "Premium PVC",
-    description: "TimberTech AZEK Vintage, Trex Transcend Lineage, Feeney CableRail. Top-tier aesthetics and durability.",
-    examples: ["AZEK Vintage ($16.75/SF)", "Trex Transcend ($15.59/SF)", "Feeney CableRail ($55–$90/LF)"],
+    description: "TimberTech AZEK Vintage, Trex Transcend Lineage, Trex Transcend. Top-tier aesthetics and durability. Cable railing is a separate selection on the railing step.",
+    examples: ["AZEK Vintage ($16.75/SF)", "Trex Transcend ($15.59/SF)", "Trex Transcend Lineage ($18–$22/SF)"],
     materialPerSqFtMin: 25,
     materialPerSqFtMax: 45,
     installedPerSqFtMin: 60,

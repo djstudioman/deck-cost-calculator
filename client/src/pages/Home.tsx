@@ -31,6 +31,17 @@ import {
 import ResultsPanel from "@/components/ResultsPanel";
 import StepCard from "@/components/StepCard";
 import { cn } from "@/lib/utils";
+import {
+  saveEstimate,
+  loadAllEstimates,
+  deleteEstimate,
+  renameEstimate,
+  encodeEstimateToUrl,
+  decodeEstimateFromUrl,
+  clearUrlParam,
+  formatSavedDate,
+  type EstimateSnapshot,
+} from "@/lib/estimateStorage";
 
 // ─── STEP DEFINITIONS ──────────────────────────────────────────────────────────
 // Shared steps 0–5 are the same for all audiences.
@@ -66,6 +77,14 @@ export default function Home() {
   // Tracks which step has had its selection "confirmed" (i.e. clicked once already).
   // First click on a card selects it; second click on the already-selected card advances.
   const [confirmedStep, setConfirmedStep] = useState<number | null>(null);
+
+  // Save/load estimate state
+  const [savedEstimates, setSavedEstimates] = useState<EstimateSnapshot[]>(() => loadAllEstimates());
+  const [showSavedPanel, setShowSavedPanel] = useState(false);
+  const [saveLabel, setSaveLabel] = useState("");
+  const [showSaveInput, setShowSaveInput] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   // Shared inputs
   const [audience, setAudience] = useState<AudienceType>("homeowner");
@@ -180,6 +199,117 @@ export default function Home() {
     );
   };
 
+  // ─── SAVE / LOAD ESTIMATE ───────────────────────────────────────────────────
+  // On mount: check if URL contains an encoded estimate and restore it
+  useState(() => {
+    const snap = decodeEstimateFromUrl();
+    if (!snap) return;
+    clearUrlParam();
+    setAudience(snap.audience);
+    setRegionId(snap.regionId);
+    setSizeId(snap.sizeId);
+    setTierId(snap.tierId);
+    setComplexityId(snap.complexityId);
+    setRailingId(snap.railingId);
+    setRailingLF(snap.railingLF);
+    setDeckHeightIn(snap.deckHeightIn);
+    setIncludeRailing(snap.includeRailing);
+    setIncludeStairs(snap.includeStairs);
+    setStairSteps(snap.stairSteps);
+    setStairWidthFt(snap.stairWidthFt);
+    setIncludeStairRailing(snap.includeStairRailing);
+    setSkillLevelId(snap.skillLevelId);
+    setSelectedTools(snap.selectedTools);
+    setIncludePermit(snap.includePermit);
+    setPermitCost(snap.permitCost);
+    setMarkupTierId(snap.markupTierId);
+    setIncludeMarkup(snap.includeMarkup);
+    setCrewSizeId(snap.crewSizeId);
+    setIncludeCrew(snap.includeCrew);
+    setSubFootings(snap.subFootings);
+    setCustomWidth(snap.customWidth);
+    setCustomLength(snap.customLength);
+    // Jump straight to results
+    setShowResults(true);
+  });
+
+  const handleRestoreEstimate = useCallback((snap: EstimateSnapshot) => {
+    setAudience(snap.audience);
+    setRegionId(snap.regionId);
+    setSizeId(snap.sizeId);
+    setTierId(snap.tierId);
+    setComplexityId(snap.complexityId);
+    setRailingId(snap.railingId);
+    setRailingLF(snap.railingLF);
+    setDeckHeightIn(snap.deckHeightIn);
+    setIncludeRailing(snap.includeRailing);
+    setIncludeStairs(snap.includeStairs);
+    setStairSteps(snap.stairSteps);
+    setStairWidthFt(snap.stairWidthFt);
+    setIncludeStairRailing(snap.includeStairRailing);
+    setSkillLevelId(snap.skillLevelId);
+    setSelectedTools(snap.selectedTools);
+    setIncludePermit(snap.includePermit);
+    setPermitCost(snap.permitCost);
+    setMarkupTierId(snap.markupTierId);
+    setIncludeMarkup(snap.includeMarkup);
+    setCrewSizeId(snap.crewSizeId);
+    setIncludeCrew(snap.includeCrew);
+    setSubFootings(snap.subFootings);
+    setCustomWidth(snap.customWidth);
+    setCustomLength(snap.customLength);
+    setStep(0);
+    setShowResults(true);
+    setShowSavedPanel(false);
+    setConfirmedStep(null);
+  }, []);
+
+  const handleSaveEstimate = useCallback(() => {
+    const label = saveLabel.trim() || `Estimate ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    const snap = saveEstimate({
+      name: label,
+      audience, regionId, sizeId, tierId, complexityId,
+      railingId, railingLF, deckHeightIn, includeRailing,
+      includeStairs, stairSteps, stairWidthFt, includeStairRailing,
+      skillLevelId, selectedTools, includePermit, permitCost,
+      markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
+      customWidth, customLength,
+      totalLow: result.totalLow,
+      totalHigh: result.totalHigh,
+    });
+    setSavedEstimates(loadAllEstimates());
+    setSaveLabel("");
+    setShowSaveInput(false);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2500);
+    return snap;
+  }, [
+    saveLabel, audience, regionId, sizeId, tierId, complexityId,
+    railingId, railingLF, deckHeightIn, includeRailing,
+    includeStairs, stairSteps, stairWidthFt, includeStairRailing,
+    skillLevelId, selectedTools, includePermit, permitCost,
+    markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
+    customWidth, customLength, result,
+  ]);
+
+  const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
+    const url = encodeEstimateToUrl(snap);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(snap.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }, []);
+
+  const handleDeleteEstimate = useCallback((id: string) => {
+    deleteEstimate(id);
+    setSavedEstimates(loadAllEstimates());
+  }, []);
+
+  const handleRenameEstimate = useCallback((id: string, name: string) => {
+    renameEstimate(id, name);
+    setSavedEstimates(loadAllEstimates());
+  }, []);
+
   // ─── PER-PATHWAY ACCENT COLOR SYSTEM ───────────────────────────────────────
   // CSS custom properties are injected on the root div via the `accentStyle` object.
   // All accent-bearing elements use CSS variable utility classes (accent-border,
@@ -259,22 +389,125 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Live estimate ticker */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={liveRange}
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-2"
+          {/* Live estimate ticker + Save button */}
+          <div className="flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={liveRange}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-2"
+              >
+                <span className="text-xs text-slate-500 hidden sm:block">{liveLabel}</span>
+                <span className={`font-mono text-sm font-semibold ${ac.text}`}>{liveRange}</span>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Saved estimates button */}
+            <button
+              onClick={() => setShowSavedPanel((v) => !v)}
+              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-colors text-xs text-slate-400 hover:text-white"
+              title="Saved estimates"
             >
-              <span className="text-xs text-slate-500 hidden sm:block">{liveLabel}</span>
-              <span className={`font-mono text-sm font-semibold ${ac.text}`}>{liveRange}</span>
-            </motion.div>
-          </AnimatePresence>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M2 2h9v9.5L6.5 9.5 2 11.5V2z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+              </svg>
+              <span className="hidden sm:block">Saved</span>
+              {savedEstimates.length > 0 && (
+                <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${ac.bgSolid} text-[9px] font-bold text-[#0B1120] flex items-center justify-center`}>
+                  {savedEstimates.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
+
+      {/* ── SAVED ESTIMATES PANEL ── */}
+      <AnimatePresence>
+        {showSavedPanel && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            className="fixed top-14 right-0 left-0 sm:left-auto sm:right-4 z-40 sm:w-96 bg-[#0f1929] border border-white/10 shadow-2xl rounded-b-xl sm:rounded-xl overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+              <span className="text-sm font-semibold text-white">Saved Estimates</span>
+              <button onClick={() => setShowSavedPanel(false)} className="text-slate-500 hover:text-white text-lg leading-none">×</button>
+            </div>
+
+            {/* Save current estimate */}
+            <div className="px-4 py-3 border-b border-white/[0.06]">
+              {!showSaveInput ? (
+                <button
+                  onClick={() => setShowSaveInput(true)}
+                  className={`w-full py-2 rounded-lg text-xs font-semibold ${ac.btnClass} transition-all`}
+                >
+                  {justSaved ? "✓ Saved!" : "+ Save current estimate"}
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Label (e.g. Smith backyard)"
+                    value={saveLabel}
+                    onChange={(e) => setSaveLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSaveEstimate(); if (e.key === "Escape") setShowSaveInput(false); }}
+                    className="flex-1 text-xs bg-white/[0.06] border border-white/10 rounded px-2 py-1.5 text-white placeholder-slate-600 outline-none focus:border-white/20"
+                  />
+                  <button onClick={handleSaveEstimate} className={`px-3 py-1.5 rounded text-xs font-semibold ${ac.btnClass}`}>Save</button>
+                  <button onClick={() => setShowSaveInput(false)} className="px-2 py-1.5 rounded text-xs text-slate-500 hover:text-white">Cancel</button>
+                </div>
+              )}
+            </div>
+
+            {/* Saved list */}
+            <div className="max-h-72 overflow-y-auto">
+              {savedEstimates.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-slate-600">No saved estimates yet.</div>
+              ) : (
+                savedEstimates.map((snap) => (
+                  <div key={snap.id} className="px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] group">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-white truncate">{snap.name}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">
+                          {snap.audience.charAt(0).toUpperCase() + snap.audience.slice(1)} · {formatSavedDate(snap.savedAt)}
+                        </div>
+                        <div className={`text-[11px] font-mono font-semibold mt-1 ${ac.text}`}>
+                          {formatRange(snap.totalLow, snap.totalHigh)}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => handleRestoreEstimate(snap)}
+                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                          title="Load estimate"
+                        >Load</button>
+                        <button
+                          onClick={() => handleCopyLink(snap)}
+                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                          title="Copy shareable link"
+                        >{copiedId === snap.id ? "✓" : "🔗"}</button>
+                        <button
+                          onClick={() => handleDeleteEstimate(snap.id)}
+                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
+                          title="Delete"
+                        >×</button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── HERO ── */}
       {!showResults && step === 0 && (
