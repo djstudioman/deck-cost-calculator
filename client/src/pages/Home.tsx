@@ -173,51 +173,44 @@ export default function Home() {
   };
 
   // ─── PER-PATHWAY ACCENT COLOR SYSTEM ───────────────────────────────────────
-  // Each audience gets a persistent accent color used on ALL highlighted buttons,
-  // selected card borders, toggles, range inputs, and labels throughout the flow.
-  // Tailwind requires full class names — no dynamic string interpolation.
-  const ACCENT = {
+  // CSS custom properties are injected on the root div via the `accentStyle` object.
+  // All accent-bearing elements use CSS variable utility classes (accent-border,
+  // accent-text, etc.) so the browser can smoothly transition between colors.
+  const ACCENT_VARS: Record<AudienceType, React.CSSProperties> = {
     homeowner: {
-      border:       "border-amber-500",
-      bg:           "bg-amber-500/10",
-      bgSolid:      "bg-amber-500",
-      bgHover:      "hover:bg-amber-400",
-      text:         "text-amber-400",
-      textSelected: "text-amber-500",
-      accent:       "accent-amber-500",
-      progressBar:  "bg-amber-500",
-      badgeBg:      "bg-amber-500/20",
-      badgeText:    "text-amber-400",
-      btnClass:     "bg-amber-500 hover:bg-amber-400 text-[#0B1120]",
-    },
+      "--deck-accent":        "#F59E0B",  // amber-500
+      "--deck-accent-light":  "#FBBF24",  // amber-400
+      "--deck-accent-dim":    "rgba(245,158,11,0.10)",
+      "--deck-accent-dimmer": "rgba(245,158,11,0.20)",
+    } as React.CSSProperties,
     diy: {
-      border:       "border-emerald-500",
-      bg:           "bg-emerald-500/10",
-      bgSolid:      "bg-emerald-500",
-      bgHover:      "hover:bg-emerald-400",
-      text:         "text-emerald-400",
-      textSelected: "text-emerald-500",
-      accent:       "accent-emerald-500",
-      progressBar:  "bg-emerald-500",
-      badgeBg:      "bg-emerald-500/20",
-      badgeText:    "text-emerald-400",
-      btnClass:     "bg-emerald-500 hover:bg-emerald-400 text-[#0B1120]",
-    },
+      "--deck-accent":        "#10B981",  // emerald-500
+      "--deck-accent-light":  "#34D399",  // emerald-400
+      "--deck-accent-dim":    "rgba(16,185,129,0.10)",
+      "--deck-accent-dimmer": "rgba(16,185,129,0.20)",
+    } as React.CSSProperties,
     contractor: {
-      border:       "border-blue-500",
-      bg:           "bg-blue-500/10",
-      bgSolid:      "bg-blue-500",
-      bgHover:      "hover:bg-blue-400",
-      text:         "text-blue-400",
-      textSelected: "text-blue-500",
-      accent:       "accent-blue-500",
-      progressBar:  "bg-blue-500",
-      badgeBg:      "bg-blue-500/20",
-      badgeText:    "text-blue-400",
-      btnClass:     "bg-blue-500 hover:bg-blue-400 text-white",
-    },
-  } as const;
-  const ac = ACCENT[audience];
+      "--deck-accent":        "#3B82F6",  // blue-500
+      "--deck-accent-light":  "#60A5FA",  // blue-400
+      "--deck-accent-dim":    "rgba(59,130,246,0.10)",
+      "--deck-accent-dimmer": "rgba(59,130,246,0.20)",
+    } as React.CSSProperties,
+  };
+  const accentStyle = ACCENT_VARS[audience];
+
+  // Shared CSS variable utility class aliases for readability
+  const ac = {
+    border:       "accent-border",
+    bg:           "accent-bg",
+    bgSolid:      "accent-bg-solid",
+    text:         "accent-text",
+    textSelected: "accent-text-sel",
+    accent:       "accent-range",
+    progressBar:  "accent-progress",
+    badgeBg:      "accent-bg-dimmer",
+    badgeText:    "accent-text",
+    btnClass:     "accent-btn",
+  };
 
   // Live estimate label changes by audience
   const liveLabel = audience === "contractor" ? "Bid estimate" : "Live estimate";
@@ -228,7 +221,7 @@ export default function Home() {
     : formatRange(result.totalLow, result.totalHigh);
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#0B1120] text-slate-100 flex flex-col deck-accent-transition" style={accentStyle}>
       {/* ── HEADER ── */}
       <header className="border-b border-white/[0.06] bg-[#0B1120]/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">

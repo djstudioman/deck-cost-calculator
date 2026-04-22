@@ -23,7 +23,7 @@ export default function StepCard({
   onBack,
   nextLabel = "Continue →",
   showTapHint = false,
-  accentBtnClass = "bg-amber-500 hover:bg-amber-400 text-[#0B1120]",
+  accentBtnClass = "accent-btn",
 }: StepCardProps) {
   return (
     <div className="max-w-2xl mx-auto">
@@ -45,7 +45,7 @@ export default function StepCard({
         )}
         <button
           onClick={onNext}
-          className={`flex-1 sm:flex-none px-6 py-2.5 ${accentBtnClass} font-semibold text-sm rounded-lg transition-colors`}
+          className={`flex-1 sm:flex-none px-6 py-2.5 ${accentBtnClass} font-semibold text-sm rounded-lg`}
         >
           {nextLabel}
         </button>

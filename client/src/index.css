@@ -215,3 +215,47 @@
     size: letter portrait;
   }
 }
+
+/* ─── PER-PATHWAY ACCENT COLOR SYSTEM ─────────────────────────────────────────
+   CSS custom properties injected on the root div via React style prop.
+   All accent-bearing elements use these variables so color transitions work.
+   Tailwind class swaps can't be transitioned; CSS variable changes can.
+──────────────────────────────────────────────────────────────────────────────── */
+:root {
+  --deck-accent:        #F59E0B; /* amber-500 — homeowner default */
+  --deck-accent-light:  #FBBF24; /* amber-400 */
+  --deck-accent-dim:    rgba(245, 158, 11, 0.10);
+  --deck-accent-dimmer: rgba(245, 158, 11, 0.20);
+}
+
+/* Apply smooth 200ms transitions to all accent-bearing elements */
+.deck-accent-transition,
+.deck-accent-transition * {
+  transition:
+    color 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    outline-color 200ms ease !important;
+}
+
+/* Utility classes that read from CSS variables */
+.accent-border   { border-color: var(--deck-accent) !important; }
+.accent-bg       { background-color: var(--deck-accent-dim) !important; }
+.accent-bg-solid { background-color: var(--deck-accent) !important; }
+.accent-bg-dimmer{ background-color: var(--deck-accent-dimmer) !important; }
+.accent-text     { color: var(--deck-accent-light) !important; }
+.accent-text-sel { color: var(--deck-accent) !important; }
+.accent-progress { background-color: var(--deck-accent) !important; }
+
+/* Range input accent */
+.accent-range { accent-color: var(--deck-accent) !important; }
+
+/* Button using accent */
+.accent-btn {
+  background-color: var(--deck-accent) !important;
+  color: #0B1120 !important;
+}
+.accent-btn:hover {
+  background-color: var(--deck-accent-light) !important;
+}
