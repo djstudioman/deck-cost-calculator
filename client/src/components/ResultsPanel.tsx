@@ -657,6 +657,20 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
   const adjustWorkingDays = (delta: number) => {
     setWorkingDays((prev) => Math.max(1, (prev ?? c.estimatedDays) + delta));
   };
+
+  // Project start date & completion date
+  const [startDate, setStartDate] = useState<string>("");
+  const calcCompletionDate = (start: string, days: number): string => {
+    if (!start) return "";
+    const d = new Date(start + "T00:00:00");
+    let remaining = days + 3; // +3 for concrete cure
+    while (remaining > 0) {
+      d.setDate(d.getDate() + 1);
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) remaining--; // skip weekends
+    }
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
   const setDrawPct = (idx: number, val: number) => {
     setDrawPcts((prev) => {
       const next = [...prev];
@@ -1413,7 +1427,31 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
                   </div>
                 ))}
               </div>
-              <div className="mt-2 text-[10px] text-slate-600">+3 days concrete cure time included in calendar estimate. Adjust working days to match your crew's pace or add weather delays.</div>
+              {/* Start date / completion date row */}
+              <div className="mt-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-[10px] text-slate-400 shrink-0">Start date</span>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="flex-1 min-w-0 bg-white/[0.06] border border-white/[0.10] rounded text-xs text-white px-2 py-1 [color-scheme:dark] cursor-pointer"
+                    />
+                  </div>
+                  {startDate ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-slate-400">Est. completion</span>
+                      <span className="font-mono text-xs font-bold text-green-400">
+                        {calcCompletionDate(startDate, totalDays)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-600">Select a start date to see estimated completion</span>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] text-slate-600">+3 days concrete cure time included. Completion skips weekends. Adjust working days above to add weather delays.</div>
             </div>
           );
         })()}
