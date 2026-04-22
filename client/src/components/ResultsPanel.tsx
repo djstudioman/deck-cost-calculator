@@ -21,6 +21,7 @@ import {
   formatCurrencyFull,
   formatRange,
   formatCurrency,
+  MATERIAL_TIERS,
 } from "@/lib/deckData";
 import { cn } from "@/lib/utils";
 import PrintEstimate from "@/components/PrintEstimate";
@@ -738,6 +739,183 @@ function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
               Your bid is {c.totalBidLow > result.totalHigh ? "above" : c.totalBidHigh < result.totalLow ? "below" : "within"} market range.
             </div>
           </div>
+        </div>
+      </motion.div>
+
+      {/* ── MARGIN & BUSINESS INTELLIGENCE ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.25 }}
+        className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-5"
+      >
+        <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase mb-4">
+          Business Intelligence
+        </div>
+
+        {/* Profitability tier badge */}
+        {(() => {
+          const pct = c.grossMarginPct;
+          const tier =
+            pct >= 35 ? { label: "Strong Margin", icon: "🟢", color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" }
+            : pct >= 25 ? { label: "Target Margin", icon: "🟡", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" }
+            : pct >= 15 ? { label: "Thin Margin", icon: "🟠", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" }
+            : { label: "Below Floor", icon: "🔴", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" };
+          const advice =
+            pct >= 35 ? "Healthy margin. Room to sharpen pencil on competitive bids or invest in materials upgrade upsell."
+            : pct >= 25 ? "On target. Protect this margin — scope creep and change orders are your biggest risk."
+            : pct >= 15 ? "Margin is tight. Review overhead allocation and consider a higher markup tier."
+            : "This job is below most contractors' floor. Revisit markup or pass on the bid.";
+          return (
+            <div className={cn("flex items-start gap-3 p-3 rounded-lg border mb-4", tier.bg)}>
+              <span className="text-lg mt-0.5">{tier.icon}</span>
+              <div>
+                <div className={cn("font-semibold text-sm", tier.color)}>{tier.label} — {pct}% gross margin</div>
+                <div className="text-xs text-slate-400 mt-1">{advice}</div>
+              </div>
+            </div>
+          );
+        })()}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Break-even analysis */}
+          <div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Break-Even Floor</div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">True cost basis</span>
+                <span className="font-mono text-white">{formatCurrency(c.materialCostRaw + c.laborCostRaw)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">With overhead only</span>
+                <span className="font-mono text-white">{formatCurrency(Math.round((c.materialCostRaw + c.laborCostRaw) * (1 + c.markupTier.overheadPct)))}</span>
+              </div>
+              <div className="flex justify-between border-t border-white/[0.06] pt-2">
+                <span className="text-slate-400 font-semibold">Min. bid (break-even)</span>
+                <span className="font-mono text-amber-400 font-bold">{formatCurrency(Math.round((c.materialCostRaw + c.laborCostRaw) * (1 + c.markupTier.overheadPct)))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Your bid vs. floor</span>
+                <span className="font-mono text-green-400 font-semibold">
+                  +{formatCurrency(Math.round(((c.totalBidLow + c.totalBidHigh) / 2) - (c.materialCostRaw + c.laborCostRaw) * (1 + c.markupTier.overheadPct)))} above
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Effective hourly rate */}
+          <div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Effective Hourly Rate</div>
+            {(() => {
+              const crewCount = parseInt(c.crewSize.id === "solo" ? "1" : c.crewSize.id === "two" ? "2" : c.crewSize.id === "three" ? "3" : "4", 10);
+              const totalManHours = c.estimatedDays * 8 * crewCount;
+              const laborRevenue = c.laborWithMarkup;
+              const effectiveRate = Math.round(laborRevenue / totalManHours);
+              const industryBenchmark = 65; // $/hr national average for deck contractors
+              const vsIndustry = effectiveRate - industryBenchmark;
+              return (
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Crew size</span>
+                    <span className="font-mono text-white">{c.crewSize.label}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Est. man-hours</span>
+                    <span className="font-mono text-white">{totalManHours} hrs</span>
+                  </div>
+                  <div className="flex justify-between border-t border-white/[0.06] pt-2">
+                    <span className="text-slate-400 font-semibold">Effective rate</span>
+                    <span className={cn("font-mono font-bold text-sm",
+                      effectiveRate >= 80 ? "text-green-400"
+                      : effectiveRate >= 60 ? "text-amber-400"
+                      : "text-red-400"
+                    )}>${effectiveRate}/hr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">vs. industry avg ($65/hr)</span>
+                    <span className={cn("font-mono font-semibold",
+                      vsIndustry >= 0 ? "text-green-400" : "text-red-400"
+                    )}>{vsIndustry >= 0 ? "+" : ""}{vsIndustry}/hr</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── MATERIAL COMPARISON TABLE (client upsell tool) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+        className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-5"
+      >
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase">Material Options — Client Comparison</div>
+          <div className="text-xs text-slate-500 shrink-0">Upsell tool</div>
+        </div>
+        <div className="text-xs text-slate-500 mb-4">Share this with your client to illustrate the value of upgrading materials. Based on their {result.size.sqFt} sq ft deck.</div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-white/[0.08]">
+                <th className="text-left text-slate-500 font-semibold pb-2 pr-3">Material</th>
+                <th className="text-right text-slate-500 font-semibold pb-2 px-2">Total Bid Range</th>
+                <th className="text-right text-slate-500 font-semibold pb-2 px-2">Per Sq Ft</th>
+                <th className="text-right text-slate-500 font-semibold pb-2 px-2">Lifespan</th>
+                <th className="text-right text-slate-500 font-semibold pb-2 pl-2">Maintenance/yr</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MATERIAL_TIERS.map((tier) => {
+                const isSelected = tier.id === result.tier.id;
+                const matMid = ((tier.materialPerSqFtMin + tier.materialPerSqFtMax) / 2) * result.size.sqFt;
+                const laborMid = (result.laborLow + result.laborHigh) / 2;
+                const rawCost = matMid + laborMid;
+                const bidMid = Math.round(rawCost * (1 + c.markupTier.materialMarkup) + rawCost * c.markupTier.overheadPct);
+                const bidLow = Math.round(bidMid * 0.92);
+                const bidHigh = Math.round(bidMid * 1.08);
+                const perSqFt = Math.round(bidMid / result.size.sqFt);
+                const maintenanceCost = tier.id === "pt" ? "$200–$500" : tier.id === "composite" ? "$50–$150" : "~$50";
+                const dotColor = tier.id === "pt" ? "#F59E0B" : tier.id === "composite" ? "#34D399" : "#60A5FA";
+                return (
+                  <tr
+                    key={tier.id}
+                    className={cn(
+                      "border-b border-white/[0.04] transition-colors",
+                      isSelected ? "bg-blue-500/5" : "hover:bg-white/[0.02]"
+                    )}
+                  >
+                    <td className="py-2.5 pr-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: dotColor }} />
+                        <div>
+                          <div className={cn("font-semibold", isSelected ? "text-white" : "text-slate-300")}>
+                            {tier.shortLabel}
+                            {isSelected && <span className="ml-1.5 text-[10px] text-blue-400 font-normal">(current)</span>}
+                          </div>
+                          <div className="text-slate-600 text-[10px] mt-0.5">{tier.examples[0]}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-right font-mono py-2.5 px-2">
+                      <span className={isSelected ? "text-blue-300 font-semibold" : "text-slate-300"}>
+                        {formatRange(bidLow, bidHigh)}
+                      </span>
+                    </td>
+                    <td className="text-right font-mono py-2.5 px-2 text-slate-400">${perSqFt}/sf</td>
+                    <td className="text-right py-2.5 px-2 text-slate-400">{tier.lifespan.split(" ")[0]}</td>
+                    <td className="text-right py-2.5 pl-2 text-slate-400">{maintenanceCost}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-slate-600">
+          💡 Bid ranges include your current markup tier ({c.markupTier.label}). Labor costs held constant — only material cost changes.
         </div>
       </motion.div>
 

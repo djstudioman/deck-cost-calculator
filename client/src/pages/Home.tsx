@@ -713,7 +713,7 @@ export default function Home() {
                                    className={cn(
                                      "flex-1 py-1 rounded text-xs font-semibold border transition-colors",
                                      stairWidthFt === w
-                                       ? `${ac.bgSolid} ${ac.border} text-slate-900`
+                                       ? `${ac.bgSolid} ${ac.border} text-white`
                                        : `bg-white/5 border-white/[0.18] text-slate-400`
                                    )}
                                  >{w}ft</button>
