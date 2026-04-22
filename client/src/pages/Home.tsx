@@ -199,6 +199,15 @@ export default function Home() {
   const accentStyle = ACCENT_VARS[audience];
 
   // Shared CSS variable utility class aliases for readability
+  // NOTE: selectedBorder/selectedBg use direct Tailwind color classes (not CSS vars)
+  // because direct classes produce the vivid, clearly-visible border the original design had.
+  const SELECTED_CARD: Record<AudienceType, { border: string; bg: string }> = {
+    homeowner: { border: "border-amber-500",   bg: "bg-amber-500/10"   },
+    diy:       { border: "border-emerald-500", bg: "bg-emerald-500/10" },
+    contractor:{ border: "border-blue-500",    bg: "bg-blue-500/10"    },
+  };
+  const sel = SELECTED_CARD[audience];
+
   const ac = {
     border:       "accent-border",
     bg:           "accent-bg",
@@ -379,14 +388,14 @@ export default function Home() {
                         key={opt.id}
                         onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
                         className={cn(
-                          "text-left p-4 rounded-lg border-2 transition-all",
+                          "text-left p-4 rounded-lg border transition-all",
                           audience === opt.id
                             ? opt.color === "emerald"
                               ? "border-emerald-500 bg-emerald-500/10"
                               : opt.color === "blue"
                               ? "border-blue-500 bg-blue-500/10"
                               : "border-amber-500 bg-amber-500/10"
-                            : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="text-2xl mb-2">{opt.icon}</div>
@@ -424,10 +433,10 @@ export default function Home() {
                         key={r.id}
                         onClick={() => selectOrAdvance(regionId === r.id, () => setRegionId(r.id))}
                         className={cn(
-                          "text-left p-3 rounded-lg border-2 transition-all",
+                          "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
-                            ? `${ac.border} ${ac.bg}`
-                            : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            ? `${sel.border} ${sel.bg}`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -481,10 +490,10 @@ export default function Home() {
                           key={s.id}
                           onClick={() => selectOrAdvance(sizeId === s.id, () => setSizeId(s.id))}
                           className={cn(
-                            "text-left p-3 rounded-lg border-2 transition-all",
+                            "text-left p-3 rounded-lg border transition-all",
                             sizeId === s.id
-                              ? `${ac.border} ${ac.bg}`
-                              : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                              ? `${sel.border} ${sel.bg}`
+                              : "border-white/20 bg-white/[0.03] hover:border-white/30"
                           )}
                         >
                           <div className="flex items-start justify-between">
@@ -522,10 +531,10 @@ export default function Home() {
                         key={t.id}
                         onClick={() => selectOrAdvance(tierId === t.id, () => setTierId(t.id))}
                         className={cn(
-                          "text-left p-4 rounded-lg border-2 transition-all",
+                          "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
-                            ? `${ac.border} ${ac.bg}`
-                            : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            ? `${sel.border} ${sel.bg}`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -585,10 +594,10 @@ export default function Home() {
                         key={c.id}
                         onClick={() => selectOrAdvance(complexityId === c.id, () => setComplexityId(c.id))}
                         className={cn(
-                          "text-left p-3 rounded-lg border-2 transition-all",
+                          "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
-                            ? `${ac.border} ${ac.bg}`
-                            : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            ? `${sel.border} ${sel.bg}`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="font-semibold text-sm text-white">{c.label}</div>
@@ -639,10 +648,10 @@ export default function Home() {
                               }
                             }}
                             className={cn(
-                              "text-left p-3 rounded-lg border-2 transition-all",
+                              "text-left p-3 rounded-lg border transition-all",
                               confirmedRailing && railingId === r.id
-                                ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{r.label}</div>
@@ -769,10 +778,10 @@ export default function Home() {
                             key={s.id}
                             onClick={() => selectOrAdvance(skillLevelId === s.id, () => setSkillLevelId(s.id))}
                             className={cn(
-                              "text-left p-3 rounded-lg border-2 transition-all",
+                              "text-left p-3 rounded-lg border transition-all",
                               skillLevelId === s.id
-                                ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{s.label}</div>
@@ -809,10 +818,10 @@ export default function Home() {
                               key={t.id}
                               onClick={() => toggleTool(t.id)}
                               className={cn(
-                                "text-left p-3 rounded-lg border-2 transition-all",
+                                "text-left p-3 rounded-lg border transition-all",
                                 checked
-                                  ? `${ac.border} ${ac.bg}`
-                                  : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                  ? `${sel.border} ${sel.bg}`
+                                  : "border-white/20 bg-white/[0.03] hover:border-white/30"
                               )}
                             >
                               <div className="flex items-start justify-between gap-2">
@@ -867,10 +876,10 @@ export default function Home() {
                       <button
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
-                          "p-4 rounded-lg border-2 text-left transition-all col-span-2",
+                          "p-4 rounded-lg border text-left transition-all col-span-2",
                           !includePermit
-                            ? "border-2 border-slate-400 bg-slate-500/10"
-                            : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            ? "border-slate-400 bg-slate-500/10"
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -897,10 +906,10 @@ export default function Home() {
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
-                            "p-3 rounded-lg border-2 text-left transition-all",
+                            "p-3 rounded-lg border text-left transition-all",
                             includePermit && permitCost === p.value
-                              ? `${ac.border} ${ac.bg}`
-                              : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                              ? `${sel.border} ${sel.bg}`
+                              : "border-white/20 bg-white/[0.03] hover:border-white/30"
                           )}
                         >
                           <div className="flex items-center gap-2 mb-1">
@@ -941,8 +950,8 @@ export default function Home() {
                       <button
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
-                          "p-4 rounded-lg border-2 text-left transition-all col-span-2",
-                          !includePermit ? "border-2 border-slate-400 bg-slate-500/10" : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                          "p-4 rounded-lg border text-left transition-all col-span-2",
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -960,8 +969,8 @@ export default function Home() {
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
-                            "p-3 rounded-lg border-2 text-left transition-all",
-                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            "p-3 rounded-lg border text-left transition-all",
+                            includePermit && permitCost === p.value ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
@@ -1020,10 +1029,10 @@ export default function Home() {
                             key={m.id}
                             onClick={() => selectOrAdvance(markupTierId === m.id, () => setMarkupTierId(m.id))}
                             className={cn(
-                              "text-left p-4 rounded-lg border-2 transition-all",
+                              "text-left p-4 rounded-lg border transition-all",
                               markupTierId === m.id
-                                ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
                             )}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -1074,10 +1083,10 @@ export default function Home() {
                             key={c.id}
                             onClick={() => selectOrAdvance(crewSizeId === c.id, () => setCrewSizeId(c.id))}
                             className={cn(
-                              "text-left p-3 rounded-lg border-2 transition-all",
+                              "text-left p-3 rounded-lg border transition-all",
                               crewSizeId === c.id
-                                ? `${ac.border} ${ac.bg}`
-                                : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
                             )}
                           >
                             <div className="font-semibold text-xs text-white">{c.label}</div>
@@ -1106,8 +1115,8 @@ export default function Home() {
                   <div className="space-y-4">
                     {/* Sub footings toggle */}
                     <div className={cn(
-                      "p-4 rounded-lg border-2 transition-all",
-                      subFootings ? `${ac.border} ${ac.bg}` : "border-2 border-[#6b8cad] bg-white/[0.03]"
+                      "p-4 rounded-lg border transition-all",
+                      subFootings ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
                     )}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1142,7 +1151,7 @@ export default function Home() {
 
                     {/* Bid preview card */}
                     {result.contractor && (
-                      <div className={`p-4 rounded-lg border-2 ${ac.border} bg-opacity-5 ${ac.bg}`}>
+                      <div className={`p-4 rounded-lg border ${sel.border} bg-opacity-5 ${sel.bg}`}>
                         <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>
                           Bid Preview
                         </div>
@@ -1208,8 +1217,8 @@ export default function Home() {
                       <button
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
-                          "p-4 rounded-lg border-2 text-left transition-all col-span-2",
-                          !includePermit ? "border-2 border-slate-400 bg-slate-500/10" : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                          "p-4 rounded-lg border text-left transition-all col-span-2",
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -1227,8 +1236,8 @@ export default function Home() {
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
-                            "p-3 rounded-lg border-2 text-left transition-all",
-                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-2 border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            "p-3 rounded-lg border text-left transition-all",
+                            includePermit && permitCost === p.value ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
