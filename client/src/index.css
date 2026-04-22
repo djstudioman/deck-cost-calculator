@@ -240,7 +240,7 @@
 }
 
 /* Utility classes that read from CSS variables */
-.accent-border   { border-color: var(--deck-accent) !important; }
+.accent-border   { border-color: var(--deck-accent) !important; border-width: 2px !important; }
 .accent-bg       { background-color: var(--deck-accent-dim) !important; }
 .accent-bg-solid { background-color: var(--deck-accent) !important; }
 .accent-bg-dimmer{ background-color: var(--deck-accent-dimmer) !important; }
