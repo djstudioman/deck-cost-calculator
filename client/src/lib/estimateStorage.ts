@@ -35,6 +35,7 @@ export interface EstimateSnapshot {
   subFootings: boolean;
   customWidth: number;
   customLength: number;
+  notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)
   totalLow: number;
   totalHigh: number;
@@ -71,6 +72,11 @@ export function deleteEstimate(id: string): void {
 
 export function renameEstimate(id: string, name: string): void {
   const all = loadAllEstimates().map((e) => (e.id === id ? { ...e, name } : e));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+}
+
+export function updateEstimateNotes(id: string, notes: string): void {
+  const all = loadAllEstimates().map((e) => (e.id === id ? { ...e, notes } : e));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
 }
 

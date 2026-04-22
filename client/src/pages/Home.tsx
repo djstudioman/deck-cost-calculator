@@ -36,6 +36,7 @@ import {
   loadAllEstimates,
   deleteEstimate,
   renameEstimate,
+  updateEstimateNotes,
   encodeEstimateToUrl,
   decodeEstimateFromUrl,
   clearUrlParam,
@@ -85,6 +86,8 @@ export default function Home() {
   const [showSaveInput, setShowSaveInput] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [notesInput, setNotesInput] = useState("");
 
   // Shared inputs
   const [audience, setAudience] = useState<AudienceType>("homeowner");
@@ -310,6 +313,17 @@ export default function Home() {
     setSavedEstimates(loadAllEstimates());
   }, []);
 
+  const handleOpenNotes = useCallback((snap: EstimateSnapshot) => {
+    setEditingNotesId(snap.id);
+    setNotesInput(snap.notes ?? "");
+  }, []);
+
+  const handleSaveNotes = useCallback((id: string) => {
+    updateEstimateNotes(id, notesInput);
+    setSavedEstimates(loadAllEstimates());
+    setEditingNotesId(null);
+  }, [notesInput]);
+
   // ─── PER-PATHWAY ACCENT COLOR SYSTEM ───────────────────────────────────────
   // CSS custom properties are injected on the root div via the `accentStyle` object.
   // All accent-bearing elements use CSS variable utility classes (accent-border,
@@ -495,12 +509,57 @@ export default function Home() {
                           title="Copy shareable link"
                         >{copiedId === snap.id ? "✓" : "🔗"}</button>
                         <button
+                          onClick={() => handleOpenNotes(snap)}
+                          className={`px-2 py-1 rounded text-[10px] transition-colors ${
+                            snap.notes ? "bg-white/10 text-slate-300 hover:text-white" : "bg-white/[0.06] text-slate-500 hover:text-slate-300"
+                          }`}
+                          title={snap.notes ? "Edit notes" : "Add notes"}
+                        >✎</button>
+                        <button
                           onClick={() => handleDeleteEstimate(snap.id)}
                           className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
                           title="Delete"
                         >×</button>
                       </div>
                     </div>
+
+                    {/* Notes display */}
+                    {snap.notes && editingNotesId !== snap.id && (
+                      <div className="mt-2 text-[10px] text-slate-400 italic bg-white/[0.03] rounded px-2 py-1.5 leading-relaxed">
+                        {snap.notes}
+                      </div>
+                    )}
+
+                    {/* Notes editor */}
+                    {editingNotesId === snap.id && (
+                      <div className="mt-2 space-y-1.5">
+                        <textarea
+                          autoFocus
+                          rows={3}
+                          placeholder="Add context (e.g. Client wants composite, budget is tight)"
+                          value={notesInput}
+                          onChange={(e) => setNotesInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Escape") setEditingNotesId(null); }}
+                          className="w-full text-[10px] bg-white/[0.06] border border-white/10 rounded px-2 py-1.5 text-white placeholder-slate-600 outline-none focus:border-white/20 resize-none leading-relaxed"
+                        />
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => handleSaveNotes(snap.id)}
+                            className={`px-3 py-1 rounded text-[10px] font-semibold ${ac.btnClass}`}
+                          >Save note</button>
+                          <button
+                            onClick={() => setEditingNotesId(null)}
+                            className="px-2 py-1 rounded text-[10px] text-slate-500 hover:text-white"
+                          >Cancel</button>
+                          {snap.notes && (
+                            <button
+                              onClick={() => { updateEstimateNotes(snap.id, ""); setSavedEstimates(loadAllEstimates()); setEditingNotesId(null); }}
+                              className="px-2 py-1 rounded text-[10px] text-red-500/60 hover:text-red-400"
+                            >Clear</button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
