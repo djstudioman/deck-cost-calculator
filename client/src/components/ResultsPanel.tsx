@@ -1606,6 +1606,9 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
 
       </motion.div>
 
+      {/* ── JOB SITE TOOLS ── */}
+      <JobSiteToolsPanel result={result} />
+
       <Warnings warnings={result.warnings} />
       <Disclaimer text={`This bid estimate is generated from regional cost data as of Q1 2026 and is intended for <strong class="text-slate-400">preliminary bidding guidance only</strong>. Actual project costs depend on site conditions, material availability, subcontractor pricing, and local labor markets. Markup percentages are industry benchmarks — adjust to your actual overhead structure. Gross margin calculations do not account for income tax, equipment depreciation, or warranty reserves. Always perform a detailed takeoff before submitting a final bid. This tool does not constitute professional advice.`} />
       <ActionButtons onBack={onBack} onRestart={onRestart} accent="#60A5FA" />
@@ -1630,5 +1633,302 @@ export default function ResultsPanel(props: ResultsPanelProps) {
       {/* Print-only layer — hidden on screen, shown only via @media print */}
       <PrintEstimate result={result} />
     </>
+  );
+}
+
+// ─── JOB SITE TOOLS PANEL ─────────────────────────────────────────────────────
+function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
+  const [activeTab, setActiveTab] = useState<"takeoff" | "pricechk" | "footings">("takeoff");
+
+  // ── Lumber Yard Price Check state ──
+  const [actualBoardPrice, setActualBoardPrice] = useState<string>("");
+  const [actualJoistPrice, setActualJoistPrice] = useState<string>("");
+  const [actualPostPrice, setActualPostPrice] = useState<string>("");
+
+  const sqFt = result.size.sqFt;
+  const isComposite = result.tier.id !== "pt";
+  const isPVC = result.tier.id === "pvc";
+
+  // ── QUANTITY TAKEOFF calculations ──
+  // Decking boards: 5/4×6 PT = ~1.1 boards/sqft; composite = ~0.85 boards/sqft (wider planks)
+  const boardsPerSqFt = isComposite ? 0.85 : 1.1;
+  const deckBoardCount = Math.ceil(sqFt * boardsPerSqFt * 1.10); // +10% waste
+  const deckBoardUnit = isComposite ? "composite planks (16 ft)" : "5/4×6 boards (16 ft)";
+
+  // Joists: 16" OC → ~0.75 joists per linear foot of deck width
+  const deckWidth = Math.sqrt(sqFt); // approximate square root for width
+  const joistCount = Math.ceil((deckWidth / (16 / 12)) + 1);
+  const joistLength = Math.ceil(Math.sqrt(sqFt)); // span length
+  const joistUnit = `2×8 PT joists (${joistLength} ft)`;
+
+  // Beams: 1 beam per 8 ft of deck length, 2 per span
+  const deckLength = Math.ceil(sqFt / deckWidth);
+  const beamCount = Math.ceil(deckLength / 8) * 2;
+
+  // Posts: one per footing
+  const footingCount = sqFt <= 200 ? 6 : sqFt <= 350 ? 10 : sqFt <= 500 ? 12 : 16;
+  const postCount = footingCount;
+  const postHeight = Math.ceil(result.region.frostDepthInches / 12) + 4; // frost depth + 4ft above grade
+
+  // Ledger board: 1 per deck width
+  const ledgerLF = Math.ceil(deckWidth);
+
+  // Concrete bags: ~8 bags per footing
+  const concreteBags = footingCount * 8;
+
+  // Railing posts: 1 per 6 LF of railing
+  const railingLF = result.contractor?.crewSize ? Math.ceil(deckWidth * 2 + deckLength) : Math.ceil(deckWidth * 2 + deckLength);
+  const railingPosts = Math.ceil(railingLF / 6) + 1;
+
+  // Fasteners
+  const fastenerBoxes = isComposite
+    ? Math.ceil(sqFt / 50)   // hidden clip boxes (~50 sqft/box)
+    : Math.ceil(sqFt / 100); // screw boxes (~100 sqft/box)
+  const fastenerUnit = isComposite ? "hidden clip boxes" : "structural screw boxes (5 lb)";
+
+  // Joist hangers: 2 per joist + 4 for beams
+  const joistHangers = joistCount * 2 + 4;
+
+  const takeoffItems = [
+    { label: deckBoardUnit,            qty: deckBoardCount,  note: "+10% waste included" },
+    { label: joistUnit,                qty: joistCount,      note: "16\" OC spacing" },
+    { label: `2×10 PT beams (${joistLength} ft)`, qty: beamCount, note: "Double-ply beam spans" },
+    { label: `6×6 PT posts (${postHeight} ft)`,   qty: postCount, note: "One per footing" },
+    { label: `2×${Math.ceil(deckWidth)} PT ledger board`, qty: 1, note: "House attachment" },
+    { label: "80 lb concrete bags",    qty: concreteBags,    note: `${footingCount} footings × 8 bags` },
+    { label: fastenerUnit,             qty: fastenerBoxes,   note: isComposite ? "Hidden fastener system" : "Structural screws" },
+    { label: "Joist hangers",          qty: joistHangers,    note: "Simpson LUS28 or equivalent" },
+    { label: "Post bases / standoffs", qty: postCount,       note: "Simpson ABA66 or equivalent" },
+    { label: "Railing posts",          qty: railingPosts,    note: "1 per 6 LF of railing" },
+  ];
+
+  // ── LUMBER YARD PRICE CHECK ──
+  const estBoardPriceMin = result.tier.materialPerSqFtMin;
+  const estBoardPriceMax = result.tier.materialPerSqFtMax;
+  const estBoardMid = ((estBoardPriceMin + estBoardPriceMax) / 2).toFixed(2);
+
+  const actualBoardNum = parseFloat(actualBoardPrice) || 0;
+  const actualJoistNum = parseFloat(actualJoistPrice) || 0;
+  const actualPostNum = parseFloat(actualPostPrice) || 0;
+
+  // Estimated material cost from calculator
+  const estMaterialCost = result.materialsLow;
+  // Actual material cost estimate based on quoted prices
+  const boardMaterialCost = actualBoardNum > 0 ? Math.round(actualBoardNum * sqFt) : 0;
+  const joistMaterialCost = actualJoistNum > 0 ? Math.round(actualJoistNum * joistCount * joistLength) : 0;
+  const postMaterialCost = actualPostNum > 0 ? Math.round(actualPostNum * postCount * postHeight) : 0;
+  const actualTotalMaterial = boardMaterialCost + joistMaterialCost + postMaterialCost;
+  const variance = actualTotalMaterial > 0 ? actualTotalMaterial - estMaterialCost : 0;
+  const variancePct = estMaterialCost > 0 && actualTotalMaterial > 0
+    ? Math.round((variance / estMaterialCost) * 100)
+    : 0;
+
+  // ── FOOTING LAYOUT ──
+  const frostDepth = result.region.frostDepthInches;
+  const footingDiameter = frostDepth <= 18 ? 10 : frostDepth <= 36 ? 12 : frostDepth <= 54 ? 14 : 16;
+  const footingDepth = frostDepth + 6; // 6" below frost line
+  const footingSpacingFt = Math.round((sqFt / footingCount) ** 0.5 * 10) / 10;
+
+  // Grid layout suggestion
+  const cols = sqFt <= 200 ? 2 : sqFt <= 350 ? 3 : sqFt <= 500 ? 4 : 4;
+  const rows = Math.ceil(footingCount / cols);
+
+  const tabs = [
+    { id: "takeoff" as const,  label: "Qty Takeoff",    icon: "📋" },
+    { id: "pricechk" as const, label: "Price Check",    icon: "🏪" },
+    { id: "footings" as const, label: "Footing Layout", icon: "📐" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-5 mb-4"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase">Job Site Tools</div>
+          <div className="text-xs text-slate-500 mt-0.5">Quantity takeoff, price check & footing layout</div>
+        </div>
+        <span className="text-lg">🔧</span>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 mb-4 bg-white/[0.03] rounded-lg p-1">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all",
+              activeTab === t.id
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                : "text-slate-500 hover:text-slate-300"
+            )}
+          >
+            <span>{t.icon}</span>
+            <span className="hidden sm:inline">{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB 1: QUANTITY TAKEOFF ── */}
+      {activeTab === "takeoff" && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs text-slate-400">
+              Based on <span className="text-white font-medium">{result.size.dimensions}</span> · <span className="text-white font-medium">{result.tier.shortLabel}</span> · <span className="text-white font-medium">{result.complexity.label}</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {takeoffItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-2">
+                <div className="font-mono text-sm font-bold text-amber-300 w-10 shrink-0 text-right">{item.qty}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-white truncate">{item.label}</div>
+                  <div className="text-[10px] text-slate-600">{item.note}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-[10px] text-slate-600">Quantities are estimates based on standard span tables and 16" OC framing. Always verify against your actual site conditions and local code requirements.</div>
+        </div>
+      )}
+
+      {/* ── TAB 2: LUMBER YARD PRICE CHECK ── */}
+      {activeTab === "pricechk" && (
+        <div>
+          <div className="text-xs text-slate-400 mb-3">
+            Enter your supplier quotes to compare against the calculator's estimate and see variance.
+          </div>
+          <div className="space-y-2 mb-4">
+            {[
+              { label: `Decking boards (per sq ft installed)`, placeholder: `est. $${estBoardMid}`, value: actualBoardPrice, onChange: setActualBoardPrice, note: result.tier.shortLabel },
+              { label: `Framing lumber (per linear foot)`,     placeholder: "est. $1.80–$2.40",     value: actualJoistPrice, onChange: setActualJoistPrice, note: "2×8 PT joists & beams" },
+              { label: `Posts (per linear foot)`,              placeholder: "est. $2.50–$3.50",     value: actualPostPrice,  onChange: setActualPostPrice,  note: "6×6 PT posts" },
+            ].map((field) => (
+              <div key={field.label} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-white">{field.label}</div>
+                    <div className="text-[10px] text-slate-600">{field.note}</div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-slate-500 text-xs">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder={field.placeholder}
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className="w-20 text-right font-mono text-xs bg-white/[0.06] border border-white/[0.10] rounded text-white px-2 py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {actualTotalMaterial > 0 && (
+            <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
+              <div className="text-xs font-semibold text-slate-300 mb-2">Variance Summary</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="font-mono text-sm font-bold text-slate-300">{formatCurrency(estMaterialCost)}</div>
+                  <div className="text-[10px] text-slate-500">Calculator est.</div>
+                </div>
+                <div>
+                  <div className="font-mono text-sm font-bold text-white">{formatCurrency(actualTotalMaterial)}</div>
+                  <div className="text-[10px] text-slate-500">Your quote</div>
+                </div>
+                <div>
+                  <div className={cn(
+                    "font-mono text-sm font-bold",
+                    variance > 0 ? "text-red-400" : "text-green-400"
+                  )}>
+                    {variance > 0 ? "+" : ""}{formatCurrency(variance)} ({variancePct > 0 ? "+" : ""}{variancePct}%)
+                  </div>
+                  <div className="text-[10px] text-slate-500">Variance</div>
+                </div>
+              </div>
+              {Math.abs(variancePct) > 15 && (
+                <div className={cn(
+                  "mt-2 text-[10px] px-2 py-1 rounded",
+                  variance > 0 ? "text-red-300 bg-red-500/10" : "text-green-300 bg-green-500/10"
+                )}>
+                  {variance > 0
+                    ? `⚠ Your quote is ${variancePct}% above estimate — consider adjusting your bid or sourcing alternative suppliers.`
+                    : `✓ Your quote is ${Math.abs(variancePct)}% below estimate — you have room to tighten margin or improve competitiveness.`}
+                </div>
+              )}
+            </div>
+          )}
+          {actualTotalMaterial === 0 && (
+            <div className="text-[10px] text-slate-600 text-center py-4">Enter at least one supplier price above to see variance analysis.</div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB 3: FOOTING LAYOUT ── */}
+      {activeTab === "footings" && (
+        <div>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[
+              { label: "Footing count",    value: `${footingCount}`,           note: `Based on ${result.size.sqFt} sq ft` },
+              { label: "Footing diameter", value: `${footingDiameter}"`,        note: "Tube form size" },
+              { label: "Footing depth",    value: `${footingDepth}"`,           note: `${frostDepth}" frost + 6" below` },
+              { label: "Spacing (approx)", value: `${footingSpacingFt} ft OC`,  note: "Center-to-center" },
+              { label: "Grid layout",      value: `${cols} × ${rows}`,          note: "Columns × rows" },
+              { label: "Frost depth",      value: result.region.frostDepthLabel, note: result.region.label },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-2.5">
+                <div className="font-mono text-sm font-bold text-blue-300">{item.value}</div>
+                <div className="text-[10px] text-white mt-0.5">{item.label}</div>
+                <div className="text-[10px] text-slate-600">{item.note}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Visual grid diagram */}
+          <div className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-3 mb-3">
+            <div className="text-[10px] text-slate-500 mb-2">Suggested footing grid ({cols}×{rows})</div>
+            <div
+              className="grid gap-2 mx-auto"
+              style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, maxWidth: `${cols * 40}px` }}
+            >
+              {Array.from({ length: footingCount }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-8 h-8 rounded-full bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center"
+                >
+                  <span className="text-[9px] font-bold text-amber-400">{i + 1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-start gap-2 text-[10px]">
+              <span className="text-amber-400 shrink-0">▸</span>
+              <span className="text-slate-500">Use a <strong className="text-slate-400">{footingDiameter}" tube form</strong> at each location. Set bottom of footing at <strong className="text-slate-400">{footingDepth}"</strong> below grade.</span>
+            </div>
+            <div className="flex items-start gap-2 text-[10px]">
+              <span className="text-amber-400 shrink-0">▸</span>
+              <span className="text-slate-500">Pour <strong className="text-slate-400">~8 bags of 80 lb concrete</strong> per footing. Allow 24–48 hours cure before loading.</span>
+            </div>
+            <div className="flex items-start gap-2 text-[10px]">
+              <span className="text-amber-400 shrink-0">▸</span>
+              <span className="text-slate-500">Install <strong className="text-slate-400">post bases (Simpson ABA66)</strong> while concrete is wet. Check plumb and alignment before cure.</span>
+            </div>
+            <div className="flex items-start gap-2 text-[10px]">
+              <span className="text-amber-400 shrink-0">▸</span>
+              <span className="text-slate-500">Verify spacing with local inspector — some jurisdictions require engineered drawings for decks over 200 sq ft or 30" off grade.</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
