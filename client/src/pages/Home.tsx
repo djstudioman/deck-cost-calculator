@@ -1175,7 +1175,7 @@ export default function Home() {
                          {/* Stair railing toggle */}
                          <div className="flex items-center justify-between pt-1">
                            <div>
-                             <div className="text-xs font-semibold text-slate-300">Include stair railing</div>
+                             <div className="text-xs font-semibold text-slate-300" style={{fontSize: '16px', paddingTop: '10px', marginTop: '5px', marginBottom: '6px'}}>Include stair railing</div>
                              <div className="text-xs text-slate-500 mt-0.5">Matches your deck railing system</div>
                            </div>
                            <button
