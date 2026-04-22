@@ -641,6 +641,62 @@ export default function Home() {
                 onRestart={() => { setChangeOrderDelta({ low: 0, high: 0 }); restart(); }}
                 onChangeOrderUpdate={(low, high) => setChangeOrderDelta({ low, high })}
               />
+
+              {/* ── SAVE ESTIMATE PROMPT ── */}
+              <div className="max-w-2xl mx-auto px-4 pb-10 mt-2">
+                <div className={`rounded-xl border ${
+                  justSaved ? "border-emerald-500/40 bg-emerald-500/[0.06]" : "border-white/10 bg-white/[0.03]"
+                } p-4 transition-colors duration-500`}>
+                  {justSaved ? (
+                    <div className="flex items-center gap-3">
+                      <span className="text-emerald-400 text-lg">✓</span>
+                      <div>
+                        <div className="text-sm font-semibold text-emerald-300">Estimate saved!</div>
+                        <div className="text-xs text-slate-400 mt-0.5">Find it anytime using the Save button in the header.</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-white">Save this estimate</div>
+                        <div className="text-xs text-slate-400 mt-0.5">Bookmark it or get a shareable link to return and adjust later.</div>
+                      </div>
+                      {showSaveInput ? (
+                        <div className="flex gap-2 items-center">
+                          <input
+                            autoFocus
+                            type="text"
+                            placeholder="Label (optional)"
+                            value={saveLabel}
+                            onChange={(e) => setSaveLabel(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleSaveEstimate(); if (e.key === "Escape") setShowSaveInput(false); }}
+                            className="text-xs bg-white/[0.06] border border-white/10 rounded px-2 py-1.5 text-white placeholder-slate-600 outline-none focus:border-white/20 w-36"
+                          />
+                          <button
+                            onClick={handleSaveEstimate}
+                            className={`px-3 py-1.5 rounded text-xs font-semibold ${ac.btnClass} shrink-0`}
+                          >Save</button>
+                          <button
+                            onClick={() => setShowSaveInput(false)}
+                            className="text-xs text-slate-500 hover:text-white px-1"
+                          >✕</button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => setShowSaveInput(true)}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-semibold ${ac.btnClass}`}
+                          >Save estimate</button>
+                          <button
+                            onClick={() => { const snap = handleSaveEstimate(); if (snap) handleCopyLink(snap); }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.06] hover:bg-white/10 text-slate-300 hover:text-white transition-colors border border-white/10"
+                          >Save &amp; copy link</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           ) : (
             <motion.div
