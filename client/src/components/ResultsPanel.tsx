@@ -651,6 +651,12 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
   // Draw schedule editable percentages (stored as integers 0–100)
   const [drawPcts, setDrawPcts] = useState([30, 35, 25, 10]);
   const drawTotal = drawPcts.reduce((s, p) => s + p, 0);
+
+  // Editable working days (seeded from calculated estimate)
+  const [workingDays, setWorkingDays] = useState<number | null>(null);
+  const adjustWorkingDays = (delta: number) => {
+    setWorkingDays((prev) => Math.max(1, (prev ?? c.estimatedDays) + delta));
+  };
   const setDrawPct = (idx: number, val: number) => {
     setDrawPcts((prev) => {
       const next = [...prev];
@@ -1324,7 +1330,8 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
 
         {/* ── SECTION 1: PROJECT TIMELINE ── */}
         {(() => {
-          const totalDays = c.estimatedDays;
+          const totalDays = workingDays ?? c.estimatedDays;
+          const isCustom = workingDays !== null && workingDays !== c.estimatedDays;
           // Phase breakdown (% of total days, rounded)
           const phases = [
             { label: "Site prep & layout",   pct: 0.10, color: "#64748B", note: "Marking, clearing, permit post" },
@@ -1339,12 +1346,40 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
           const calendarWeeks = Math.ceil(calendarDays / 5);
           return (
             <div className="mb-5">
-              <div className="text-xs font-semibold text-slate-300 mb-3">Project Timeline</div>
-              {/* Summary row */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-semibold text-slate-300">Project Timeline</div>
+                {isCustom && (
+                  <button
+                    onClick={() => setWorkingDays(null)}
+                    className="text-[10px] text-slate-500 hover:text-slate-300 underline transition-colors"
+                  >Reset to estimate</button>
+                )}
+              </div>
+              {/* Summary row — working days card is now editable */}
               <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-2.5 text-center">
-                  <div className="font-mono text-lg font-bold text-white">{totalDays}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Working days</div>
+                <div className="rounded-lg bg-white/[0.03] border border-white/[0.08] p-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                    <button
+                      onClick={() => adjustWorkingDays(-1)}
+                      className="w-5 h-5 rounded bg-white/[0.06] hover:bg-white/[0.14] text-slate-400 text-xs flex items-center justify-center transition-colors"
+                    >-</button>
+                    <input
+                      type="number"
+                      min={1}
+                      value={totalDays}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value);
+                        if (!isNaN(v) && v >= 1) setWorkingDays(v);
+                      }}
+                      className="w-10 text-center font-mono text-lg font-bold bg-transparent text-white border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={() => adjustWorkingDays(1)}
+                      className="w-5 h-5 rounded bg-white/[0.06] hover:bg-white/[0.14] text-slate-400 text-xs flex items-center justify-center transition-colors"
+                    >+</button>
+                  </div>
+                  <div className="text-[10px] text-slate-500">Working days</div>
+                  {isCustom && <div className="text-[9px] text-amber-400 mt-0.5">est. {c.estimatedDays}d</div>}
                 </div>
                 <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-2.5 text-center">
                   <div className="font-mono text-lg font-bold text-blue-300">{calendarWeeks}</div>
@@ -1378,7 +1413,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
                   </div>
                 ))}
               </div>
-              <div className="mt-2 text-[10px] text-slate-600">+3 days concrete cure time included in calendar estimate. Weather delays not included.</div>
+              <div className="mt-2 text-[10px] text-slate-600">+3 days concrete cure time included in calendar estimate. Adjust working days to match your crew's pace or add weather delays.</div>
             </div>
           );
         })()}
