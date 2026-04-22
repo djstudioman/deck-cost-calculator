@@ -386,7 +386,7 @@ export default function Home() {
                               : opt.color === "blue"
                               ? "border-blue-500 bg-blue-500/10"
                               : "border-amber-500 bg-amber-500/10"
-                            : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="text-2xl mb-2">{opt.icon}</div>
@@ -427,7 +427,7 @@ export default function Home() {
                           "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
                             ? `${ac.border} ${ac.bg}`
-                            : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -484,7 +484,7 @@ export default function Home() {
                             "text-left p-3 rounded-lg border transition-all",
                             sizeId === s.id
                               ? `${ac.border} ${ac.bg}`
-                              : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                              : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                           )}
                         >
                           <div className="flex items-start justify-between">
@@ -525,7 +525,7 @@ export default function Home() {
                           "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
                             ? `${ac.border} ${ac.bg}`
-                            : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -588,7 +588,7 @@ export default function Home() {
                           "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
                             ? `${ac.border} ${ac.bg}`
-                            : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="font-semibold text-sm text-white">{c.label}</div>
@@ -642,7 +642,7 @@ export default function Home() {
                               "text-left p-3 rounded-lg border transition-all",
                               confirmedRailing && railingId === r.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{r.label}</div>
@@ -772,7 +772,7 @@ export default function Home() {
                               "text-left p-3 rounded-lg border transition-all",
                               skillLevelId === s.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{s.label}</div>
@@ -812,7 +812,7 @@ export default function Home() {
                                 "text-left p-3 rounded-lg border transition-all",
                                 checked
                                   ? `${ac.border} ${ac.bg}`
-                                  : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                  : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                               )}
                             >
                               <div className="flex items-start justify-between gap-2">
@@ -870,7 +870,7 @@ export default function Home() {
                           "p-4 rounded-lg border text-left transition-all col-span-2",
                           !includePermit
                             ? "border-slate-400 bg-slate-500/10"
-                            : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -900,7 +900,7 @@ export default function Home() {
                             "p-3 rounded-lg border text-left transition-all",
                             includePermit && permitCost === p.value
                               ? `${ac.border} ${ac.bg}`
-                              : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                              : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                           )}
                         >
                           <div className="flex items-center gap-2 mb-1">
@@ -942,7 +942,7 @@ export default function Home() {
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
                           "p-4 rounded-lg border text-left transition-all col-span-2",
-                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -961,7 +961,7 @@ export default function Home() {
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
-                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
@@ -1023,7 +1023,7 @@ export default function Home() {
                               "text-left p-4 rounded-lg border transition-all",
                               markupTierId === m.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                             )}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -1077,7 +1077,7 @@ export default function Home() {
                               "text-left p-3 rounded-lg border transition-all",
                               crewSizeId === c.id
                                 ? `${ac.border} ${ac.bg}`
-                                : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                                : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                             )}
                           >
                             <div className="font-semibold text-xs text-white">{c.label}</div>
@@ -1107,7 +1107,7 @@ export default function Home() {
                     {/* Sub footings toggle */}
                     <div className={cn(
                       "p-4 rounded-lg border transition-all",
-                      subFootings ? `${ac.border} ${ac.bg}` : "border-[#6b8cad] bg-white/[0.03]"
+                      subFootings ? `${ac.border} ${ac.bg}` : "border border-[#6b8cad] bg-white/[0.03]"
                     )}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1209,7 +1209,7 @@ export default function Home() {
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
                         className={cn(
                           "p-4 rounded-lg border text-left transition-all col-span-2",
-                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                          !includePermit ? "border-slate-400 bg-slate-500/10" : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -1228,7 +1228,7 @@ export default function Home() {
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
-                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
+                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border border-[#6b8cad] bg-white/[0.03] hover:border-[#8aaac8]"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
