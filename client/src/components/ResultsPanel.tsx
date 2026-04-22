@@ -1296,6 +1296,197 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         )}
       </motion.div>
 
+      {/* ── JOB COSTING & SCHEDULING ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.4 }}
+        className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-5"
+      >
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase">Job Costing &amp; Scheduling</div>
+            <div className="text-xs text-slate-500 mt-0.5">Timeline, cash flow, and consumables</div>
+          </div>
+          <span className="text-lg">📅</span>
+        </div>
+
+        {/* ── SECTION 1: PROJECT TIMELINE ── */}
+        {(() => {
+          const totalDays = c.estimatedDays;
+          // Phase breakdown (% of total days, rounded)
+          const phases = [
+            { label: "Site prep & layout",   pct: 0.10, color: "#64748B", note: "Marking, clearing, permit post" },
+            { label: "Footings & framing",    pct: 0.30, color: "#F59E0B", note: "Dig, pour, cure, beam & joist" },
+            { label: "Decking & stairs",      pct: 0.35, color: "#60A5FA", note: "Board install, stair stringers" },
+            { label: "Railing & trim",        pct: 0.15, color: "#34D399", note: "Posts, balusters, cap rail" },
+            { label: "Cleanup & inspection",  pct: 0.10, color: "#A78BFA", note: "Final punch list, permit close" },
+          ];
+          const phaseDays = phases.map((p) => ({ ...p, days: Math.max(1, Math.round(totalDays * p.pct)) }));
+          // Calendar estimate: assume 5-day work weeks, add ~3 days for concrete cure wait
+          const calendarDays = totalDays + 3;
+          const calendarWeeks = Math.ceil(calendarDays / 5);
+          return (
+            <div className="mb-5">
+              <div className="text-xs font-semibold text-slate-300 mb-3">Project Timeline</div>
+              {/* Summary row */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-2.5 text-center">
+                  <div className="font-mono text-lg font-bold text-white">{totalDays}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Working days</div>
+                </div>
+                <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-2.5 text-center">
+                  <div className="font-mono text-lg font-bold text-blue-300">{calendarWeeks}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Calendar weeks</div>
+                </div>
+                <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-2.5 text-center">
+                  <div className="font-mono text-lg font-bold text-amber-300">{c.crewSize.size}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Crew size</div>
+                </div>
+              </div>
+              {/* Gantt-style phase bar */}
+              <div className="flex rounded-full overflow-hidden h-3 mb-3">
+                {phaseDays.map((p) => (
+                  <div
+                    key={p.label}
+                    style={{ width: `${(p.days / totalDays) * 100}%`, background: p.color }}
+                    title={`${p.label}: ${p.days}d`}
+                  />
+                ))}
+              </div>
+              {/* Phase breakdown list */}
+              <div className="space-y-1.5">
+                {phaseDays.map((p) => (
+                  <div key={p.label} className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-slate-300">{p.label}</span>
+                      <span className="text-[10px] text-slate-600 ml-1.5">{p.note}</span>
+                    </div>
+                    <span className="font-mono text-xs text-slate-400 shrink-0">{p.days}d</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 text-[10px] text-slate-600">+3 days concrete cure time included in calendar estimate. Weather delays not included.</div>
+            </div>
+          );
+        })()}
+
+        <div className="border-t border-white/[0.06] my-4" />
+
+        {/* ── SECTION 2: CASH FLOW DRAW SCHEDULE ── */}
+        {(() => {
+          const bidMid = Math.round((c.totalBidLow + c.totalBidHigh) / 2);
+          const draws = [
+            { label: "Deposit",              pct: 0.30, when: "Contract signing",       note: "Materials procurement & mobilization" },
+            { label: "Framing draw",         pct: 0.35, when: "Framing complete",        note: "After footings, posts & joists pass inspection" },
+            { label: "Decking draw",         pct: 0.25, when: "Decking complete",        note: "After boards, stairs & railing installed" },
+            { label: "Final payment",        pct: 0.10, when: "Final inspection",        note: "After permit closed & punch list complete" },
+          ];
+          return (
+            <div className="mb-5">
+              <div className="text-xs font-semibold text-slate-300 mb-3">Cash Flow Draw Schedule</div>
+              <div className="space-y-2">
+                {draws.map((d, i) => {
+                  const amount = Math.round(bidMid * d.pct);
+                  const barWidth = d.pct * 100;
+                  return (
+                    <div key={d.label} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                            <span className="text-[9px] font-bold text-blue-400">{i + 1}</span>
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-white">{d.label}</div>
+                            <div className="text-[10px] text-slate-500">{d.when}</div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-mono text-sm font-bold text-blue-300">{formatCurrency(amount)}</div>
+                          <div className="text-[10px] text-slate-600">{Math.round(d.pct * 100)}% of bid</div>
+                        </div>
+                      </div>
+                      <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                        <div className="h-full rounded-full bg-blue-500/50" style={{ width: `${barWidth}%` }} />
+                      </div>
+                      <div className="text-[10px] text-slate-600 mt-1">{d.note}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 text-[10px] text-slate-600">Draw schedule based on industry-standard 30/35/25/10 split. Adjust to your contract terms.</div>
+            </div>
+          );
+        })()}
+
+        <div className="border-t border-white/[0.06] my-4" />
+
+        {/* ── SECTION 3: CONSUMABLES & EQUIPMENT ── */}
+        {(() => {
+          const sqFt = result.size.sqFt;
+          const isComposite = result.tier.id !== "pt";
+          // Fasteners: composite needs hidden fasteners (~$0.80/sqft), PT uses screws (~$0.25/sqft)
+          const fastenerCost = Math.round(sqFt * (isComposite ? 0.80 : 0.25));
+          // Concrete: ~0.6 bags per footing inch of depth × footing count, $7/bag
+          const footingCount = sqFt <= 200 ? 6 : sqFt <= 350 ? 10 : sqFt <= 500 ? 12 : 16;
+          const concreteCost = Math.round(footingCount * 8 * 7); // 8 bags avg per footing × $7
+          // Joist tape/flashing: ~$0.15/sqft
+          const flashingCost = Math.round(sqFt * 0.15);
+          // Saw blades & drill bits: flat estimate by complexity
+          const bladesCost = result.complexity.id === "simple" ? 45 : result.complexity.id === "standard" ? 75 : result.complexity.id === "multi" ? 120 : 180;
+          // Safety & PPE: flat per crew member
+          const ppeCost = c.crewSize.size * 35;
+          // Cleanup / dumpster: scales with sqft
+          const dumpsterCost = sqFt <= 300 ? 250 : sqFt <= 500 ? 350 : 450;
+          const items = [
+            { label: "Fasteners",              amount: fastenerCost,  note: isComposite ? "Hidden clip system" : "Structural screws" },
+            { label: "Concrete (footings)",    amount: concreteCost,  note: `${footingCount} footings × ~8 bags` },
+            { label: "Joist tape & flashing",  amount: flashingCost,  note: "Moisture barrier, ledger flashing" },
+            { label: "Blades & drill bits",    amount: bladesCost,    note: "Consumable cutting tools" },
+            { label: "Safety & PPE",           amount: ppeCost,       note: `${c.crewSize.size} crew × $35` },
+            { label: "Cleanup / dumpster",     amount: dumpsterCost,  note: "Debris removal & haul-away" },
+          ];
+          const totalConsumables = items.reduce((s, i) => s + i.amount, 0);
+          const bidMid = Math.round((c.totalBidLow + c.totalBidHigh) / 2);
+          const consumablesPct = Math.round((totalConsumables / bidMid) * 100);
+          return (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-semibold text-slate-300">Consumables &amp; Equipment</div>
+                <div className="text-[10px] text-slate-500">Often missed in bids</div>
+              </div>
+              <div className="space-y-1.5">
+                {items.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <span className="text-xs text-slate-300">{item.label}</span>
+                      <span className="text-[10px] text-slate-600 ml-1.5">{item.note}</span>
+                    </div>
+                    <span className="font-mono text-xs text-slate-400 shrink-0 ml-2">{formatCurrency(item.amount)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-slate-500">Est. consumables total</div>
+                  <div className="font-mono text-base font-bold text-white mt-0.5">{formatCurrency(totalConsumables)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-500">% of bid</div>
+                  <div className={cn(
+                    "font-mono text-base font-bold mt-0.5",
+                    consumablesPct <= 3 ? "text-green-400" : consumablesPct <= 6 ? "text-amber-400" : "text-red-400"
+                  )}>{consumablesPct}%</div>
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] text-slate-600">Consumables are rough estimates — verify against your actual supplier pricing. These are not included in the bid total above.</div>
+            </div>
+          );
+        })()}
+
+      </motion.div>
+
       <Warnings warnings={result.warnings} />
       <Disclaimer text={`This bid estimate is generated from regional cost data as of Q1 2026 and is intended for <strong class="text-slate-400">preliminary bidding guidance only</strong>. Actual project costs depend on site conditions, material availability, subcontractor pricing, and local labor markets. Markup percentages are industry benchmarks — adjust to your actual overhead structure. Gross margin calculations do not account for income tax, equipment depreciation, or warranty reserves. Always perform a detailed takeoff before submitting a final bid. This tool does not constitute professional advice.`} />
       <ActionButtons onBack={onBack} onRestart={onRestart} accent="#60A5FA" />
