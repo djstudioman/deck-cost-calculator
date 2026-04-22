@@ -509,6 +509,8 @@ export interface CalculatorInputs {
   includeCrew?: boolean;
   subFootings?: boolean;
   markupMaterials?: boolean;
+  // Custom size (contractor only)
+  customSqFt?: number; // used when sizeId === "custom"
 }
 
 export interface CalculatorResult {
@@ -577,7 +579,11 @@ export interface CalculatorResult {
 
 export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const region = REGIONS.find((r) => r.id === inputs.regionId)!;
-  const size = DECK_SIZES.find((s) => s.id === inputs.sizeId)!;
+  // Support custom size: create a synthetic DeckSize when sizeId === "custom"
+  const customSqFt = inputs.customSqFt ?? 320;
+  const size: DeckSize = inputs.sizeId === "custom"
+    ? { id: "custom", label: "Custom", sqFt: customSqFt, dimensions: `${Math.round(Math.sqrt(customSqFt))} × ${Math.round(customSqFt / Math.round(Math.sqrt(customSqFt)))} ft (approx)` }
+    : DECK_SIZES.find((s) => s.id === inputs.sizeId)!;
   const tier = MATERIAL_TIERS.find((t) => t.id === inputs.tierId)!;
   const complexity = COMPLEXITIES.find((c) => c.id === inputs.complexityId)!;
   // When railingId is null (user hasn't selected yet), use composite-select as the
@@ -589,9 +595,19 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const isDIY = inputs.audience === "diy";
   const isContractor = inputs.audience === "contractor";
 
-  // Base installed cost from lookup table
-  const baseInstalled = INSTALLED_COST_TABLE[inputs.sizeId][inputs.tierId];
-  const baseMaterials = MATERIALS_COST_TABLE[inputs.sizeId][inputs.tierId];
+  // Base installed cost from lookup table (or interpolated for custom size)
+  const baseInstalled: { low: number; high: number } = inputs.sizeId === "custom"
+    ? {
+        low:  Math.round(tier.installedPerSqFtMin * customSqFt),
+        high: Math.round(tier.installedPerSqFtMax * customSqFt),
+      }
+    : INSTALLED_COST_TABLE[inputs.sizeId][inputs.tierId];
+  const baseMaterials: { low: number; high: number } = inputs.sizeId === "custom"
+    ? {
+        low:  Math.round(tier.materialPerSqFtMin * customSqFt),
+        high: Math.round(tier.materialPerSqFtMax * customSqFt),
+      }
+    : MATERIALS_COST_TABLE[inputs.sizeId][inputs.tierId];
 
   // Regional multiplier applied to labor portion (~55% of total)
   const laborFraction = 0.55;

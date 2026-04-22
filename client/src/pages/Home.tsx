@@ -97,6 +97,10 @@ export default function Home() {
   const [crewSizeId, setCrewSizeId] = useState("two");
   const [includeMarkup, setIncludeMarkup] = useState(true);
   const [subFootings, setSubFootings] = useState(false);
+  // Custom size (contractor only)
+  const [customWidth, setCustomWidth] = useState<number>(20);
+  const [customLength, setCustomLength] = useState<number>(20);
+  const customSqFt = customWidth * customLength;
 
   const totalSteps = getTotalSteps(audience);
   const stepLabels = getStepLabels(audience);
@@ -123,11 +127,12 @@ export default function Home() {
       crewSizeId,
       includeCrew,
       subFootings,
+      customSqFt: sizeId === "custom" ? customSqFt : undefined,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
-      permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
+      permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
     ]
   );
 
@@ -522,6 +527,86 @@ export default function Home() {
                         </button>
                       );
                     })}
+
+                    {/* Custom size card — contractor only */}
+                    {audience === "contractor" && (
+                      <div
+                        className={cn(
+                          "col-span-1 sm:col-span-2 p-3 rounded-lg border transition-all",
+                          sizeId === "custom"
+                            ? `${sel.border} ${sel.bg}`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                        )}
+                      >
+                        <button
+                          className="w-full text-left"
+                          onClick={() => {
+                            if (sizeId !== "custom") setSizeId("custom");
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold text-sm text-white">Custom Size</div>
+                              <div className="text-xs text-slate-500 mt-0.5">Enter exact dimensions</div>
+                            </div>
+                            <div className="text-right">
+                              {sizeId === "custom" && (
+                                <div className={`text-xs font-mono ${ac.text}`}>{customSqFt} sq ft</div>
+                              )}
+                              <div className="text-xs text-slate-600">contractor only</div>
+                            </div>
+                          </div>
+                        </button>
+                        {sizeId === "custom" && (
+                          <div className="mt-3 grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+                            <div>
+                              <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Width (ft)</label>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => setCustomWidth((w) => Math.max(4, w - 1))}
+                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+                                >−</button>
+                                <input
+                                  type="number"
+                                  min={4} max={100}
+                                  value={customWidth}
+                                  onChange={(e) => setCustomWidth(Math.max(4, Math.min(100, Number(e.target.value) || 4)))}
+                                  className="flex-1 text-center font-mono text-sm bg-white/[0.06] border border-white/10 rounded text-white py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                                <button
+                                  onClick={() => setCustomWidth((w) => Math.min(100, w + 1))}
+                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+                                >+</button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Length (ft)</label>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => setCustomLength((l) => Math.max(4, l - 1))}
+                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+                                >−</button>
+                                <input
+                                  type="number"
+                                  min={4} max={200}
+                                  value={customLength}
+                                  onChange={(e) => setCustomLength(Math.max(4, Math.min(200, Number(e.target.value) || 4)))}
+                                  className="flex-1 text-center font-mono text-sm bg-white/[0.06] border border-white/10 rounded text-white py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                                <button
+                                  onClick={() => setCustomLength((l) => Math.min(200, l + 1))}
+                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+                                >+</button>
+                              </div>
+                            </div>
+                            <div className="col-span-2 text-center">
+                              <span className={`font-mono text-base font-bold ${ac.text}`}>{customWidth} × {customLength} = {customSqFt} sq ft</span>
+                              <div className="text-[10px] text-slate-500 mt-0.5">Live estimate updates as you type</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </StepCard>
               )}
