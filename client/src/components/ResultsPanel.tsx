@@ -6,6 +6,7 @@
  * DIYer:     Materials cost + waste + tool rental + permit, savings vs hiring, weekend estimate
  * Contractor: Bid range, markup breakdown, gross margin, crew days, subcontracting note
  */
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -538,6 +539,159 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
 function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
   const c = result.contractor!;
 
+  // Change Order Estimator state
+  // Each item: { qty, unit, costPerUnit low/high, laborPerUnit low/high }
+  const CHANGE_ORDER_ITEMS = [
+    {
+      id: "extra-railing",
+      label: "Additional Railing",
+      icon: "🔩",
+      unit: "LF",
+      unitLabel: "linear feet",
+      defaultQty: 20,
+      minQty: 1,
+      maxQty: 200,
+      step: 1,
+      matLow: result.railing.materialPerLFMin,
+      matHigh: result.railing.materialPerLFMax,
+      laborLow: result.railing.installedPerLFMin - result.railing.materialPerLFMin,
+      laborHigh: result.railing.installedPerLFMax - result.railing.materialPerLFMax,
+      note: `${result.railing.label} — matches existing railing system`,
+    },
+    {
+      id: "extra-stairs",
+      label: "Add Stair Section",
+      icon: "🪜",
+      unit: "steps",
+      unitLabel: "steps",
+      defaultQty: 4,
+      minQty: 2,
+      maxQty: 20,
+      step: 1,
+      matLow: result.tier.id === "pt" ? 30 : result.tier.id === "composite" ? 50 : 60,
+      matHigh: result.tier.id === "pt" ? 60 : result.tier.id === "composite" ? 100 : 120,
+      laborLow: 0,
+      laborHigh: 0,
+      note: `${result.tier.shortLabel} — matches existing deck material`,
+    },
+    {
+      id: "deck-lighting",
+      label: "Deck Lighting",
+      icon: "💡",
+      unit: "fixtures",
+      unitLabel: "fixtures",
+      defaultQty: 6,
+      minQty: 1,
+      maxQty: 30,
+      step: 1,
+      matLow: 45,
+      matHigh: 120,
+      laborLow: 35,
+      laborHigh: 65,
+      note: "Low-voltage LED deck lights — post caps, step lights, or recessed",
+    },
+    {
+      id: "built-in-seating",
+      label: "Built-In Bench Seating",
+      icon: "🪑",
+      unit: "LF",
+      unitLabel: "linear feet",
+      defaultQty: 12,
+      minQty: 4,
+      maxQty: 60,
+      step: 2,
+      matLow: 35,
+      matHigh: 80,
+      laborLow: 25,
+      laborHigh: 55,
+      note: `${result.tier.shortLabel} — framed bench with backrest`,
+    },
+    {
+      id: "pergola",
+      label: "Pergola / Shade Structure",
+      icon: "⛱️",
+      unit: "sq ft",
+      unitLabel: "sq ft of coverage",
+      defaultQty: 100,
+      minQty: 50,
+      maxQty: 400,
+      step: 10,
+      matLow: 12,
+      matHigh: 30,
+      laborLow: 10,
+      laborHigh: 22,
+      note: "PT wood or cedar pergola — materials + framing labor",
+    },
+    {
+      id: "privacy-screen",
+      label: "Privacy Screen / Lattice",
+      icon: "🏗️",
+      unit: "panels",
+      unitLabel: "4×8 panels",
+      defaultQty: 3,
+      minQty: 1,
+      maxQty: 20,
+      step: 1,
+      matLow: 120,
+      matHigh: 350,
+      laborLow: 80,
+      laborHigh: 180,
+      note: "Cedar or composite privacy panels with post framing",
+    },
+  ] as const;
+
+  type ItemId = typeof CHANGE_ORDER_ITEMS[number]["id"];
+  const [selectedItems, setSelectedItems] = useState<Set<ItemId>>(new Set());
+  const [quantities, setQuantities] = useState<Record<string, number>>(
+    Object.fromEntries(CHANGE_ORDER_ITEMS.map((i) => [i.id, i.defaultQty]))
+  );
+  const [copiedCO, setCopiedCO] = useState(false);
+
+  const toggleItem = (id: ItemId) => {
+    setSelectedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const setQty = (id: string, val: number, min: number, max: number) => {
+    setQuantities((prev) => ({ ...prev, [id]: Math.min(max, Math.max(min, val)) }));
+  };
+
+  // Compute totals for selected items (with contractor markup applied)
+  const coLineItems = CHANGE_ORDER_ITEMS.filter((i) => selectedItems.has(i.id)).map((item) => {
+    const qty = quantities[item.id];
+    const rawMatMid = ((item.matLow + item.matHigh) / 2) * qty;
+    const rawLaborMid = ((item.laborLow + item.laborHigh) / 2) * qty;
+    const matMarked = Math.round(rawMatMid * (1 + c.markupTier.materialMarkup));
+    const laborMarked = Math.round(rawLaborMid * (1 + c.markupTier.laborMarkup));
+    const overhead = Math.round((matMarked + laborMarked) * c.markupTier.overheadPct);
+    const totalMid = matMarked + laborMarked + overhead;
+    const totalLow = Math.round(totalMid * 0.92);
+    const totalHigh = Math.round(totalMid * 1.08);
+    return { ...item, qty, totalLow, totalHigh, totalMid };
+  });
+
+  const coGrandLow = coLineItems.reduce((s, i) => s + i.totalLow, 0);
+  const coGrandHigh = coLineItems.reduce((s, i) => s + i.totalHigh, 0);
+
+  const copyChangeOrder = () => {
+    const lines = [
+      "CHANGE ORDER ESTIMATE",
+      `Project: ${result.size.sqFt} sq ft ${result.tier.shortLabel} deck — ${result.region.label}`,
+      "",
+      ...coLineItems.map((i) => `• ${i.label} (${i.qty} ${i.unit}): ${formatRange(i.totalLow, i.totalHigh)}`),
+      "",
+      `TOTAL CHANGE ORDER: ${formatRange(coGrandLow, coGrandHigh)}`,
+      `(Includes ${Math.round(c.markupTier.materialMarkup * 100)}% material markup, ${Math.round(c.markupTier.laborMarkup * 100)}% labor markup, ${Math.round(c.markupTier.overheadPct * 100)}% overhead)`,
+    ].join("\n");
+    navigator.clipboard.writeText(lines).then(() => {
+      setCopiedCO(true);
+      setTimeout(() => setCopiedCO(false), 2500);
+    });
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-5">
       {/* Hero bid card */}
@@ -917,6 +1071,139 @@ function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-slate-600">
           💡 Bid ranges include your current markup tier ({c.markupTier.label}). Labor costs held constant — only material cost changes.
         </div>
+      </motion.div>
+
+      {/* ── CHANGE ORDER ESTIMATOR ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
+        className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-5"
+      >
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase">Change Order Estimator</div>
+          <div className="text-xs text-slate-500 shrink-0">Scope additions</div>
+        </div>
+        <div className="text-xs text-slate-500 mb-4">Select scope additions to instantly price them as a change order using your current markup tier.</div>
+
+        {/* Item grid */}
+        <div className="space-y-2">
+          {CHANGE_ORDER_ITEMS.map((item) => {
+            const isOn = selectedItems.has(item.id);
+            const qty = quantities[item.id];
+            // Quick preview price (unselected state)
+            const previewMid = Math.round(
+              (((item.matLow + item.matHigh) / 2) * item.defaultQty * (1 + c.markupTier.materialMarkup))
+              + (((item.laborLow + item.laborHigh) / 2) * item.defaultQty * (1 + c.markupTier.laborMarkup))
+            );
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "rounded-lg border transition-all",
+                  isOn
+                    ? "border-blue-500/50 bg-blue-500/5"
+                    : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04]"
+                )}
+              >
+                {/* Header row — always visible */}
+                <button
+                  onClick={() => toggleItem(item.id)}
+                  className="w-full flex items-center gap-3 p-3 text-left"
+                >
+                  <span className="text-base shrink-0">{item.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className={cn("text-xs font-semibold", isOn ? "text-white" : "text-slate-300")}>
+                      {item.label}
+                    </div>
+                    <div className="text-[10px] text-slate-600 truncate mt-0.5">{item.note}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {isOn ? (
+                      <span className="text-xs font-mono text-blue-300 font-semibold">
+                        {formatRange(
+                          coLineItems.find((l) => l.id === item.id)?.totalLow ?? 0,
+                          coLineItems.find((l) => l.id === item.id)?.totalHigh ?? 0
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-600">~{formatCurrency(previewMid)}</span>
+                    )}
+                  </div>
+                  <div className={cn(
+                    "w-4 h-4 rounded border shrink-0 flex items-center justify-center transition-colors",
+                    isOn ? "bg-blue-500 border-blue-500" : "border-white/20"
+                  )}>
+                    {isOn && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                </button>
+
+                {/* Quantity controls — only when selected */}
+                {isOn && (
+                  <div className="px-3 pb-3 flex items-center gap-3">
+                    <span className="text-xs text-slate-500 w-20 shrink-0">Quantity</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setQty(item.id, qty - item.step, item.minQty, item.maxQty)}
+                        className="w-6 h-6 rounded border border-white/20 text-slate-400 hover:text-white hover:border-white/40 text-sm flex items-center justify-center transition-colors"
+                      >−</button>
+                      <span className="font-mono text-sm text-white w-12 text-center">{qty} {item.unit}</span>
+                      <button
+                        onClick={() => setQty(item.id, qty + item.step, item.minQty, item.maxQty)}
+                        className="w-6 h-6 rounded border border-white/20 text-slate-400 hover:text-white hover:border-white/40 text-sm flex items-center justify-center transition-colors"
+                      >+</button>
+                    </div>
+                    <span className="text-xs text-slate-600 ml-1">{item.unitLabel}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Summary footer — only when items selected */}
+        {coLineItems.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/[0.08]">
+            <div className="space-y-1.5 mb-3">
+              {coLineItems.map((item) => (
+                <div key={item.id} className="flex justify-between text-xs">
+                  <span className="text-slate-400">{item.icon} {item.label} × {item.qty} {item.unit}</span>
+                  <span className="font-mono text-blue-300">{formatRange(item.totalLow, item.totalHigh)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+              <div>
+                <div className="text-xs text-slate-500">Total Change Order</div>
+                <div className="font-mono text-lg font-bold text-white">{formatRange(coGrandLow, coGrandHigh)}</div>
+                <div className="text-[10px] text-slate-600 mt-0.5">
+                  Markup: {Math.round(c.markupTier.materialMarkup * 100)}% mat / {Math.round(c.markupTier.laborMarkup * 100)}% labor / {Math.round(c.markupTier.overheadPct * 100)}% overhead
+                </div>
+              </div>
+              <button
+                onClick={copyChangeOrder}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-all",
+                  copiedCO
+                    ? "bg-green-500/20 border-green-500/40 text-green-400"
+                    : "bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20"
+                )}
+              >
+                {copiedCO ? (
+                  <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 14 14"><path d="M2 7l3.5 3.5L12 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Copied!</>
+                ) : (
+                  <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 14 14"><rect x="1" y="4" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2"/><path d="M4 4V2.5A1.5 1.5 0 015.5 1h7A1.5 1.5 0 0114 2.5v7A1.5 1.5 0 0112.5 11H11" stroke="currentColor" strokeWidth="1.2"/></svg> Copy Change Order</>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {coLineItems.length === 0 && (
+          <div className="mt-3 text-center text-xs text-slate-600 py-2">
+            Select one or more scope additions above to generate a change order total.
+          </div>
+        )}
       </motion.div>
 
       <Warnings warnings={result.warnings} />
