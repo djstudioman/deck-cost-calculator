@@ -1050,7 +1050,7 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-3">
-                          <span className="text-xs text-slate-300 font-semibold">Include railing anyway?</span>
+                          <span className="text-sm font-semibold text-slate-300">Include railing anyway?</span>
                           <button
                             onClick={() => {
                               setIncludeRailing(v => !v);
@@ -1125,7 +1125,7 @@ export default function Home() {
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Include Stairs?</div>
+                        <div className="text-sm font-semibold text-slate-300">Include Stairs?</div>
                           <button
                           onClick={() => setIncludeStairs((v) => !v)}
                           className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairs ? ac.bgSolid : "bg-white/20")}
@@ -1175,7 +1175,7 @@ export default function Home() {
                          {/* Stair railing toggle */}
                          <div className="flex items-center justify-between pt-1">
                            <div>
-                             <div className="text-xs font-semibold text-slate-300" style={{fontSize: '16px', paddingTop: '10px', marginTop: '5px', marginBottom: '6px'}}>Include stair railing</div>
+                             <div className="text-sm font-semibold text-slate-300 pt-2 mt-1 mb-1.5">Include stair railing</div>
                              <div className="text-xs text-slate-500 mt-0.5">Matches your deck railing system</div>
                            </div>
                            <button
