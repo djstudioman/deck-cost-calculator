@@ -62,6 +62,7 @@ function getTotalSteps(audience: AudienceType): number {
 export default function Home() {
   const [step, setStep] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [changeOrderDelta, setChangeOrderDelta] = useState<{ low: number; high: number }>({ low: 0, high: 0 });
   // Tracks which step has had its selection "confirmed" (i.e. clicked once already).
   // First click on a card selects it; second click on the already-selected card advances.
   const [confirmedStep, setConfirmedStep] = useState<number | null>(null);
@@ -224,7 +225,10 @@ export default function Home() {
   // Live estimate label changes by audience
   const liveLabel = audience === "contractor" ? "Bid estimate" : "Live estimate";
   const liveRange = audience === "contractor" && result.contractor
-    ? formatRange(result.contractor.totalBidLow, result.contractor.totalBidHigh)
+    ? formatRange(
+        result.contractor.totalBidLow + changeOrderDelta.low,
+        result.contractor.totalBidHigh + changeOrderDelta.high
+      )
     : audience === "diy" && result.diy
     ? formatRange(result.diy.totalWithExtrasLow, result.diy.totalWithExtrasHigh)
     : formatRange(result.totalLow, result.totalHigh);
@@ -332,7 +336,12 @@ export default function Home() {
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.3 }}
             >
-              <ResultsPanel result={result} onBack={goBack} onRestart={restart} />
+              <ResultsPanel
+                result={result}
+                onBack={() => { setChangeOrderDelta({ low: 0, high: 0 }); goBack(); }}
+                onRestart={() => { setChangeOrderDelta({ low: 0, high: 0 }); restart(); }}
+                onChangeOrderUpdate={(low, high) => setChangeOrderDelta({ low, high })}
+              />
             </motion.div>
           ) : (
             <motion.div

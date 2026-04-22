@@ -6,7 +6,7 @@
  * DIYer:     Materials cost + waste + tool rental + permit, savings vs hiring, weekend estimate
  * Contractor: Bid range, markup breakdown, gross margin, crew days, subcontracting note
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -31,6 +31,7 @@ interface ResultsPanelProps {
   result: CalculatorResult;
   onBack: () => void;
   onRestart: () => void;
+  onChangeOrderUpdate?: (low: number, high: number) => void;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -536,7 +537,7 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
 }
 
 // ─── CONTRACTOR PANEL ─────────────────────────────────────────────────────────
-function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
+function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: ResultsPanelProps) {
   const c = result.contractor!;
 
   // Change Order Estimator state
@@ -676,6 +677,12 @@ function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
   const coGrandLow = coLineItems.reduce((s, i) => s + i.totalLow, 0);
   const coGrandHigh = coLineItems.reduce((s, i) => s + i.totalHigh, 0);
 
+  // Notify parent whenever change order total changes so the live ticker updates
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onChangeOrderUpdate?.(coGrandLow, coGrandHigh);
+  }, [coGrandLow, coGrandHigh]);
+
   const copyChangeOrder = () => {
     const lines = [
       "CHANGE ORDER ESTIMATE",
@@ -704,11 +711,18 @@ function ContractorPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="text-xs font-semibold tracking-widest text-blue-400/70 uppercase mb-1">
-              Bid Range Estimate
+              {coGrandLow > 0 ? "Bid + Change Orders" : "Bid Range Estimate"}
             </div>
             <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
-              {formatRange(c.totalBidLow, c.totalBidHigh)}
+              {formatRange(c.totalBidLow + coGrandLow, c.totalBidHigh + coGrandHigh)}
             </div>
+            {coGrandLow > 0 && (
+              <div className="text-xs text-blue-400/70 mt-0.5">
+                Base bid {formatRange(c.totalBidLow, c.totalBidHigh)}
+                &nbsp;+&nbsp;
+                <span className="text-blue-300">CO {formatRange(coGrandLow, coGrandHigh)}</span>
+              </div>
+            )}
             <div className="text-sm text-slate-400 mt-1">
               {formatCurrency(c.perSqFtBidLow)}–{formatCurrency(c.perSqFtBidHigh)}/sq ft
               &nbsp;·&nbsp;{result.size.sqFt} sq ft
