@@ -357,6 +357,10 @@ export default function Home() {
                         desc: "Hiring a contractor. See full installed costs.",
                         extra: "6 questions",
                         color: "amber",
+                        glow: "rgba(245,158,11,0.30)",
+                        borderColor: "#F59E0B",
+                        bgColor: "rgba(245,158,11,0.10)",
+                        textColor: "#FBBF24",
                       },
                       {
                         id: "diy" as AudienceType,
@@ -365,6 +369,10 @@ export default function Home() {
                         desc: "Doing it yourself. Materials + tool rental + permit.",
                         extra: "8 questions",
                         color: "emerald",
+                        glow: "rgba(16,185,129,0.30)",
+                        borderColor: "#10B981",
+                        bgColor: "rgba(16,185,129,0.10)",
+                        textColor: "#34D399",
                       },
                       {
                         id: "contractor" as AudienceType,
@@ -373,14 +381,20 @@ export default function Home() {
                         desc: "Bidding a project. Full markup, crew, and margin analysis.",
                         extra: "8 questions",
                         color: "blue",
+                        glow: "rgba(59,130,246,0.30)",
+                        borderColor: "#3B82F6",
+                        bgColor: "rgba(59,130,246,0.10)",
+                        textColor: "#60A5FA",
                       },
-                    ].map((opt) => (
+                    ].map((opt) => {
+                      const isSelected = audience === opt.id;
+                      return (
                       <button
                         key={opt.id}
                         onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
-                          audience === opt.id
+                          isSelected
                             ? opt.color === "emerald"
                               ? "border-emerald-500 bg-emerald-500/10"
                               : opt.color === "blue"
@@ -388,6 +402,13 @@ export default function Home() {
                               : "border-amber-500 bg-amber-500/10"
                             : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
+                        style={isSelected ? {
+                          boxShadow: `0 0 18px 2px ${opt.glow}, 0 0 4px 0 ${opt.glow}`,
+                          transition: "box-shadow 200ms ease",
+                        } : {
+                          boxShadow: "none",
+                          transition: "box-shadow 200ms ease",
+                        }}
                       >
                         <div className="text-2xl mb-2">{opt.icon}</div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
@@ -403,7 +424,8 @@ export default function Home() {
                           {audience === opt.id ? "✓ Selected" : opt.extra}
                         </div>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </StepCard>
               )}
