@@ -172,6 +172,53 @@ export default function Home() {
     );
   };
 
+  // ─── PER-PATHWAY ACCENT COLOR SYSTEM ───────────────────────────────────────
+  // Each audience gets a persistent accent color used on ALL highlighted buttons,
+  // selected card borders, toggles, range inputs, and labels throughout the flow.
+  // Tailwind requires full class names — no dynamic string interpolation.
+  const ACCENT = {
+    homeowner: {
+      border:       "border-amber-500",
+      bg:           "bg-amber-500/10",
+      bgSolid:      "bg-amber-500",
+      bgHover:      "hover:bg-amber-400",
+      text:         "text-amber-400",
+      textSelected: "text-amber-500",
+      accent:       "accent-amber-500",
+      progressBar:  "bg-amber-500",
+      badgeBg:      "bg-amber-500/20",
+      badgeText:    "text-amber-400",
+      btnClass:     "bg-amber-500 hover:bg-amber-400 text-[#0B1120]",
+    },
+    diy: {
+      border:       "border-emerald-500",
+      bg:           "bg-emerald-500/10",
+      bgSolid:      "bg-emerald-500",
+      bgHover:      "hover:bg-emerald-400",
+      text:         "text-emerald-400",
+      textSelected: "text-emerald-500",
+      accent:       "accent-emerald-500",
+      progressBar:  "bg-emerald-500",
+      badgeBg:      "bg-emerald-500/20",
+      badgeText:    "text-emerald-400",
+      btnClass:     "bg-emerald-500 hover:bg-emerald-400 text-[#0B1120]",
+    },
+    contractor: {
+      border:       "border-blue-500",
+      bg:           "bg-blue-500/10",
+      bgSolid:      "bg-blue-500",
+      bgHover:      "hover:bg-blue-400",
+      text:         "text-blue-400",
+      textSelected: "text-blue-500",
+      accent:       "accent-blue-500",
+      progressBar:  "bg-blue-500",
+      badgeBg:      "bg-blue-500/20",
+      badgeText:    "text-blue-400",
+      btnClass:     "bg-blue-500 hover:bg-blue-400 text-white",
+    },
+  } as const;
+  const ac = ACCENT[audience];
+
   // Live estimate label changes by audience
   const liveLabel = audience === "contractor" ? "Bid estimate" : "Live estimate";
   const liveRange = audience === "contractor" && result.contractor
@@ -186,7 +233,7 @@ export default function Home() {
       <header className="border-b border-white/[0.06] bg-[#0B1120]/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded bg-amber-500 flex items-center justify-center">
+            <div className={`w-7 h-7 rounded ${ac.bgSolid} flex items-center justify-center`}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <rect x="1" y="8" width="12" height="2" rx="1" fill="#0B1120"/>
                 <rect x="1" y="4" width="12" height="2" rx="1" fill="#0B1120"/>
@@ -195,7 +242,7 @@ export default function Home() {
               </svg>
             </div>
             <span className="font-bold text-sm tracking-tight text-white">
-              DeckCost <span className="text-amber-400">2026</span>
+              DeckCost <span className={ac.text}>2026</span>
             </span>
           </div>
 
@@ -210,7 +257,7 @@ export default function Home() {
               className="flex items-center gap-2"
             >
               <span className="text-xs text-slate-500 hidden sm:block">{liveLabel}</span>
-              <span className="font-mono text-sm font-semibold text-amber-400">{liveRange}</span>
+              <span className={`font-mono text-sm font-semibold ${ac.text}`}>{liveRange}</span>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -228,7 +275,7 @@ export default function Home() {
         >
           <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/60 via-[#0B1120]/40 to-[#0B1120]" />
           <div className="relative z-10 h-full flex flex-col justify-end px-4 sm:px-6 pb-6 max-w-6xl mx-auto w-full">
-            <p className="text-xs font-semibold tracking-widest text-amber-400 uppercase mb-1">
+            <p className={`text-xs font-semibold tracking-widest ${ac.text} uppercase mb-1`}>
               2026 Pricing Data
             </p>
             <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
@@ -253,9 +300,7 @@ export default function Home() {
             {step >= 6 && (
               <span className={cn(
                 "text-xs px-2 py-0.5 rounded-full font-semibold",
-                audience === "diy"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "bg-blue-500/20 text-blue-400"
+                `${ac.badgeBg} ${ac.badgeText}`
               )}>
                 {audience === "diy" ? "DIYer" : "Contractor"}
               </span>
@@ -265,9 +310,7 @@ export default function Home() {
             <motion.div
               className={cn(
                 "h-full rounded-full",
-                step >= 6 && audience === "diy" ? "bg-emerald-500" :
-                step >= 6 && audience === "contractor" ? "bg-blue-500" :
-                "bg-amber-500"
+                ac.progressBar
               )}
               animate={{ width: `${((step + 1) / totalSteps) * 100}%` }}
               transition={{ duration: 0.3 }}
@@ -305,11 +348,12 @@ export default function Home() {
               {/* ── STEP 0: AUDIENCE ── */}
               {step === 0 && (
                 <StepCard
-title="Who are you?"
-                   subtitle="We'll tailor the estimate — and the questions — to your situation."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Who are you?"
+                  subtitle="We'll tailor the estimate — and the questions — to your situation."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   nextLabel="Continue"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
@@ -374,11 +418,12 @@ title="Who are you?"
               {/* ── STEP 1: REGION ── */}
               {step === 1 && (
                 <StepCard
-title="Where is your deck?"
-                   subtitle="Regional labor rates and climate factors significantly affect total cost."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Where is your deck?"
+                  subtitle="Regional labor rates and climate factors significantly affect total cost."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {REGIONS.map((r) => (
@@ -388,7 +433,7 @@ title="Where is your deck?"
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
-                            ? "border-amber-500 bg-amber-500/10"
+                            ? `${ac.border} ${ac.bg}`
                             : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
@@ -401,7 +446,7 @@ title="Where is your deck?"
                             <div className={cn(
                               "text-xs font-mono font-semibold",
                               r.laborMultiplier > 1.2 ? "text-red-400"
-                              : r.laborMultiplier > 1.0 ? "text-amber-400"
+                              : r.laborMultiplier > 1.0 ? ac.text
                               : "text-green-400"
                             )}>
                               {r.laborMultiplier.toFixed(2)}×
@@ -421,11 +466,12 @@ title="Where is your deck?"
               {/* ── STEP 2: SIZE ── */}
               {step === 2 && (
                 <StepCard
-title="How large is your deck?"
-                   subtitle="Larger decks have lower per-sq-ft costs due to economies of scale."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="How large is your deck?"
+                  subtitle="Larger decks have lower per-sq-ft costs due to economies of scale."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {DECK_SIZES.map((s) => {
@@ -444,7 +490,7 @@ title="How large is your deck?"
                           className={cn(
                             "text-left p-3 rounded-lg border transition-all",
                             sizeId === s.id
-                              ? "border-amber-500 bg-amber-500/10"
+                              ? `${ac.border} ${ac.bg}`
                               : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
@@ -454,7 +500,7 @@ title="How large is your deck?"
                               <div className="text-xs text-slate-500 mt-0.5">{s.sqFt} sq ft</div>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs font-mono text-amber-400">
+                              <div className={`text-xs font-mono ${ac.text}`}>
                                 {formatRange(est.low, est.high)}
                               </div>
                               <div className="text-xs text-slate-600">PT installed est.</div>
@@ -470,11 +516,12 @@ title="How large is your deck?"
               {/* ── STEP 3: MATERIAL TIER ── */}
               {step === 3 && (
                 <StepCard
-title="What material tier?"
-                   subtitle="The single biggest driver of cost after labor."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="What material tier?"
+                  subtitle="The single biggest driver of cost after labor."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="flex flex-col gap-3">
                     {MATERIAL_TIERS.map((t) => (
@@ -484,7 +531,7 @@ title="What material tier?"
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
-                            ? "border-amber-500 bg-amber-500/10"
+                            ? `${ac.border} ${ac.bg}`
                             : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
@@ -501,7 +548,7 @@ title="What material tier?"
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="text-xs font-mono text-amber-400 font-semibold">
+                            <div className={`text-xs font-mono ${ac.text} font-semibold`}>
                               ${t.materialPerSqFtMin}–${t.materialPerSqFtMax}
                             </div>
                             <div className="text-xs text-slate-600">materials/SF</div>
@@ -537,6 +584,7 @@ title="What material tier?"
                   onNext={goNext}
                   onBack={goBack}
                   showTapHint={confirmedStep === step}
+                  accentBtnClass={ac.btnClass}
                 >
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                      {COMPLEXITIES.map((c) => (
@@ -546,7 +594,7 @@ title="What material tier?"
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
-                            ? "border-amber-500 bg-amber-500/10"
+                            ? `${ac.border} ${ac.bg}`
                             : "border-white/10 bg-white/[0.03] hover:border-white/20"
                         )}
                       >
@@ -557,7 +605,7 @@ title="What material tier?"
                           <span className={cn(
                             "text-xs font-mono font-semibold",
                             c.laborMultiplier > 1.5 ? "text-red-400"
-                            : c.laborMultiplier > 1.1 ? "text-amber-400"
+                            : c.laborMultiplier > 1.1 ? ac.text
                             : "text-green-400"
                           )}>
                             {c.laborMultiplier === 1 ? "Baseline" : `+${Math.round((c.laborMultiplier - 1) * 100)}% labor`}
@@ -572,12 +620,13 @@ title="What material tier?"
               {/* ── STEP 5: RAILING & EXTRAS ── */}
               {step === 5 && (
                 <StepCard
-title="Railing & extras"
-                   subtitle="Railing can represent 15–30% of total project cost."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Railing & extras"
+                  subtitle="Railing can represent 15–30% of total project cost."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="Continue →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-5">
                     <div>
@@ -599,12 +648,12 @@ title="Railing & extras"
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               confirmedRailing && railingId === r.id
-                                ? "border-amber-500 bg-amber-500/10"
+                                ? `${ac.border} ${ac.bg}`
                                 : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{r.label}</div>
-                            <div className="text-xs font-mono text-amber-400 mt-1">
+                            <div className={`text-xs font-mono ${ac.text} mt-1`}>
                               ${r.materialPerLFMin}–${r.materialPerLFMax}/LF materials
                             </div>
                             {audience !== "diy" && (
@@ -622,8 +671,8 @@ title="Railing & extras"
                       <div className="flex items-center gap-3">
                         <input type="range" min={10} max={200} step={2} value={railingLF}
                           onChange={(e) => setRailingLF(Number(e.target.value))}
-                          className="flex-1 accent-amber-500" />
-                        <span className="font-mono text-sm text-amber-400 w-16 text-right">{railingLF} LF</span>
+                          className={`flex-1 ${ac.accent}`} />
+                        <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>{railingLF} LF</span>
                       </div>
                       <div className="text-xs text-slate-500 mt-1">Typical 16×20 deck: ~52 LF (three open sides)</div>
                     </div>
@@ -633,7 +682,7 @@ title="Railing & extras"
                         <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Include Stairs?</div>
                           <button
                           onClick={() => setIncludeStairs((v) => !v)}
-                          className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairs ? "bg-amber-500" : "bg-white/20")}
+                          className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairs ? ac.bgSolid : "bg-white/20")}
                         >
                           <span className={cn(
                             "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
@@ -649,8 +698,8 @@ title="Railing & extras"
                              <span className="text-xs text-slate-400 w-16 shrink-0">Steps</span>
                              <input type="range" min={2} max={18} step={1} value={stairSteps}
                                onChange={(e) => setStairSteps(Number(e.target.value))}
-                               className="flex-1 accent-amber-500" />
-                             <span className="font-mono text-sm text-amber-400 w-16 text-right">{stairSteps} steps</span>
+                               className={`flex-1 ${ac.accent}`} />
+                             <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>{stairSteps} steps</span>
                            </div>
                            <div className="flex items-center gap-3">
                              <span className="text-xs text-slate-400 w-16 shrink-0">Width</span>
@@ -662,13 +711,13 @@ title="Railing & extras"
                                    className={cn(
                                      "flex-1 py-1 rounded text-xs font-semibold border transition-colors",
                                      stairWidthFt === w
-                                       ? "bg-amber-500 border-amber-500 text-slate-900"
-                                       : "bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/50"
+                                       ? `${ac.bgSolid} ${ac.border} text-slate-900`
+                                       : `bg-white/5 border-white/10 text-slate-400`
                                    )}
                                  >{w}ft</button>
                                ))}
                              </div>
-                             <span className="font-mono text-sm text-amber-400 w-16 text-right">
+                             <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>
                                {stairWidthFt === 4 ? 'base' : `+$${(stairWidthFt - 4) * 100}/step`}
                              </span>
                            </div>
@@ -685,7 +734,7 @@ title="Railing & extras"
                            </div>
                            <button
                              onClick={() => setIncludeStairRailing(v => !v)}
-                             className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairRailing ? "bg-amber-500" : "bg-white/20")}
+                             className={cn("relative w-10 h-5 rounded-full transition-colors", includeStairRailing ? ac.bgSolid : "bg-white/20")}
                            >
                              <span
                                className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform"
@@ -707,17 +756,18 @@ title="Railing & extras"
               {/* ── DIY STEP 6: SKILL LEVEL & TOOL RENTAL ── */}
               {step === 6 && audience === "diy" && (
                 <StepCard
-title="Your skill level & tools"
-                   subtitle="Skill level affects material waste. Tool rental adds to your true project cost."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Your skill level & tools"
+                  subtitle="Skill level affects material waste. Tool rental adds to your true project cost."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="Continue →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-6">
                     {/* Skill level */}
                     <div>
-                      <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">
+                      <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>
                         Experience Level
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -728,13 +778,13 @@ title="Your skill level & tools"
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               skillLevelId === s.id
-                                ? "border-emerald-500 bg-emerald-500/10"
+                                ? `${ac.border} ${ac.bg}`
                                 : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{s.label}</div>
                             <div className="text-xs text-slate-400 mt-1">{s.description}</div>
-                            <div className="mt-2 text-xs font-mono text-emerald-400">
+                            <div className={`mt-2 text-xs font-mono ${ac.text}`}>
                               +{Math.round(s.wasteFactor * 100)}% waste
                             </div>
                             {s.notes.map((n, i) => (
@@ -748,7 +798,7 @@ title="Your skill level & tools"
                     {/* Tool rental */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                        <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>
                           Tool Rental (select what you need to rent)
                         </div>
                         <div className="text-xs text-slate-500">
@@ -768,7 +818,7 @@ title="Your skill level & tools"
                               className={cn(
                                 "text-left p-3 rounded-lg border transition-all",
                                 checked
-                                  ? "border-emerald-500 bg-emerald-500/10"
+                                  ? `${ac.border} ${ac.bg}`
                                   : "border-white/10 bg-white/[0.03] hover:border-white/20"
                               )}
                             >
@@ -777,7 +827,7 @@ title="Your skill level & tools"
                                   <div className="flex items-center gap-2">
                                     <div className={cn(
                                       "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
-                                      checked ? "bg-emerald-500 border-emerald-500" : "border-white/30"
+                                      checked ? `${ac.bgSolid} ${ac.border}` : "border-white/30"
                                     )}>
                                       {checked && <span className="text-[8px] text-black font-bold">✓</span>}
                                     </div>
@@ -786,7 +836,7 @@ title="Your skill level & tools"
                                   <div className="text-xs text-slate-500 mt-1 ml-5">{t.description}</div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <div className="text-xs font-mono text-emerald-400">
+                                  <div className={`text-xs font-mono ${ac.text}`}>
                                     ${t.dailyRentLow}–${t.dailyRentHigh}/day
                                   </div>
                                   <div className="text-xs text-slate-600">{t.daysNeeded}d needed</div>
@@ -807,15 +857,16 @@ title="Your skill level & tools"
               {/* ── DIY STEP 7: PERMIT ── */}
               {step === 7 && audience === "diy" && (
                 <StepCard
-title="Permit & inspection"
-                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Permit & inspection"
+                  subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="See My Estimate →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-4">
-                    <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                    <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>
                       Select your permit situation
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -855,7 +906,7 @@ title="Permit & inspection"
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
                             includePermit && permitCost === p.value
-                              ? "border-emerald-500 bg-emerald-500/10"
+                              ? `${ac.border} ${ac.bg}`
                               : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
@@ -864,9 +915,9 @@ title="Permit & inspection"
                             <div className="text-xs font-semibold text-white">{p.label}</div>
                           </div>
                           <div className="text-xs text-slate-400">{p.desc}</div>
-                          <div className="text-sm font-mono text-emerald-400 mt-2">{p.range}</div>
+                          <div className={`text-sm font-mono ${ac.text} mt-2`}>{p.range}</div>
                           {includePermit && permitCost === p.value && (
-                            <div className="text-xs text-emerald-500 mt-1">✓ Selected</div>
+                            <div className={`text-xs ${ac.textSelected} mt-1`}>✓ Selected</div>
                           )}
                         </button>
                       ))}
@@ -889,9 +940,10 @@ title="Permit & inspection"
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="See My Estimate →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-3">
-                    <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Select your permit situation</div>
+                    <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Select your permit situation</div>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
@@ -916,13 +968,13 @@ title="Permit & inspection"
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
-                            includePermit && permitCost === p.value ? "border-amber-500 bg-amber-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
                           <div className="font-semibold text-xs text-white">{p.label}</div>
-                          <div className="text-sm font-mono text-amber-400 mt-2">{p.range}</div>
-                          {includePermit && permitCost === p.value && <div className="text-xs text-amber-500 mt-1">✓ Selected</div>}
+                          <div className={`text-sm font-mono ${ac.text} mt-2`}>{p.range}</div>
+                          {includePermit && permitCost === p.value && <div className={`text-xs ${ac.textSelected} mt-1`}>✓ Selected</div>}
                         </button>
                       ))}
                     </div>
@@ -940,25 +992,26 @@ title="Permit & inspection"
               {/* ── CONTRACTOR STEP 6: MARKUP & CREW ── */}
               {step === 6 && audience === "contractor" && (
                 <StepCard
-title="Markup & crew size"
-                   subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Markup & crew size"
+                  subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="Continue →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-6">
                     {/* Markup tier */}
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Margin Tier</div>
+                        <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Margin Tier</div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-slate-400">{includeMarkup ? "On" : "Off"}</span>
                           <button
                             onClick={() => setIncludeMarkup(!includeMarkup)}
                             className={cn(
                               "relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none",
-                              includeMarkup ? "bg-blue-500" : "bg-white/20"
+                              includeMarkup ? ac.bgSolid : "bg-white/20"
                             )}
                           >
                             <span
@@ -976,7 +1029,7 @@ title="Markup & crew size"
                             className={cn(
                               "text-left p-4 rounded-lg border transition-all",
                               markupTierId === m.id
-                                ? "border-blue-500 bg-blue-500/10"
+                                ? `${ac.border} ${ac.bg}`
                                 : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
@@ -986,10 +1039,10 @@ title="Markup & crew size"
                                 <div className="text-xs text-slate-400 mt-1">{m.description}</div>
                               </div>
                               <div className="text-right shrink-0 space-y-0.5">
-                                <div className="text-xs font-mono text-blue-400">
+                                <div className={`text-xs font-mono ${ac.text}`}>
                                   Materials +{Math.round(m.materialMarkup * 100)}%
                                 </div>
-                                <div className="text-xs font-mono text-blue-300">
+                                <div className={`text-xs font-mono ${ac.text} opacity-80`}>
                                   Labor +{Math.round(m.laborMarkup * 100)}%
                                 </div>
                                 <div className="text-xs text-slate-500">
@@ -1005,14 +1058,14 @@ title="Markup & crew size"
                     {/* Crew size */}
                     <div>
                        <div className="flex items-center justify-between mb-3">
-                         <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Crew Size</div>
+                         <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Crew Size</div>
                          <div className="flex items-center gap-2">
                            <span className="text-xs text-slate-400">{includeCrew ? "On" : "Off"}</span>
                            <button
                              onClick={() => setIncludeCrew(!includeCrew)}
                              className={cn(
                                "relative w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none",
-                               includeCrew ? "bg-blue-500" : "bg-white/20"
+                               includeCrew ? ac.bgSolid : "bg-white/20"
                              )}
                            >
                              <span
@@ -1030,12 +1083,12 @@ title="Markup & crew size"
                             className={cn(
                               "text-left p-3 rounded-lg border transition-all",
                               crewSizeId === c.id
-                                ? "border-blue-500 bg-blue-500/10"
+                                ? `${ac.border} ${ac.bg}`
                                 : "border-white/10 bg-white/[0.03] hover:border-white/20"
                             )}
                           >
                             <div className="font-semibold text-xs text-white">{c.label}</div>
-                            <div className="text-xs font-mono text-blue-400 mt-1">
+                            <div className={`text-xs font-mono ${ac.text} mt-1`}>
                               {c.laborEfficiencyFactor}× efficiency
                             </div>
                           </button>
@@ -1049,18 +1102,19 @@ title="Markup & crew size"
               {/* ── CONTRACTOR STEP 7: SUBCONTRACTING ── */}
               {step === 7 && audience === "contractor" && (
                 <StepCard
-title="Subcontracting"
-                   subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
-                   onNext={goNext}
-                   showTapHint={confirmedStep === step}
+                  title="Subcontracting"
+                  subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="Continue →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-4">
                     {/* Sub footings toggle */}
                     <div className={cn(
                       "p-4 rounded-lg border transition-all",
-                      subFootings ? "border-blue-500 bg-blue-500/10" : "border-white/10 bg-white/[0.03]"
+                      subFootings ? `${ac.border} ${ac.bg}` : "border-white/10 bg-white/[0.03]"
                     )}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1072,7 +1126,7 @@ title="Subcontracting"
                           </div>
                           <div className="text-xs text-slate-500 mt-2">
                             Typical footing sub cost for this project:{" "}
-                            <span className="font-mono text-blue-400">
+                            <span className={`font-mono ${ac.text}`}>
                               {formatCurrency(result.footingLow)} – {formatCurrency(result.footingHigh)}
                             </span>
                           </div>
@@ -1081,7 +1135,7 @@ title="Subcontracting"
                           onClick={() => setSubFootings((v) => !v)}
                           className={cn(
                             "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
-                            subFootings ? "bg-blue-500" : "bg-white/20"
+                            subFootings ? ac.bgSolid : "bg-white/20"
                           )}
                         >
                           <span className={cn(
@@ -1095,8 +1149,8 @@ title="Subcontracting"
 
                     {/* Bid preview card */}
                     {result.contractor && (
-                      <div className="p-4 rounded-lg border border-blue-500/30 bg-blue-500/5">
-                        <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-3">
+                      <div className={`p-4 rounded-lg border ${ac.border} bg-opacity-5 ${ac.bg}`}>
+                        <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>
                           Bid Preview
                         </div>
                         <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
@@ -1121,7 +1175,7 @@ title="Subcontracting"
                             </>
                           )}
                           <div className="text-slate-400 font-semibold border-t border-white/10 pt-2">Total Bid Range</div>
-                          <div className="font-mono text-right text-blue-400 font-semibold border-t border-white/10 pt-2">
+                          <div className={`font-mono text-right ${ac.text} font-semibold border-t border-white/10 pt-2`}>
                             {formatRange(result.contractor.totalBidLow, result.contractor.totalBidHigh)}
                           </div>
                           <div className="text-slate-400">Gross Margin</div>
@@ -1153,9 +1207,10 @@ title="Subcontracting"
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
                   nextLabel="See My Bid Estimate →"
+                  accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-3">
-                    <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Select your permit situation</div>
+                    <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Select your permit situation</div>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => selectOrAdvance(!includePermit, () => { setIncludePermit(false); setPermitCost(0); })}
@@ -1180,13 +1235,13 @@ title="Subcontracting"
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
                           className={cn(
                             "p-3 rounded-lg border text-left transition-all",
-                            includePermit && permitCost === p.value ? "border-blue-500 bg-blue-500/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                            includePermit && permitCost === p.value ? `${ac.border} ${ac.bg}` : "border-white/10 bg-white/[0.03] hover:border-white/20"
                           )}
                         >
                           <div className="text-lg mb-1">{p.icon}</div>
                           <div className="font-semibold text-xs text-white">{p.label}</div>
-                          <div className="text-sm font-mono text-blue-400 mt-2">{p.range}</div>
-                          {includePermit && permitCost === p.value && <div className="text-xs text-blue-500 mt-1">✓ Selected</div>}
+                          <div className={`text-sm font-mono ${ac.text} mt-2`}>{p.range}</div>
+                          {includePermit && permitCost === p.value && <div className={`text-xs ${ac.textSelected} mt-1`}>✓ Selected</div>}
                         </button>
                       ))}
                     </div>
