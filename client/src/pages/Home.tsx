@@ -32,6 +32,7 @@ import {
   type CalculatorResult,
 } from "@/lib/deckData";
 import ResultsPanel from "@/components/ResultsPanel";
+import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
 import { cn } from "@/lib/utils";
 import {
@@ -69,7 +70,7 @@ function getStepLabels(audience: AudienceType): string[] {
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
     return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit", "Extras"];
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit", "Extras", "Material Takeoff"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
   return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit"];
 }
@@ -82,6 +83,7 @@ function getTotalSteps(audience: AudienceType): number {
 export default function Home() {
   const [step, setStep] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [showTakeoff, setShowTakeoff] = useState(false);
   const [changeOrderDelta, setChangeOrderDelta] = useState<{ low: number; high: number }>({ low: 0, high: 0 });
   // Tracks which step has had its selection "confirmed" (i.e. clicked once already).
   // First click on a card selects it; second click on the already-selected card advances.
@@ -173,7 +175,14 @@ export default function Home() {
   // Scroll to top on every step change — works for all audience paths on mobile
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [step, showResults]);
+  }, [step, showResults, showTakeoff]);
+
+  // Auto-show Material Takeoff when contractor wizard reaches step 10 (the takeoff step label)
+  useEffect(() => {
+    if (audience === "contractor" && step === 10 && !showTakeoff && !showResults) {
+      setShowTakeoff(true);
+    }
+  }, [step, audience, showTakeoff, showResults]);
 
   const inputs: CalculatorInputs = useMemo(
     () => ({
@@ -236,8 +245,9 @@ export default function Home() {
   const goNext = useCallback(() => {
     setConfirmedStep(null); // reset confirmation for the next step
     if (step < totalSteps - 1) setStep((s) => s + 1);
+    else if (audience === "contractor") setShowTakeoff(true);
     else setShowResults(true);
-  }, [step, totalSteps]);
+  }, [step, totalSteps, audience]);
 
   // Call this from every single-select card handler.
   // First call: marks the step as confirmed (highlights the card).
@@ -288,7 +298,9 @@ export default function Home() {
 
   const goBack = useCallback(() => {
     setConfirmedStep(null);
-    if (showResults) {
+    if (showTakeoff) {
+      setShowTakeoff(false);
+    } else if (showResults) {
       setShowResults(false);
     } else if (step === 7 && audience === "homeowner") {
       // Homeowner at Railing (step 7): skip back over both framing slots (6 & 5) → Complexity (step 4)
@@ -305,11 +317,12 @@ export default function Home() {
     } else {
       setStep((s) => Math.max(0, s - 1));
     }
-  }, [step, audience, showResults]);
+  }, [step, audience, showResults, showTakeoff]);
 
   const restart = useCallback(() => {
     setStep(0);
     setShowResults(false);
+    setShowTakeoff(false);
     setConfirmedStep(null);
     setConfirmedRailing(false);
     setIncludeMarkup(true);
@@ -769,7 +782,7 @@ export default function Home() {
       )}
 
       {/* ── PROGRESS BAR ── */}
-      {!showResults && (
+      {!showResults && !showTakeoff && (
         <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
           {(() => {
             // For DIY/homeowner, step 5 is a hidden skip slot — exclude it from the visible count
@@ -808,7 +821,21 @@ export default function Home() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6">
         <AnimatePresence mode="wait">
-          {showResults ? (
+          {showTakeoff ? (
+            <motion.div
+              key="takeoff"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.3 }}
+            >
+              <MaterialTakeoff
+                result={result}
+                onBack={() => setShowTakeoff(false)}
+                onFinish={() => { setShowTakeoff(false); setShowResults(true); }}
+              />
+            </motion.div>
+          ) : showResults ? (
             <motion.div
               key="results"
               initial={{ opacity: 0, x: 40 }}
@@ -2617,7 +2644,7 @@ export default function Home() {
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
-                  nextLabel="See My Estimate →"
+                  nextLabel="Material Takeoff →"
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-4">
