@@ -1128,7 +1128,10 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     // Framing upgrade cost — marked up like materials (it's a billable material upgrade)
     const framingMid = Math.round((framingCostLow + framingCostHigh) / 2);
     const framingWithMarkup = Math.round(framingMid * (1 + markupTier.materialMarkup));
-    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid + framingWithMarkup;
+    // Multi-level premium — marked up like materials (structural upgrade)
+    const multiLevelMid = Math.round((multiLevelPremiumLow + multiLevelPremiumHigh) / 2);
+    const multiLevelWithMarkup = multiLevelMid > 0 ? Math.round(multiLevelMid * (1 + markupTier.materialMarkup)) : 0;
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid + framingWithMarkup + multiLevelWithMarkup;
     const bidVariance = 0.08; // ±8% range
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
