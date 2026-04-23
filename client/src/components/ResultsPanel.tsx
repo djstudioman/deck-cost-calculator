@@ -61,19 +61,37 @@ const CustomTooltip = ({ active, payload, accent }: any) => {
 // ─── SHARED SUB-COMPONENTS ────────────────────────────────────────────────────
 
 function SummaryPills({ result }: { result: CalculatorResult }) {
+  const footingPill = result.isContractor
+    ? result.useHelicalPiers
+      ? `${result.footingCount} helical piers`
+      : `${result.footingCount} × ${result.footingDiameterIn}" tube`
+    : null;
+
+  const basePills = [
+    { label: "Region", value: result.region.label },
+    { label: "Size", value: result.size.dimensions },
+    { label: "Complexity", value: result.complexity.label },
+    { label: "Railing", value: result.railing.label },
+  ];
+
   return (
     <div className="flex flex-wrap gap-2 mt-4">
-      {[
-        { label: "Region", value: result.region.label },
-        { label: "Size", value: result.size.dimensions },
-        { label: "Complexity", value: result.complexity.label },
-        { label: "Railing", value: result.railing.label },
-      ].map((p) => (
+      {basePills.map((p) => (
         <div key={p.label} className="text-xs bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1">
           <span className="text-slate-500">{p.label}: </span>
           <span className="text-slate-200">{p.value}</span>
         </div>
       ))}
+      {footingPill && (
+        <div className={`text-xs border rounded-full px-3 py-1 ${
+          result.useHelicalPiers
+            ? "bg-purple-500/10 border-purple-500/30"
+            : "bg-white/[0.05] border-white/[0.08]"
+        }`}>
+          <span className="text-slate-500">Footings: </span>
+          <span className={result.useHelicalPiers ? "text-purple-300" : "text-slate-200"}>{footingPill}</span>
+        </div>
+      )}
     </div>
   );
 }
