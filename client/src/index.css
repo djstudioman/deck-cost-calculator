@@ -182,28 +182,41 @@
 }
 /* ─── PRINT STYLES ──────────────────────────────────────────────────────────── */
 @media print {
-  /* Hide everything on screen — use visibility so children can override */
+  /* Hide the entire app — use visibility so children can override */
   body * {
     visibility: hidden;
   }
 
-  /* Default print mode: show contractor bid estimate */
-  #print-estimate,
-  #print-estimate * {
-    visibility: visible !important;
+  /* Reset page background */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
   }
+
+  /* ── DEFAULT (Bid Estimate) MODE ── */
+  /* Show bid estimate, hide customer estimate */
   #print-estimate {
     display: block !important;
-    position: fixed;
+    visibility: visible !important;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
   }
+  #print-estimate * {
+    visibility: visible !important;
+  }
   #customer-estimate {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* Customer proposal mode: show customer estimate only */
+  /* ── CUSTOMER PROPOSAL MODE ── */
+  /* Show customer estimate, hide bid estimate */
   body.print-customer-mode #print-estimate {
     display: none !important;
     visibility: hidden !important;
@@ -213,31 +226,20 @@
   }
   body.print-customer-mode #customer-estimate {
     display: block !important;
-  }
-  body.print-customer-mode #customer-estimate,
-  body.print-customer-mode #customer-estimate * {
     visibility: visible !important;
-  }
-  body.print-customer-mode #customer-estimate {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
   }
-
-  /* Reset background and colors for print */
-  body {
-    background: white !important;
-    color: black !important;
-    font-size: 11pt;
-    line-height: 1.4;
+  body.print-customer-mode #customer-estimate * {
+    visibility: visible !important;
   }
 
   /* Ensure tables don't break across pages awkwardly */
   table {
     page-break-inside: avoid;
   }
-
   tr {
     page-break-inside: avoid;
   }
