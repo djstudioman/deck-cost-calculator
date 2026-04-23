@@ -1107,8 +1107,8 @@ export default function Home() {
                       </div>
                     )}
                   </div>{/* end main size grid */}
-                  {/* Multi-level toggle — contractor + DIY only */}
-                  {audience !== "homeowner" && (
+                  {/* Multi-level toggle — contractor only */}
+                  {audience === "contractor" && (
                     <div className="mt-4 space-y-3">
                       <div className="flex items-center justify-between py-2 px-3 rounded-lg border border-white/10 bg-white/[0.03]">
                         <div>
