@@ -1015,11 +1015,16 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Board-feet: count × length × (1.5" × 9.25") / 144 in² per sq ft × 12 (BF formula)
   const joistBoardFeet = Math.round(joistCount * joistLengthFt * (1.5 * 9.25) / 12);
   // Cost delta vs 16" OC baseline
+  // Sources: National Lumber Prices Apr 2026 (~$1.50–$2.00/BF PT 2×10), RSMeans framing labor
+  // Installed cost per BF = material ($1.50–$2.00) + labor ($1.00–$1.50) = $2.50–$3.50/BF
   const joistCount16 = Math.ceil(deckLongFt / (16 / 12)) + 1;
   const joistBF16    = joistCount16 * joistLengthFt * (1.5 * 9.25) / 12;
   const joistDeltaBF = joistBoardFeet - joistBF16;
-  // PT lumber ~$1.00/BF avg (2026); labor ~$0.50/BF for extra joists
-  const joistSpacingCostDelta = isContractor ? Math.round(joistDeltaBF * 1.50) : 0;
+  // Low end: $2.50/BF installed; High end: $3.50/BF installed
+  const joistSpacingCostDeltaLow  = isContractor ? Math.round(joistDeltaBF * 2.50) : 0;
+  const joistSpacingCostDeltaHigh = isContractor ? Math.round(joistDeltaBF * 3.50) : 0;
+  // For the single-value field used in display/print, use the midpoint
+  const joistSpacingCostDelta = isContractor ? Math.round(joistDeltaBF * 3.00) : 0;
 
   // Standard PT framing is already baked into the base installed cost (tier.installedPerSqFtMin/Max).
   // For PWT, steel, and aluminum, we calculate the DELTA vs standard PT framing and add it.
@@ -1126,8 +1131,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + Math.min(joistSpacingCostDelta, 0);
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + Math.max(joistSpacingCostDelta, 0);
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
