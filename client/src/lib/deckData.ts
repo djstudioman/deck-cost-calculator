@@ -1072,25 +1072,58 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // For the single-value field used in display/print, use the midpoint
   const joistSpacingCostDelta = isContractor ? Math.round(joistDeltaBF * 3.00) : 0;
 
-  // ── IRC R507.6 Joist Span Warning ─────────────────────────────────────────
-  // Max spans for SYP No.2 PT lumber (most common residential deck framing)
-  // Source: 2021 IRC Table R507.6
-  const IRC_SPAN_2x10: Record<12 | 16 | 24, number> = { 12: 19.5, 16: 17.8, 24: 14.7 };
-  const IRC_SPAN_2x12: Record<12 | 16 | 24, number> = { 12: 23.6, 16: 21.6, 24: 17.9 };
-  const maxAllowedFt   = IRC_SPAN_2x10[joistSpacingIn];
-  const upgradeMaxFt   = IRC_SPAN_2x12[joistSpacingIn];
-  const spanExceeded   = isContractor && joistLengthFt > maxAllowedFt;
+  // ── Material-Aware Joist Span Warning ────────────────────────────────────────
+  // Span limits vary significantly by framing material.
+  // Sources:
+  //   PT/PWT: 2021 IRC Table R507.6 (SYP No.2, 2×10 primary / 2×12 upgrade)
+  //   Steel:  Fortress Evolution & DeckFrame span tables (Apr 2026) — C3.5×1.5 section
+  //   Aluminum: Wahoo Decks / Trex Elevations span tables (Apr 2026) — 4" I-joist
+  type SpanEntry = { primary: number; upgrade: number; primaryLabel: string; upgradeLabel: string };
+  const SPAN_TABLE: Record<string, Record<12 | 16 | 24, SpanEntry>> = {
+    pt: {
+      12: { primary: 19.5, upgrade: 23.6, primaryLabel: "2×10 SYP", upgradeLabel: "2×12 SYP" },
+      16: { primary: 17.8, upgrade: 21.6, primaryLabel: "2×10 SYP", upgradeLabel: "2×12 SYP" },
+      24: { primary: 14.7, upgrade: 17.9, primaryLabel: "2×10 SYP", upgradeLabel: "2×12 SYP" },
+    },
+    pwt: {
+      // PWT (UC4B) is same species/size as PT but slightly denser — same IRC table applies
+      12: { primary: 19.5, upgrade: 23.6, primaryLabel: "2×10 PWT", upgradeLabel: "2×12 PWT" },
+      16: { primary: 17.8, upgrade: 21.6, primaryLabel: "2×10 PWT", upgradeLabel: "2×12 PWT" },
+      24: { primary: 14.7, upgrade: 17.9, primaryLabel: "2×10 PWT", upgradeLabel: "2×12 PWT" },
+    },
+    steel: {
+      // Fortress Evolution C3.5×1.5 galvanized steel joist (most common residential steel deck joist)
+      // Spans are for 40 psf live + 10 psf dead load (IRC residential deck standard)
+      12: { primary: 28.0, upgrade: 32.0, primaryLabel: "C3.5 steel joist", upgradeLabel: "C4 steel joist" },
+      16: { primary: 26.0, upgrade: 30.0, primaryLabel: "C3.5 steel joist", upgradeLabel: "C4 steel joist" },
+      24: { primary: 22.0, upgrade: 26.0, primaryLabel: "C3.5 steel joist", upgradeLabel: "C4 steel joist" },
+    },
+    aluminum: {
+      // Wahoo Decks / Trex Elevations 4" aluminum I-joist
+      12: { primary: 20.0, upgrade: 24.0, primaryLabel: "4\" alum. I-joist", upgradeLabel: "6\" alum. I-joist" },
+      16: { primary: 18.0, upgrade: 22.0, primaryLabel: "4\" alum. I-joist", upgradeLabel: "6\" alum. I-joist" },
+      24: { primary: 14.0, upgrade: 18.0, primaryLabel: "4\" alum. I-joist", upgradeLabel: "6\" alum. I-joist" },
+    },
+  };
+  const framingIdForSpan = inputs.framingId ?? "pt";
+  const spanEntry: SpanEntry = (
+    SPAN_TABLE[framingIdForSpan]?.[joistSpacingIn] ??
+    SPAN_TABLE["pt"][joistSpacingIn]
+  );
+  const maxAllowedFt = spanEntry.primary;
+  const upgradeMaxFt = spanEntry.upgrade;
+  const spanExceeded = isContractor && joistLengthFt > maxAllowedFt;
   const joistSpanWarning = isContractor ? {
     exceeded: spanExceeded,
     spanFt: joistLengthFt,
     maxAllowedFt,
     upgradeMaxFt,
     message: spanExceeded
-      ? `Joist span of ${joistLengthFt}\' exceeds IRC R507.6 limit of ${maxAllowedFt}\' for 2\u00d710 @ ${joistSpacingIn}\" OC. ` +
+      ? `Joist span of ${joistLengthFt}' exceeds the ${maxAllowedFt}' limit for ${spanEntry.primaryLabel} @ ${joistSpacingIn}" OC. ` +
         (joistLengthFt <= upgradeMaxFt
-          ? `Upgrade to 2\u00d712 joists (max ${upgradeMaxFt}\') or add an intermediate beam.`
-          : `Span exceeds even 2\u00d712 limits (${upgradeMaxFt}\') — intermediate beam and post required.`)
-      : `Span of ${joistLengthFt}\' is within the ${maxAllowedFt}\' limit for 2\u00d710 @ ${joistSpacingIn}\" OC (IRC R507.6).`,
+          ? `Upgrade to ${spanEntry.upgradeLabel} (max ${upgradeMaxFt}') or add an intermediate beam.`
+          : `Span exceeds even ${spanEntry.upgradeLabel} limits (${upgradeMaxFt}') — intermediate beam and post required.`)
+      : `Span of ${joistLengthFt}' is within the ${maxAllowedFt}' limit for ${spanEntry.primaryLabel} @ ${joistSpacingIn}" OC.`,
   } : null;
 
   // Standard PT framing is already baked into the base installed cost (tier.installedPerSqFtMin/Max).
