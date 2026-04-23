@@ -9,7 +9,7 @@
  * - Space Grotesk headings, JetBrains Mono for cost figures
  */
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   REGIONS,
@@ -140,14 +140,9 @@ export default function Home() {
   const totalSteps = getTotalSteps(audience);
   const stepLabels = getStepLabels(audience);
 
-  // Scroll to top of wizard on every step change (fixes mobile mid-page issue)
-  const wizardTopRef = useRef<HTMLDivElement>(null);
+  // Scroll to top on every step change — works for all audience paths on mobile
   useEffect(() => {
-    if (wizardTopRef.current) {
-      wizardTopRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step, showResults]);
 
   const inputs: CalculatorInputs = useMemo(
@@ -655,7 +650,7 @@ export default function Home() {
 
       {/* ── PROGRESS BAR ── */}
       {!showResults && (
-        <div ref={wizardTopRef} className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
+        <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
           {(() => {
             // For DIY/homeowner, step 5 is a hidden skip slot — exclude it from the visible count
             const visibleLabels = stepLabels.filter((l) => l !== "");
