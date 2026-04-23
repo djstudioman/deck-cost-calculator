@@ -73,6 +73,10 @@ function SummaryPills({ result }: { result: CalculatorResult }) {
     : "Face Screws"
     : null;
 
+  const brandPill = result.isContractor && result.deckingBrand
+    ? result.deckingBrand.name
+    : null;
+
   const basePills = [
     { label: "Region", value: result.region.label },
     { label: "Size", value: result.size.dimensions },
@@ -88,6 +92,12 @@ function SummaryPills({ result }: { result: CalculatorResult }) {
           <span className="text-slate-200">{p.value}</span>
         </div>
       ))}
+      {brandPill && (
+        <div className="text-xs bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1">
+          <span className="text-slate-500">Brand: </span>
+          <span className="text-emerald-300">{brandPill}</span>
+        </div>
+      )}
       {fastenerLabel && (
         <div className={`text-xs border rounded-full px-3 py-1 ${
           result.fastenerSystem === "cortex"
@@ -936,13 +946,14 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         // ── Granular material sub-lines (% splits from industry norms)
         const framingOpt = result.framingOption;
         const framingLabel = framingOpt.shortLabel;
+        const joistSpacingNote = result.isContractor && result.joistSpacingIn ? ` · ${result.joistSpacingIn}" OC` : "";
         const framingNote = framingOpt.id === "pt"
-          ? "Joists, beams, posts, ledger — standard PT"
+          ? `Joists, beams, posts, ledger — standard PT${joistSpacingNote}`
           : framingOpt.id === "pwt"
-          ? "UC4B/UC4C PWT joists, beams, posts, ledger"
+          ? `UC4B/UC4C PWT joists, beams, posts, ledger${joistSpacingNote}`
           : framingOpt.id === "steel"
-          ? "Galvanized/powder-coated steel joists & beams"
-          : "Extruded aluminum framing system";
+          ? `Galvanized/powder-coated steel joists & beams${joistSpacingNote}`
+          : `Extruded aluminum framing system${joistSpacingNote}`;
         const matLines = [
           { label: "Decking boards",        pct: 0.45, note: `${result.tier.label} — ${sqFt} sq ft` },
           { label: `Framing (${framingLabel})`, pct: 0.30, note: framingNote },
@@ -1040,7 +1051,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
             accent: "#A78BFA",
             rows: [
               { label: "Railing system",    note: result.railing.label + " — " + result.railingLow + "–" + result.railingHigh, ...col(railLow, railMid, railHigh) },
-              { label: "Footings",           note: result.region.frostDepthLabel + " frost depth", ...col(footLow, footMid, footHigh) },
+              { label: "Footings",           note: `${result.footingCount} footings · ${result.region.frostDepthLabel} frost depth · based on deck size`, ...col(footLow, footMid, footHigh) },
               ...(stairMid > 0 ? [{ label: "Stairs", note: "Stringers, treads, risers", ...col(stairLow, stairMid, stairHigh) }] : []),
               ...(permitVal > 0 ? [{ label: "Permit & inspection", note: "Pass-through at cost", ...col(permitVal, permitVal, permitVal) }] : []),
               ...(demoMid > 0 ? [

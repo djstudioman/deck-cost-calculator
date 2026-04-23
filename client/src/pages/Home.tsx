@@ -783,7 +783,7 @@ export default function Home() {
                     Step {visibleIndex} of {visibleLabels.length}
                   </span>
                   <span className="text-xs text-slate-400 font-medium">{currentLabel}</span>
-                  {step >= 6 && (
+                  {step >= 3 && (
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded-full font-semibold",
                       `${ac.badgeBg} ${ac.badgeText}`
@@ -2523,6 +2523,14 @@ export default function Home() {
                           </button>
                         </div>
                       </div>
+                      {!includeMarkup && (
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-3">
+                          <span className="text-amber-400 text-sm mt-0.5">⚠</span>
+                          <div className="text-xs text-amber-300">
+                            <span className="font-semibold">Markup disabled.</span> Your bid will reflect cost-only pricing — no profit margin, overhead recovery, or contingency. This will produce a below-market bid. Only use this for internal cost estimates.
+                          </div>
+                        </div>
+                      )}
                       <div className={cn("flex flex-col gap-2 transition-opacity", !includeMarkup && "opacity-30 pointer-events-none")}>
                         {CONTRACTOR_MARKUP_TIERS.map((m) => (
                           <button
@@ -2690,7 +2698,7 @@ export default function Home() {
                             })}
                           </div>
                           <div className="text-xs text-slate-500 mt-2">
-                            {result.footingCount} footings · {result.footingDiameterIn}" diameter ·{" "}
+                            {result.footingCount} footings · {result.footingDiameterIn}" diameter · based on deck size ·{" "}
                             {result.footingSpecCostLow === 0
                               ? "Baseline pricing"
                               : result.footingSpecCostLow > 0
