@@ -222,6 +222,19 @@ export default function Home() {
     }
   }, [audience, step, totalSteps, goNext]);
 
+  // Variant of selectOrAdvance for the Complexity step — double-tap uses goNextFromComplexity
+  const selectOrAdvanceFromComplexity = useCallback(
+    (isAlreadySelected: boolean, selectFn: () => void) => {
+      if (isAlreadySelected && confirmedStep === step) {
+        goNextFromComplexity();
+      } else {
+        selectFn();
+        setConfirmedStep(step);
+      }
+    },
+    [confirmedStep, step, goNextFromComplexity]
+  );
+
   const goBack = useCallback(() => {
     setConfirmedStep(null);
     if (showResults) {
@@ -1089,7 +1102,7 @@ export default function Home() {
                      {COMPLEXITIES.map((c) => (
                       <button
                         key={c.id}
-                        onClick={() => selectOrAdvance(complexityId === c.id, () => setComplexityId(c.id))}
+                        onClick={() => selectOrAdvanceFromComplexity(complexityId === c.id, () => setComplexityId(c.id))}
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           complexityId === c.id
