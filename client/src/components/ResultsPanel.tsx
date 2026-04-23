@@ -894,9 +894,18 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         const overheadPct = c.markupTier.overheadPct;
 
         // ── Granular material sub-lines (% splits from industry norms)
+        const framingOpt = result.framingOption;
+        const framingLabel = framingOpt.shortLabel;
+        const framingNote = framingOpt.id === "pt"
+          ? "Joists, beams, posts, ledger — standard PT"
+          : framingOpt.id === "pwt"
+          ? "UC4B/UC4C PWT joists, beams, posts, ledger"
+          : framingOpt.id === "steel"
+          ? "Galvanized/powder-coated steel joists & beams"
+          : "Extruded aluminum framing system";
         const matLines = [
           { label: "Decking boards",        pct: 0.45, note: `${result.tier.label} — ${sqFt} sq ft` },
-          { label: "Framing lumber",         pct: 0.30, note: "Joists, beams, posts, ledger" },
+          { label: `Framing (${framingLabel})`, pct: 0.30, note: framingNote },
           { label: "Fasteners & hardware",   pct: 0.15, note: "Screws, joist hangers, post bases" },
           { label: "Concrete & misc",        pct: 0.10, note: "Bags, adhesive, flashing" },
         ];
@@ -941,6 +950,12 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         const markupMid = Math.round((c.materialWithMarkup - c.materialCostRaw) + (c.laborWithMarkup - c.laborCostRaw));
         const markupLow = Math.round(markupMid * 0.75);
         const markupHigh = Math.round(markupMid * 1.35);
+
+        // Framing upgrade sub-components (delta over standard PT)
+        const framingUpgradeLow  = result.framingCostLow;
+        const framingUpgradeHigh = result.framingCostHigh;
+        const framingUpgradeMid  = Math.round((framingUpgradeLow + framingUpgradeHigh) / 2);
+        const hasFramingUpgrade  = framingUpgradeMid > 0;
 
         // Demo & removal sub-components
         const demoLaborLow = result.demolitionLaborLow;
@@ -995,6 +1010,17 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
               ] : []),
             ],
           },
+          ...(hasFramingUpgrade ? [{
+            heading: "Framing Upgrade",
+            accent: "#38BDF8",
+            rows: [
+              {
+                label: `${framingOpt.label} framing upgrade`,
+                note: `Delta over standard PT · material + labor premium · marked up at ${Math.round(c.markupTier.materialMarkup * 100)}%`,
+                ...col(framingUpgradeLow, framingUpgradeMid, framingUpgradeHigh),
+              },
+            ],
+          }] : []),
           {
             heading: "Markup & Overhead",
             accent: "#F59E0B",
@@ -1873,7 +1899,14 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
   const deckWidth = Math.sqrt(sqFt); // approximate square root for width
   const joistCount = Math.ceil((deckWidth / (16 / 12)) + 1);
   const joistLength = Math.ceil(Math.sqrt(sqFt)); // span length
-  const joistUnit = `2×8 PT joists (${joistLength} ft)`;
+  const framingMat = result.framingOption.id;
+  const joistUnit = framingMat === "steel"
+    ? `Steel joists (${joistLength} ft) — Fortress/DeckFrame`
+    : framingMat === "aluminum"
+    ? `Aluminum joists (${joistLength} ft) — Wahoo/Trex`
+    : framingMat === "pwt"
+    ? `2×8 PWT joists (${joistLength} ft) — UC4B`
+    : `2×8 PT joists (${joistLength} ft)`;
 
   // Beams: 1 beam per 8 ft of deck length, 2 per span
   const deckLength = Math.ceil(sqFt / deckWidth);
@@ -1903,11 +1936,24 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
   // Joist hangers: 2 per joist + 4 for beams
   const joistHangers = joistCount * 2 + 4;
 
+  const beamUnit = framingMat === "steel"
+    ? `Steel beams (${joistLength} ft) — Fortress/DeckFrame`
+    : framingMat === "aluminum"
+    ? `Aluminum beams (${joistLength} ft) — Wahoo/Trex`
+    : framingMat === "pwt"
+    ? `2×10 PWT beams (${joistLength} ft) — UC4B`
+    : `2×10 PT beams (${joistLength} ft)`;
+  const postUnit = (framingMat === "steel" || framingMat === "aluminum")
+    ? `Steel posts (${postHeight} ft)`
+    : framingMat === "pwt"
+    ? `6×6 PWT posts (${postHeight} ft) — UC4C`
+    : `6×6 PT posts (${postHeight} ft)`;
+
   const takeoffItems = [
     { label: deckBoardUnit,            qty: deckBoardCount,  note: "+10% waste included" },
     { label: joistUnit,                qty: joistCount,      note: "16\" OC spacing" },
-    { label: `2×10 PT beams (${joistLength} ft)`, qty: beamCount, note: "Double-ply beam spans" },
-    { label: `6×6 PT posts (${postHeight} ft)`,   qty: postCount, note: "One per footing" },
+    { label: beamUnit,                 qty: beamCount,       note: "Double-ply beam spans" },
+    { label: postUnit,                 qty: postCount,       note: "One per footing" },
     { label: `2×${Math.ceil(deckWidth)} PT ledger board`, qty: 1, note: "House attachment" },
     { label: "80 lb concrete bags",    qty: concreteBags,    note: `${footingCount} footings × 8 bags` },
     { label: fastenerUnit,             qty: fastenerBoxes,   note: isComposite ? "Hidden fastener system" : "Structural screws" },
@@ -2020,8 +2066,14 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
           <div className="space-y-2 mb-4">
             {[
               { label: `Decking boards (per sq ft installed)`, placeholder: `est. $${estBoardMid}`, value: actualBoardPrice, onChange: setActualBoardPrice, note: result.tier.shortLabel },
-              { label: `Framing lumber (per linear foot)`,     placeholder: "est. $1.80–$2.40",     value: actualJoistPrice, onChange: setActualJoistPrice, note: "2×8 PT joists & beams" },
-              { label: `Posts (per linear foot)`,              placeholder: "est. $2.50–$3.50",     value: actualPostPrice,  onChange: setActualPostPrice,  note: "6×6 PT posts" },
+              { label: `Framing (per linear foot)`,
+                placeholder: framingMat === "steel" ? "est. $8–$14/lf" : framingMat === "aluminum" ? "est. $10–$18/lf" : framingMat === "pwt" ? "est. $2.20–$3.00" : "est. $1.80–$2.40",
+                value: actualJoistPrice, onChange: setActualJoistPrice,
+                note: framingMat === "steel" ? "Steel joists & beams" : framingMat === "aluminum" ? "Aluminum joists & beams" : framingMat === "pwt" ? "2×8 PWT joists & beams" : "2×8 PT joists & beams" },
+              { label: `Posts (per linear foot)`,
+                placeholder: (framingMat === "steel" || framingMat === "aluminum") ? "est. $12–$20/lf" : framingMat === "pwt" ? "est. $3.00–$4.50" : "est. $2.50–$3.50",
+                value: actualPostPrice,  onChange: setActualPostPrice,
+                note: (framingMat === "steel" || framingMat === "aluminum") ? "Steel posts" : framingMat === "pwt" ? "6×6 PWT posts" : "6×6 PT posts" },
             ].map((field) => (
               <div key={field.label} className="rounded-lg bg-white/[0.02] border border-white/[0.06] p-2.5">
                 <div className="flex items-center gap-2">

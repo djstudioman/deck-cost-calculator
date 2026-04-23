@@ -477,6 +477,73 @@ export const CONTRACTOR_MARKUP_TIERS = [
   },
 ];
 
+// ─── FRAMING OPTIONS (contractor-only) ───────────────────────────────────────
+// Sources: Advantage Lumber 2026, BuildingAdvisor, HomeGuide, contractor field data
+// materialCostPerSqFt: framing lumber/steel cost at the lumberyard (materials only)
+// laborMultiplier:     multiplier on the base labor cost (1.0 = same as standard PT framing)
+// installDaysAdder:    additional crew-days for specialty framing (steel/aluminum require
+//                      different fasteners, drilling, and layout time)
+export const FRAMING_OPTIONS = [
+  {
+    id: "pt",
+    label: "Standard PT Wood",
+    shortLabel: "PT Wood",
+    description: "Pressure-treated Southern Yellow Pine or Douglas Fir. Industry standard for residential decks.",
+    pros: ["Lowest material cost", "Widely available", "Easy to cut/fasten"],
+    cons: ["Requires periodic sealing", "Can warp/check over time", "Chemical treatment concerns"],
+    materialCostPerSqFt: { low: 3.50, high: 5.50 },  // joists + beams + posts + ledger
+    laborMultiplier: 1.00,
+    installDaysAdder: 0,
+    lifespan: "15–30 years with maintenance",
+    icon: "🪵",
+    badge: null,
+  },
+  {
+    id: "pwt",
+    label: "PWT Framing",
+    shortLabel: "PWT",
+    description: "Premium pressure-treated wood with higher retention levels (UC4B/UC4C). Ideal for ground contact, high-moisture, or coastal environments.",
+    pros: ["Superior rot resistance", "Code-required in many wet/coastal zones", "Longer service life than standard PT"],
+    cons: ["20–35% cost premium over standard PT", "Heavier than standard PT", "Requires stainless or hot-dip galvanized hardware"],
+    materialCostPerSqFt: { low: 4.50, high: 7.00 },
+    laborMultiplier: 1.05,  // slightly heavier, same skill set
+    installDaysAdder: 0,
+    lifespan: "25–40 years with maintenance",
+    icon: "🌲",
+    badge: "Coastal / Wet Zones",
+  },
+  {
+    id: "steel",
+    label: "Steel Framing",
+    shortLabel: "Steel",
+    description: "Galvanized or powder-coated steel joists and beams (e.g., Fortress Evolution, DeckFrame). Eliminates rot and insect damage entirely.",
+    pros: ["No rot, no insects, no warping", "Longer spans — fewer posts", "Lifetime structural warranty from major brands"],
+    cons: ["2–3× material cost of PT", "Requires specialized fasteners", "Longer install time", "Thermal expansion in extreme climates"],
+    materialCostPerSqFt: { low: 8.00, high: 14.00 },
+    laborMultiplier: 1.30,  // drilling, specialized connectors, layout
+    installDaysAdder: 1,
+    lifespan: "40–50+ years",
+    icon: "⚙️",
+    badge: "Premium",
+  },
+  {
+    id: "aluminum",
+    label: "Aluminum Framing",
+    shortLabel: "Aluminum",
+    description: "Extruded aluminum framing systems (e.g., Wahoo Decks, Trex Elevations). Lightweight, corrosion-proof, and ideal for rooftop or waterproof deck applications.",
+    pros: ["Lightest structural option", "100% corrosion-proof", "Ideal for rooftop / waterproof decks", "No maintenance"],
+    cons: ["Highest material cost", "Requires proprietary connectors", "Longest install time", "Not DIY-friendly"],
+    materialCostPerSqFt: { low: 10.00, high: 18.00 },
+    laborMultiplier: 1.45,  // proprietary connectors, layout, learning curve
+    installDaysAdder: 2,
+    lifespan: "50+ years",
+    icon: "🔩",
+    badge: "Rooftop / Waterproof",
+  },
+] as const;
+
+export type FramingOption = typeof FRAMING_OPTIONS[number];
+
 export const CREW_SIZES = [
   { id: "solo", label: "Solo Contractor", size: 1, laborEfficiencyFactor: 0.7 },
   { id: "two", label: "2-Person Crew", size: 2, laborEfficiencyFactor: 1.0 },
@@ -516,6 +583,8 @@ export interface CalculatorInputs {
   demoMaterialType?: "wood" | "composite" | "other"; // affects labor difficulty
   demoIncludeDisposal?: boolean; // include dumpster/haul-away fee
   demoPermit?: boolean; // some jurisdictions require demo permit
+  // Framing material (contractor only)
+  framingId?: string; // defaults to "pt" if not set
 }
 
 export interface CalculatorResult {
@@ -541,6 +610,9 @@ export interface CalculatorResult {
   demolitionDisposalLow: number;
   demolitionDisposalHigh: number;
   demolitionPermitCost: number;
+  framingOption: FramingOption;
+  framingCostLow: number;
+  framingCostHigh: number;
   climatePremium: number;
   perSqFtLow: number;
   perSqFtHigh: number;
@@ -744,6 +816,23 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     demolitionHigh = demolitionLaborHigh + demolitionDisposalHigh + demolitionPermitCost;
   }
 
+  // Framing material cost (contractor only)
+  // Standard PT framing is already baked into the base installed cost (tier.installedPerSqFtMin/Max).
+  // For PWT, steel, and aluminum, we calculate the DELTA vs standard PT framing and add it.
+  // The delta = (framingOption.materialCostPerSqFt - PT baseline) * sqFt * laborMultiplier adjustment.
+  // PT baseline material cost per sqFt is ~$3.50–$5.50 (already in base cost).
+  const framingOption = (FRAMING_OPTIONS.find(f => f.id === (inputs.framingId ?? "pt")) ?? FRAMING_OPTIONS[0]) as FramingOption;
+  const PT_BASELINE_LOW = 3.50;
+  const PT_BASELINE_HIGH = 5.50;
+  const framingMaterialDeltaLow  = Math.max(0, framingOption.materialCostPerSqFt.low  - PT_BASELINE_LOW)  * size.sqFt;
+  const framingMaterialDeltaHigh = Math.max(0, framingOption.materialCostPerSqFt.high - PT_BASELINE_HIGH) * size.sqFt;
+  // Labor delta: framing labor is ~30% of total labor; apply the multiplier delta to that fraction
+  const framingLaborFraction = 0.30;
+  const framingLaborDeltaLow  = isContractor ? Math.round(adjustedLow  * laborFraction * framingLaborFraction * (framingOption.laborMultiplier - 1.0)) : 0;
+  const framingLaborDeltaHigh = isContractor ? Math.round(adjustedHigh * laborFraction * framingLaborFraction * (framingOption.laborMultiplier - 1.0)) : 0;
+  const framingCostLow  = isContractor ? Math.round(framingMaterialDeltaLow  + framingLaborDeltaLow)  : 0;
+  const framingCostHigh = isContractor ? Math.round(framingMaterialDeltaHigh + framingLaborDeltaHigh) : 0;
+
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
@@ -754,8 +843,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -954,7 +1043,10 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
 
     // Demo is a pass-through cost (not marked up, added at cost)
     const demolitionMid = Math.round((demolitionLow + demolitionHigh) / 2);
-    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid;
+    // Framing upgrade cost — marked up like materials (it's a billable material upgrade)
+    const framingMid = Math.round((framingCostLow + framingCostHigh) / 2);
+    const framingWithMarkup = Math.round(framingMid * (1 + markupTier.materialMarkup));
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid + framingWithMarkup;
     const bidVariance = 0.08; // ±8% range
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
@@ -1009,6 +1101,9 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     demolitionDisposalLow,
     demolitionDisposalHigh,
     demolitionPermitCost,
+    framingOption,
+    framingCostLow,
+    framingCostHigh,
     climatePremium,
     perSqFtLow,
     perSqFtHigh,
