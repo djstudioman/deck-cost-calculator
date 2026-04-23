@@ -707,7 +707,7 @@ export default function Home() {
               <div className="max-w-2xl mx-auto px-4 pb-10 mt-2">
                 <div className={`rounded-xl border ${
                   justSaved ? "border-emerald-500/40 bg-emerald-500/[0.06]" : "border-white/10 bg-white/[0.03]"
-                } p-4 transition-colors duration-500`}>
+                } p-4 transition-colors duration-500`} style={{borderRadius: '15px', marginTop: '17px'}}>
                   {justSaved ? (
                     <div className="flex items-center gap-3">
                       <span className="text-emerald-400 text-lg">✓</span>
