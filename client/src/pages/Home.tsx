@@ -1445,7 +1445,8 @@ export default function Home() {
               )}
 
               {/* ── DIY / CONTRACTOR: full-detail railing step ── */}
-              {step === 7 && audience !== "homeowner" && (
+              {/* Contractor Railing is at step 6; DIY Railing is at step 7 */}
+              {((step === 6 && audience === "contractor") || (step === 7 && audience === "diy")) && (
                 <StepCard
                   title="Railing & extras"
                   subtitle="Railing can represent 15–30% of total project cost."
