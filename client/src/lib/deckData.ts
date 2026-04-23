@@ -668,17 +668,22 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     : Math.round(footingCostPerUnit * footingCount * 2.0);
 
   // Stairs
+  // Per-step rates are FULLY INSTALLED costs (stringers, treads, risers, hardware, concrete landing pad, labor).
+  // Sources: HomeGuide 2026 ($30–$60/step PT materials-only; $100–$175/step installed),
+  //          Angi 2026 ($60–$250/step installed), contractor field data (Facebook Decking Pros group).
+  // DIY rates = materials only (treads, stringers, risers, hardware — no labor).
+  // Contractor rates = full installed cost including labor, concrete landing pad, and hardware.
   const stairWidthFt = inputs.stairWidthFt ?? 4;
-  const widthPremiumPerStep = Math.max(0, stairWidthFt - 4) * 100; // +$100/step per ft over 4ft base
+  const widthPremiumPerStep = Math.max(0, stairWidthFt - 4) * 150; // +$150/step per ft over 4ft base (contractor field data)
   const stairsLow = inputs.includeStairs
     ? isDIY
-      ? inputs.stairSteps * (tier.id === "pt" ? 15 : tier.id === "composite" ? 35 : 40)
-      : inputs.stairSteps * ((tier.id === "pt" ? 30 : tier.id === "composite" ? 50 : 60) + widthPremiumPerStep)
+      ? inputs.stairSteps * (tier.id === "pt" ? 25 : tier.id === "composite" ? 50 : 65)   // materials only
+      : inputs.stairSteps * ((tier.id === "pt" ? 100 : tier.id === "composite" ? 150 : 200) + widthPremiumPerStep) // fully installed
     : 0;
   const stairsHigh = inputs.includeStairs
     ? isDIY
-      ? inputs.stairSteps * (tier.id === "pt" ? 30 : tier.id === "composite" ? 75 : 80)
-      : inputs.stairSteps * ((tier.id === "pt" ? 60 : tier.id === "composite" ? 100 : 120) + widthPremiumPerStep)
+      ? inputs.stairSteps * (tier.id === "pt" ? 50 : tier.id === "composite" ? 90 : 110)  // materials only
+      : inputs.stairSteps * ((tier.id === "pt" ? 175 : tier.id === "composite" ? 250 : 400) + widthPremiumPerStep) // fully installed
     : 0;
 
   // Stair railing — uses same system as deck railing but with a 20% premium
