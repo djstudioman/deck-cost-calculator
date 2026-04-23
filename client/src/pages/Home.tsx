@@ -67,7 +67,7 @@ function getStepLabels(audience: AudienceType): string[] {
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
     return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Subcontracting", "Permit"];
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Extras", "Permit"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
   return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit"];
 }
@@ -1983,11 +1983,11 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── CONTRACTOR STEP 8: SUBCONTRACTING ── */}
+              {/* ── CONTRACTOR STEP 8: EXTRAS ── */}
               {step === 8 && audience === "contractor" && (
                 <StepCard
-                  title="Subcontracting"
-                  subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
+                  title="Extras & subcontracting"
+                  subtitle="Indicate demo, subcontracted work, and other add-ons. Subcontracted items are excluded from your markup."
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
