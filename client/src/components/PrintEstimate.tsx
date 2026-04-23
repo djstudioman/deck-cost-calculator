@@ -102,16 +102,36 @@ export default function PrintEstimate({ result }: Props) {
             ))}
             {/* Framing spec info row — contractor only, no cost (informational) */}
             {result.isContractor && (
-              <tr className="border-t border-gray-200 bg-blue-50">
+              <tr className={`border-t border-gray-200 ${
+                result.joistSpanWarning?.exceeded ? "bg-amber-50" : "bg-blue-50"
+              }`}>
                 <td className="py-2 px-2 font-medium text-gray-700 text-xs">
                   Framing Spec ({result.framingOption.shortLabel})
+                  {result.joistSpanWarning?.exceeded && (
+                    <span className="ml-1 text-amber-700 font-bold">⚠ Span Alert</span>
+                  )}
                 </td>
-                <td className="py-2 px-2 text-gray-500 text-xs">
-                  {result.joistSpacingIn}" OC · {result.joistCount} joists · {result.joistLengthFt}' span · {result.joistBoardFeet} BF total
-                  {result.joistSpacingCostDelta !== 0 && (
-                    <span className={result.joistSpacingCostDelta > 0 ? " text-amber-700" : " text-green-700"}>
-                      {" "}({result.joistSpacingCostDelta > 0 ? "+" : ""}{formatCurrency(result.joistSpacingCostDelta)} vs 16" OC)
-                    </span>
+                <td className="py-2 px-2 text-gray-600 text-xs">
+                  <div>{result.joistSpacingIn}" OC · {result.joistCount} joists · {result.joistLengthFt}' span · {result.joistBoardFeet} BF total
+                    {result.joistSpacingCostDelta !== 0 && (
+                      <span className={result.joistSpacingCostDelta > 0 ? " text-amber-700" : " text-green-700"}>
+                        {" "}({result.joistSpacingCostDelta > 0 ? "+" : ""}{formatCurrency(result.joistSpacingCostDelta)} vs 16" OC)
+                      </span>
+                    )}
+                  </div>
+                  {result.joistSpanWarning && (
+                    <div className={`mt-1 text-xs ${
+                      result.joistSpanWarning.exceeded ? "text-amber-800 font-medium" : "text-green-700"
+                    }`}>
+                      {result.joistSpanWarning.exceeded ? "⚠ " : "✓ "}
+                      {result.joistSpanWarning.message}
+                    </div>
+                  )}
+                  {result.joistSpanWarning?.exceeded && (
+                    <div className="mt-0.5 text-[10px] text-gray-500">
+                      IRC R507.6 max spans (SYP No.2 PT) @ {result.joistSpacingIn}" OC:
+                      {" "}2×10 = {result.joistSpanWarning.maxAllowedFt}' · 2×12 = {result.joistSpanWarning.upgradeMaxFt}'
+                    </div>
                   )}
                 </td>
                 <td className="py-2 px-2 text-right font-mono text-xs text-gray-400">—</td>
