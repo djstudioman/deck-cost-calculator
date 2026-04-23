@@ -1130,7 +1130,7 @@ export default function Home() {
                       {isMultiLevel && (
                         <div className="space-y-2">
                           <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Upper / second level size</div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-2">
                             {DECK_SIZES.map((s) => {
                               const baseInstalled: Record<string, { low: number; high: number }> = {
                                 "100": { low: 2500, high: 4000 },
