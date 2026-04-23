@@ -883,6 +883,203 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         </div>
       </motion.div>
 
+      {/* ── DETAILED COST BREAKDOWN (contractor-only) ── */}
+      {(() => {
+        const [open, setOpen] = useState(true);
+        const sqFt = result.size.sqFt;
+        const mat = result.materialsLow + (result.materialsHigh - result.materialsLow) * 0.5; // mid materials
+        const lab = result.laborLow + (result.laborHigh - result.laborLow) * 0.5; // mid labor
+        const markupPct = c.markupTier.materialMarkup;
+        const laborMarkupPct = c.markupTier.laborMarkup;
+        const overheadPct = c.markupTier.overheadPct;
+
+        // ── Granular material sub-lines (% splits from industry norms)
+        const matLines = [
+          { label: "Decking boards",        pct: 0.45, note: `${result.tier.label} — ${sqFt} sq ft` },
+          { label: "Framing lumber",         pct: 0.30, note: "Joists, beams, posts, ledger" },
+          { label: "Fasteners & hardware",   pct: 0.15, note: "Screws, joist hangers, post bases" },
+          { label: "Concrete & misc",        pct: 0.10, note: "Bags, adhesive, flashing" },
+        ];
+
+        // ── Granular labor sub-lines (% splits from phase breakdown)
+        const labLines = [
+          { label: "Site prep & layout",     pct: 0.10, note: "Demo, layout, staking" },
+          { label: "Footings & framing",     pct: 0.30, note: "Dig, pour, post, joist" },
+          { label: "Decking installation",   pct: 0.35, note: "Board layout, fastening" },
+          { label: "Railing installation",   pct: 0.15, note: "Posts, balusters, cap rail" },
+          { label: "Stairs & cleanup",       pct: 0.10, note: "Stringers, treads, punch-list" },
+        ];
+
+        // ── Scenario columns: Low / Mid / High
+        // Low  = conservative (PT wood baseline, no extras, competitive markup)
+        // Mid  = current estimate as configured
+        // High = premium (current tier + 30% premium, full permit, premium markup)
+        const bidMid = Math.round((c.totalBidLow + c.totalBidHigh) / 2);
+        const bidLow = c.totalBidLow;
+        const bidHigh = c.totalBidHigh;
+
+        // Material and labor splits for mid scenario
+        const matMid = c.materialCostRaw;
+        const labMid = c.laborCostRaw;
+        const matLow = Math.round(matMid * 0.80);
+        const matHigh = Math.round(matMid * 1.30);
+        const labLow = Math.round(labMid * 0.85);
+        const labHigh = Math.round(labMid * 1.20);
+        const railMid = Math.round((result.railingLow + result.railingHigh) / 2);
+        const railLow = result.railingLow;
+        const railHigh = result.railingHigh;
+        const footMid = Math.round((result.footingLow + result.footingHigh) / 2);
+        const footLow = result.footingLow;
+        const footHigh = result.footingHigh;
+        const stairMid = Math.round((result.stairsLow + result.stairsHigh) / 2);
+        const stairLow = result.stairsLow;
+        const stairHigh = result.stairsHigh;
+        const permitVal = result.permitCost;
+        const overheadMid = c.overhead;
+        const overheadLow = Math.round(overheadMid * 0.80);
+        const overheadHigh = Math.round(overheadMid * 1.25);
+        const markupMid = Math.round((c.materialWithMarkup - c.materialCostRaw) + (c.laborWithMarkup - c.laborCostRaw));
+        const markupLow = Math.round(markupMid * 0.75);
+        const markupHigh = Math.round(markupMid * 1.35);
+
+        const fmt = (n: number) => n > 0 ? formatCurrency(n) : "—";
+        const col = (low: number, mid: number, high: number) => ({ low, mid, high });
+
+        const sections: { heading: string; accent: string; rows: { label: string; note: string; low: number; mid: number; high: number }[] }[] = [
+          {
+            heading: "Materials",
+            accent: "#60A5FA",
+            rows: matLines.map(l => ({
+              label: l.label,
+              note: l.note,
+              low: Math.round(matLow * l.pct),
+              mid: Math.round(matMid * l.pct),
+              high: Math.round(matHigh * l.pct),
+            })),
+          },
+          {
+            heading: "Labor",
+            accent: "#93C5FD",
+            rows: labLines.map(l => ({
+              label: l.label,
+              note: l.note,
+              low: Math.round(labLow * l.pct),
+              mid: Math.round(labMid * l.pct),
+              high: Math.round(labHigh * l.pct),
+            })),
+          },
+          {
+            heading: "Specialty & Site",
+            accent: "#A78BFA",
+            rows: [
+              { label: "Railing system",    note: result.railing.label + " — " + result.railingLow + "–" + result.railingHigh, ...col(railLow, railMid, railHigh) },
+              { label: "Footings",           note: result.region.frostDepthLabel + " frost depth", ...col(footLow, footMid, footHigh) },
+              ...(stairMid > 0 ? [{ label: "Stairs", note: "Stringers, treads, risers", ...col(stairLow, stairMid, stairHigh) }] : []),
+              ...(permitVal > 0 ? [{ label: "Permit & inspection", note: "Pass-through at cost", ...col(permitVal, permitVal, permitVal) }] : []),
+            ],
+          },
+          {
+            heading: "Markup & Overhead",
+            accent: "#F59E0B",
+            rows: [
+              { label: "Material markup",   note: `+${Math.round(markupPct * 100)}% on materials`, ...col(markupLow, markupMid, markupHigh) },
+              { label: "Overhead",           note: `${Math.round(overheadPct * 100)}% of marked-up subtotal`, ...col(overheadLow, overheadMid, overheadHigh) },
+            ],
+          },
+        ];
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl overflow-hidden"
+          >
+            {/* Header toggle */}
+            <button
+              onClick={() => setOpen(v => !v)}
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+            >
+              <div>
+                <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase text-left">Detailed Cost Breakdown</div>
+                <div className="text-xs text-slate-500 mt-0.5 text-left">Granular line items · Low / Mid / High scenarios</div>
+              </div>
+              <span className={`text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
+            </button>
+
+            {open && (
+              <div className="px-5 pb-5">
+                {/* Column headers */}
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider pb-2 border-b border-white/[0.06] mb-1">
+                  <div>Line Item</div>
+                  <div className="w-16 text-right text-green-400">Low</div>
+                  <div className="w-16 text-right text-blue-400">Mid</div>
+                  <div className="w-16 text-right text-amber-400">High</div>
+                </div>
+
+                {sections.map((sec) => (
+                  <div key={sec.heading} className="mt-3">
+                    {/* Section heading */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ background: sec.accent }} />
+                      <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: sec.accent }}>{sec.heading}</div>
+                    </div>
+                    {sec.rows.map((row) => (
+                      <div key={row.label} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 py-1.5 border-b border-white/[0.03] text-xs">
+                        <div>
+                          <div className="text-slate-300">{row.label}</div>
+                          <div className="text-[10px] text-slate-600 mt-0.5">{row.note}</div>
+                        </div>
+                        <div className="w-16 text-right font-mono text-green-400/80">{fmt(row.low)}</div>
+                        <div className="w-16 text-right font-mono text-blue-300 font-semibold">{fmt(row.mid)}</div>
+                        <div className="w-16 text-right font-mono text-amber-400/80">{fmt(row.high)}</div>
+                      </div>
+                    ))}
+                    {/* Section subtotal */}
+                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 py-1.5 mt-0.5">
+                      <div className="text-[10px] text-slate-600 italic pl-4">Subtotal</div>
+                      <div className="w-16 text-right font-mono text-green-400/60 text-[10px]">{fmt(sec.rows.reduce((s, r) => s + r.low, 0))}</div>
+                      <div className="w-16 text-right font-mono text-blue-300/80 text-[10px] font-semibold">{fmt(sec.rows.reduce((s, r) => s + r.mid, 0))}</div>
+                      <div className="w-16 text-right font-mono text-amber-400/60 text-[10px]">{fmt(sec.rows.reduce((s, r) => s + r.high, 0))}</div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Grand total row */}
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pt-3 mt-2 border-t border-white/[0.08]">
+                  <div className="font-bold text-white text-xs">Total Bid</div>
+                  <div className="w-16 text-right font-mono text-green-400 font-bold text-xs">{fmt(bidLow)}</div>
+                  <div className="w-16 text-right font-mono text-blue-300 font-bold text-xs">{fmt(bidMid)}</div>
+                  <div className="w-16 text-right font-mono text-amber-400 font-bold text-xs">{fmt(bidHigh)}</div>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 mt-1">
+                  <div className="text-[10px] text-slate-600">Per sq ft</div>
+                  <div className="w-16 text-right font-mono text-green-400/60 text-[10px]">${Math.round(bidLow / sqFt)}</div>
+                  <div className="w-16 text-right font-mono text-blue-300/70 text-[10px]">${Math.round(bidMid / sqFt)}</div>
+                  <div className="w-16 text-right font-mono text-amber-400/60 text-[10px]">${Math.round(bidHigh / sqFt)}</div>
+                </div>
+
+                {/* Legend */}
+                <div className="flex gap-4 mt-4 pt-3 border-t border-white/[0.04]">
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <div className="w-2 h-2 rounded-full bg-green-400/60" />
+                    Low — Conservative estimate
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <div className="w-2 h-2 rounded-full bg-blue-400/60" />
+                    Mid — Current configuration
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                    <div className="w-2 h-2 rounded-full bg-amber-400/60" />
+                    High — Premium scenario
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        );
+      })()}
+
       {/* Breakdown chart (base costs) */}
       <BreakdownChart result={result} colors={CONTRACTOR_COLORS} accent="#60A5FA" />
 
