@@ -67,7 +67,7 @@ function getStepLabels(audience: AudienceType): string[] {
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
     return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Extras", "Permit"];
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit", "Extras"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
   return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit"];
 }
@@ -1983,8 +1983,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── CONTRACTOR STEP 8: EXTRAS ── */}
-              {step === 8 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 9: EXTRAS ── */}
+              {step === 9 && audience === "contractor" && (
                 <StepCard
                   title="Extras & subcontracting"
                   subtitle="Indicate demo, subcontracted work, and other add-ons. Subcontracted items are excluded from your markup."
@@ -2185,8 +2185,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── CONTRACTOR STEP 9: PERMIT ── */}
-              {step === 9 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 8: PERMIT ── */}
+              {step === 8 && audience === "contractor" && (
                 <StepCard
                   title="Permit & inspection"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
