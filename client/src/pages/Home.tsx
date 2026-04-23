@@ -2193,7 +2193,7 @@ export default function Home() {
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
-                  nextLabel="See My Bid Estimate →"
+                  nextLabel="Continue →"
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-3">
