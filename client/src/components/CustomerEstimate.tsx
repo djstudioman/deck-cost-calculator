@@ -8,6 +8,7 @@
  * so only this layer prints (not the contractor estimate).
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { type CalculatorResult, formatRange, formatCurrency } from "@/lib/deckData";
 
 interface Props {
@@ -98,8 +99,8 @@ export default function CustomerEstimate({ result }: Props) {
   const framingDraw = Math.round(totalMid * 0.33);
   const finalDraw = totalMid - deposit - framingDraw;
 
-  return (
-    <div id="customer-estimate" className="hidden font-sans text-gray-900 bg-white p-8 max-w-[720px] mx-auto">
+  return createPortal(
+    <div id="customer-estimate" className="font-sans text-gray-900 bg-white p-8 max-w-[900px] mx-auto">
 
       {/* ── EDITABLE FIELDS (screen only, hidden on print) ── */}
       <div className="print:hidden mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -285,6 +286,7 @@ export default function CustomerEstimate({ result }: Props) {
           Estimate generated with DeckCost 2026 · {today}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

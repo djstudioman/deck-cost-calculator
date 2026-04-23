@@ -182,9 +182,9 @@
 }
 /* ─── PRINT STYLES ──────────────────────────────────────────────────────────── */
 @media print {
-  /* Hide the entire app — use visibility so children can override */
-  body * {
-    visibility: hidden;
+  /* Hide the app root — print layers are portaled directly to body so they are unaffected */
+  #root {
+    display: none !important;
   }
 
   /* Reset page background */
@@ -202,35 +202,22 @@
   #print-estimate {
     display: block !important;
     visibility: visible !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
   }
   #print-estimate * {
     visibility: visible !important;
   }
   #customer-estimate {
     display: none !important;
-    visibility: hidden !important;
   }
 
   /* ── CUSTOMER PROPOSAL MODE ── */
   /* Show customer estimate, hide bid estimate */
   body.print-customer-mode #print-estimate {
     display: none !important;
-    visibility: hidden !important;
-  }
-  body.print-customer-mode #print-estimate * {
-    visibility: hidden !important;
   }
   body.print-customer-mode #customer-estimate {
     display: block !important;
     visibility: visible !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
   }
   body.print-customer-mode #customer-estimate * {
     visibility: visible !important;

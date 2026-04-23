@@ -3,6 +3,7 @@
  * Design: Precision Engineering — clean white print layout, audience-specific sections.
  * Triggered by window.print(); shown only via @media print CSS.
  */
+import { createPortal } from "react-dom";
 import { type CalculatorResult, formatRange, formatCurrency, formatCurrencyFull } from "@/lib/deckData";
 
 interface Props {
@@ -17,8 +18,8 @@ export default function PrintEstimate({ result }: Props) {
   const c = result.contractor;
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-  return (
-    <div id="print-estimate" className="hidden font-sans text-gray-900 bg-white p-8 max-w-[720px] mx-auto">
+  return createPortal(
+    <div id="print-estimate" className="font-sans text-gray-900 bg-white p-8 max-w-[900px] mx-auto">
       {/* ── HEADER ── */}
       <div className="flex items-start justify-between border-b-2 border-gray-900 pb-4 mb-6">
         <div>
@@ -326,6 +327,7 @@ export default function PrintEstimate({ result }: Props) {
           DeckCost 2026 · deckcalc2026-axndupm8.manus.space · Data sourced from HomeAdvisor, HomeGuide, Advantage Lumber, BLS, and regional retailers.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
