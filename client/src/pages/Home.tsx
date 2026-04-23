@@ -23,6 +23,7 @@ import {
   CREW_SIZES,
   FRAMING_OPTIONS,
   MARKET_TIERS,
+  DECKING_BRANDS,
   calculate,
   formatCurrency,
   formatRange,
@@ -141,6 +142,11 @@ export default function Home() {
   const [level2CustomLength, setLevel2CustomLength] = useState<number>(12);
   const level2CustomSqFt = level2CustomWidth * level2CustomLength;
 
+  // Decking brand / hidden fasteners / edge board (contractor only)
+  const [brandId, setBrandId] = useState<string | undefined>(undefined);
+  const [includeHiddenFasteners, setIncludeHiddenFasteners] = useState(false);
+  const [edgeBoardType, setEdgeBoardType] = useState<"solid" | "grooved">("solid");
+
   // Demo / removal (contractor only)
   const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
   const [demoMaterialType, setDemoMaterialType] = useState<"wood" | "composite" | "other">("wood");
@@ -187,6 +193,9 @@ export default function Home() {
       isMultiLevel,
       level2SizeId: isMultiLevel ? level2SizeId : undefined,
       level2CustomSqFt: isMultiLevel && level2SizeId === "custom" ? level2CustomSqFt : undefined,
+      brandId,
+      includeHiddenFasteners,
+      edgeBoardType,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -194,6 +203,7 @@ export default function Home() {
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
       includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, marketTierId,
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
+      brandId, includeHiddenFasteners, edgeBoardType,
     ]
   );
 
@@ -324,6 +334,9 @@ export default function Home() {
     setLevel2SizeId(snap.level2SizeId ?? "192");
     setLevel2CustomWidth(snap.level2CustomWidth ?? 16);
     setLevel2CustomLength(snap.level2CustomLength ?? 12);
+    setBrandId(snap.brandId ?? undefined);
+    setIncludeHiddenFasteners(snap.includeHiddenFasteners ?? false);
+    setEdgeBoardType(snap.edgeBoardType ?? "solid");
     // Jump straight to results
     setShowResults(true);
   });
@@ -359,6 +372,9 @@ export default function Home() {
     setLevel2SizeId(snap.level2SizeId ?? "192");
     setLevel2CustomWidth(snap.level2CustomWidth ?? 16);
     setLevel2CustomLength(snap.level2CustomLength ?? 12);
+    setBrandId(snap.brandId ?? undefined);
+    setIncludeHiddenFasteners(snap.includeHiddenFasteners ?? false);
+    setEdgeBoardType(snap.edgeBoardType ?? "solid");
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -381,6 +397,9 @@ export default function Home() {
       level2SizeId,
       level2CustomWidth,
       level2CustomLength,
+      brandId,
+      includeHiddenFasteners,
+      edgeBoardType,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -397,7 +416,8 @@ export default function Home() {
     skillLevelId, selectedTools, includePermit, permitCost,
     markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     framingId, marketTierId, customWidth, customLength,
-    isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength, result,
+    isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
+    brandId, includeHiddenFasteners, edgeBoardType, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -1244,7 +1264,16 @@ export default function Home() {
                     {MATERIAL_TIERS.map((t) => (
                       <button
                         key={t.id}
-                        onClick={() => selectOrAdvance(tierId === t.id, () => setTierId(t.id))}
+                        onClick={() => selectOrAdvance(tierId === t.id, () => {
+                          setTierId(t.id);
+                          // Reset brand when switching tiers so incompatible brands don't persist
+                          if (audience === "contractor") {
+                            const compatible = DECKING_BRANDS.filter(b => b.tierIds.includes(t.id));
+                            if (brandId && !compatible.find(b => b.id === brandId)) {
+                              setBrandId(undefined);
+                            }
+                          }
+                        })}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all",
                           tierId === t.id
@@ -1285,6 +1314,145 @@ export default function Home() {
                         </div>
                       </button>
                     ))}
+
+                    {/* ── Contractor-only: Brand, Hidden Fasteners, Edge Board ── */}
+                    {audience === "contractor" && (tierId === "composite" || tierId === "pvc") && (() => {
+                      const brandsForTier = DECKING_BRANDS.filter(b => b.tierIds.includes(tierId));
+                      const selectedBrand = brandsForTier.find(b => b.id === brandId) ?? null;
+                      const fastenerBlocked = selectedBrand !== null && !selectedBrand.hiddenFastenerCompatible;
+                      return (
+                        <div className="mt-2 p-4 rounded-lg border border-amber-500/30 bg-amber-500/[0.04] space-y-4">
+                          <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Product Spec (Contractor)</div>
+
+                          {/* Brand selector */}
+                          <div>
+                            <div className="text-xs text-slate-400 mb-2">Brand / Product Line</div>
+                            <div className="grid grid-cols-1 gap-2">
+                              {/* "No specific brand" option */}
+                              <button
+                                onClick={() => setBrandId(undefined)}
+                                className={cn(
+                                  "text-left px-3 py-2 rounded-md border text-xs transition-all",
+                                  brandId === undefined
+                                    ? `${sel.border} ${sel.bg} text-white`
+                                    : "border-white/15 bg-white/[0.02] text-slate-400 hover:border-white/25"
+                                )}
+                              >
+                                <span className="font-medium">No specific brand</span>
+                                <span className="text-slate-500 ml-2">Use tier baseline pricing</span>
+                              </button>
+                              {brandsForTier.map((b) => {
+                                const dLow = b.materialDeltaLow as number;
+                                const dHigh = b.materialDeltaHigh as number;
+                                const delta = dLow === 0 && dHigh === 0
+                                  ? "Baseline"
+                                  : dLow < 0
+                                    ? `$${dLow.toFixed(2)}/SF to ${dHigh >= 0 ? "+" : ""}$${dHigh.toFixed(2)}/SF`
+                                    : `+$${dLow.toFixed(2)}–$${dHigh.toFixed(2)}/SF`;
+                                return (
+                                  <button
+                                    key={b.id}
+                                    onClick={() => setBrandId(b.id)}
+                                    className={cn(
+                                      "text-left px-3 py-2 rounded-md border transition-all",
+                                      brandId === b.id
+                                        ? `${sel.border} ${sel.bg}`
+                                        : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div>
+                                        <span className="text-xs font-semibold text-white">{b.name}</span>
+                                        {!b.hiddenFastenerCompatible && (
+                                          <span className="ml-2 text-xs text-slate-500">(solid boards only)</span>
+                                        )}
+                                      </div>
+                                      <span className={`text-xs font-mono shrink-0 ${
+                                        b.materialDeltaLow < 0 ? "text-green-400" : b.materialDeltaLow > 0 ? "text-amber-400" : "text-slate-400"
+                                      }`}>{delta}</span>
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-0.5">{b.description}</div>
+                                    <div className="text-xs text-slate-600 mt-0.5">Warranty: {b.warranty}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Hidden fastener toggle */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-xs font-semibold text-white">Hidden Fasteners</div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                {fastenerBlocked
+                                  ? `${selectedBrand?.name} uses solid boards — not compatible with hidden fasteners`
+                                  : "Clip system — no visible screws. +$1.50–$3.00/SF (hardware + labor)"}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                if (fastenerBlocked) return;
+                                const next = !includeHiddenFasteners;
+                                setIncludeHiddenFasteners(next);
+                                // Auto-set grooved when turning on hidden fasteners
+                                if (next) setEdgeBoardType("grooved");
+                              }}
+                              disabled={fastenerBlocked}
+                              className={cn(
+                                "shrink-0 w-11 h-6 rounded-full border transition-all relative",
+                                fastenerBlocked
+                                  ? "border-white/10 bg-white/[0.03] opacity-40 cursor-not-allowed"
+                                  : includeHiddenFasteners
+                                    ? `border-amber-500 bg-amber-500/20`
+                                    : "border-white/20 bg-white/[0.04] hover:border-white/30"
+                              )}
+                              aria-label="Toggle hidden fasteners"
+                            >
+                              <span className={cn(
+                                "absolute top-0.5 w-5 h-5 rounded-full transition-all",
+                                includeHiddenFasteners && !fastenerBlocked
+                                  ? "left-5 bg-amber-400"
+                                  : "left-0.5 bg-slate-600"
+                              )} />
+                            </button>
+                          </div>
+
+                          {/* Edge board type */}
+                          <div>
+                            <div className="text-xs font-semibold text-white mb-1.5">Edge / Border Boards</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(["solid", "grooved"] as const).map((type) => {
+                                const isForced = type === "grooved" && includeHiddenFasteners && !fastenerBlocked;
+                                return (
+                                  <button
+                                    key={type}
+                                    onClick={() => {
+                                      if (isForced) return; // can't unset grooved when hidden fasteners on
+                                      setEdgeBoardType(type);
+                                    }}
+                                    className={cn(
+                                      "text-left px-3 py-2 rounded-md border text-xs transition-all",
+                                      edgeBoardType === type || isForced
+                                        ? `${sel.border} ${sel.bg}`
+                                        : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                                    )}
+                                  >
+                                    <div className="font-semibold text-white capitalize">{type}</div>
+                                    <div className="text-slate-500 mt-0.5">
+                                      {type === "solid"
+                                        ? "Standard face-screw install. Best for picture-frame borders."
+                                        : isForced
+                                          ? "Required for hidden fasteners. +$0.50–$1.00/SF"
+                                          : "Grooved-edge upgrade. +$0.50–$1.00/SF"}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </StepCard>
               )}

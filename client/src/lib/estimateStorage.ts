@@ -41,6 +41,10 @@ export interface EstimateSnapshot {
   level2SizeId: string;
   level2CustomWidth: number;
   level2CustomLength: number;
+  // Brand / fastener / edge board (contractor only)
+  brandId?: string;
+  includeHiddenFasteners?: boolean;
+  edgeBoardType?: "solid" | "grooved";
   notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)
   totalLow: number;

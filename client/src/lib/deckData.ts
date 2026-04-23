@@ -215,6 +215,82 @@ export const MATERIAL_TIERS: MaterialTier[] = [
   },
 ];
 
+// ─── DECKING BRANDS (contractor-only, shown for composite + pvc tiers) ────────
+// Sources: Advantage Lumber price comparison chart (Apr 2026), rmfp.com brand comparison
+// (Apr 2026), DecksDirect cost guide (Feb 2026), dgfloors.com composite pricing (Apr 2026).
+// materialDeltaPerSqFt = additional material cost ABOVE the base tier rate.
+// hiddenFastenerCompatible = supports hidden clip fastening systems.
+export const DECKING_BRANDS = [
+  {
+    id: "trex-enhance",
+    name: "Trex Enhance Basics",
+    brand: "Trex",
+    tierIds: ["composite"],
+    materialDeltaLow: -2.00,
+    materialDeltaHigh: -1.00,
+    description: "Entry-level composite. Solid boards only — no hidden fastener groove. Best value for budget-conscious builds.",
+    warranty: "25-year limited",
+    hiddenFastenerCompatible: false,
+  },
+  {
+    id: "fiberon-good-life",
+    name: "Fiberon Good Life",
+    brand: "Fiberon",
+    tierIds: ["composite"],
+    materialDeltaLow: -1.00,
+    materialDeltaHigh: 0.00,
+    description: "Mid-range composite with grooved-edge option. Good color selection, hidden fastener compatible.",
+    warranty: "25-year limited",
+    hiddenFastenerCompatible: true,
+  },
+  {
+    id: "trex-select",
+    name: "Trex Select",
+    brand: "Trex",
+    tierIds: ["composite"],
+    materialDeltaLow: 0.00,
+    materialDeltaHigh: 0.50,
+    description: "Standard composite with grooved-edge boards available. Solid color palette, hidden fastener compatible.",
+    warranty: "25-year limited",
+    hiddenFastenerCompatible: true,
+  },
+  {
+    id: "trex-transcend",
+    name: "Trex Transcend",
+    brand: "Trex",
+    tierIds: ["pvc"],
+    materialDeltaLow: 0.00,
+    materialDeltaHigh: 1.00,
+    description: "Premium composite with realistic wood grain. Grooved-edge boards available. Hidden fastener compatible.",
+    warranty: "25-year limited",
+    hiddenFastenerCompatible: true,
+  },
+  {
+    id: "fiberon-paramount",
+    name: "Fiberon Paramount",
+    brand: "Fiberon",
+    tierIds: ["pvc"],
+    materialDeltaLow: 0.50,
+    materialDeltaHigh: 2.00,
+    description: "High-end PVC composite with deep wood grain texture. Grooved-edge boards available for hidden fasteners.",
+    warranty: "Lifetime limited",
+    hiddenFastenerCompatible: true,
+  },
+  {
+    id: "azek-vintage",
+    name: "TimberTech AZEK Vintage",
+    brand: "TimberTech",
+    tierIds: ["pvc"],
+    materialDeltaLow: 2.00,
+    materialDeltaHigh: 4.00,
+    description: "Ultra-premium capped PVC. Highest durability and aesthetics. Grooved-edge available for hidden fasteners.",
+    warranty: "Lifetime limited",
+    hiddenFastenerCompatible: true,
+  },
+];
+
+export type DeckingBrand = (typeof DECKING_BRANDS)[number];
+
 // ─── COMPLEXITY MULTIPLIERS ────────────────────────────────────────────────────
 export interface Complexity {
   id: string;
@@ -621,6 +697,12 @@ export interface CalculatorInputs {
   includeCrew?: boolean;
   subFootings?: boolean;
   markupMaterials?: boolean;
+  // Decking brand / product line (contractor only, composite + pvc tiers)
+  brandId?: string;             // id from DECKING_BRANDS; undefined = no specific brand
+  // Hidden fasteners (contractor only)
+  includeHiddenFasteners?: boolean;
+  // Edge board type (contractor only)
+  edgeBoardType?: "solid" | "grooved"; // grooved auto-set when hidden fasteners on
   // Custom size (contractor only)
   customSqFt?: number; // used when sizeId === "custom"
   // Demolition / removal (contractor only)
@@ -664,6 +746,14 @@ export interface CalculatorResult {
   framingOption: FramingOption;
   framingCostLow: number;
   framingCostHigh: number;
+  // Brand / fastener / edge board (contractor only)
+  deckingBrand: DeckingBrand | null;
+  brandDeltaLow: number;
+  brandDeltaHigh: number;
+  hiddenFastenerCostLow: number;
+  hiddenFastenerCostHigh: number;
+  edgeBoardUpgradeLow: number;
+  edgeBoardUpgradeHigh: number;
   multiLevelPremiumLow: number;
   multiLevelPremiumHigh: number;
   level2SqFt: number;
@@ -915,6 +1005,32 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const multiLevelPremiumLow  = level2SqFt > 0 ? level2BaseLow  + Math.round(8  * level2SqFt) : 0;
   const multiLevelPremiumHigh = level2SqFt > 0 ? level2BaseHigh + Math.round(15 * level2SqFt) : 0;
 
+  // ── Brand / hidden fastener / edge board (contractor only) ─────────────────
+  // Brand delta: additional material cost above base tier rate (can be negative for budget brands)
+  // Sources: Advantage Lumber price chart (Apr 2026), rmfp.com (Apr 2026), DecksDirect (Feb 2026)
+  const deckingBrand: DeckingBrand | null = isContractor && inputs.brandId
+    ? (DECKING_BRANDS.find(b => b.id === inputs.brandId) ?? null)
+    : null;
+  const brandDeltaLow  = isContractor && deckingBrand ? Math.round(deckingBrand.materialDeltaLow  * size.sqFt) : 0;
+  const brandDeltaHigh = isContractor && deckingBrand ? Math.round(deckingBrand.materialDeltaHigh * size.sqFt) : 0;
+
+  // Hidden fasteners: +$1.50–$3.00/sq ft (hardware clips + extra labor for snap-in installation)
+  // Sources: HomeAdvisor 2026, Angi 2026, contractor field data. Only applies to compatible boards.
+  const useHiddenFasteners = isContractor && inputs.includeHiddenFasteners === true
+    && (deckingBrand === null || deckingBrand.hiddenFastenerCompatible);
+  const hiddenFastenerCostLow  = useHiddenFasteners ? Math.round(1.50 * size.sqFt) : 0;
+  const hiddenFastenerCostHigh = useHiddenFasteners ? Math.round(3.00 * size.sqFt) : 0;
+
+  // Grooved edge boards: required for hidden fasteners; +$0.50–$1.00/sq ft for edge boards only
+  // (~15–20% of total sq ft is edge boards; grooved boards cost ~$3–$5/LF more than solid)
+  // Auto-selected when hidden fasteners are on. Only applies to compatible boards.
+  const useGroovedEdge = isContractor && (
+    inputs.edgeBoardType === "grooved" ||
+    (useHiddenFasteners) // hidden fasteners force grooved
+  );
+  const edgeBoardUpgradeLow  = useGroovedEdge ? Math.round(0.50 * size.sqFt) : 0;
+  const edgeBoardUpgradeHigh = useGroovedEdge ? Math.round(1.00 * size.sqFt) : 0;
+
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
@@ -925,8 +1041,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -1002,6 +1118,39 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
             low: demolitionLow,
             high: demolitionHigh,
             note: `Existing deck removal${inputs.demoIncludeDisposal ? " + disposal" : ""}`,
+          },
+        ]
+      : []),
+    ...(hiddenFastenerCostLow > 0
+      ? [
+          {
+            category: "Hidden Fasteners",
+            pctOfTotal: 0,
+            low: hiddenFastenerCostLow,
+            high: hiddenFastenerCostHigh,
+            note: `Clip fastening system — ${size.sqFt} sq ft`,
+          },
+        ]
+      : []),
+    ...(edgeBoardUpgradeLow > 0
+      ? [
+          {
+            category: "Grooved Edge Boards",
+            pctOfTotal: 0,
+            low: edgeBoardUpgradeLow,
+            high: edgeBoardUpgradeHigh,
+            note: `Grooved-edge board upgrade — ${size.sqFt} sq ft`,
+          },
+        ]
+      : []),
+    ...(brandDeltaLow !== 0 || brandDeltaHigh !== 0
+      ? [
+          {
+            category: deckingBrand ? `${deckingBrand.name} Upgrade` : "Brand Adjustment",
+            pctOfTotal: 0,
+            low: Math.min(brandDeltaLow, brandDeltaHigh),
+            high: Math.max(brandDeltaLow, brandDeltaHigh),
+            note: deckingBrand ? `${deckingBrand.warranty} warranty` : "",
           },
         ]
       : []),
@@ -1131,7 +1280,14 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     // Multi-level premium — marked up like materials (structural upgrade)
     const multiLevelMid = Math.round((multiLevelPremiumLow + multiLevelPremiumHigh) / 2);
     const multiLevelWithMarkup = multiLevelMid > 0 ? Math.round(multiLevelMid * (1 + markupTier.materialMarkup)) : 0;
-    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid + framingWithMarkup + multiLevelWithMarkup;
+    // Brand delta + hidden fasteners + grooved edge — marked up like materials
+    const brandDeltaMid = Math.round((brandDeltaLow + brandDeltaHigh) / 2);
+    const brandWithMarkup = brandDeltaMid !== 0 ? Math.round(brandDeltaMid * (1 + markupTier.materialMarkup)) : 0;
+    const fastenerMid = Math.round((hiddenFastenerCostLow + hiddenFastenerCostHigh) / 2);
+    const fastenerWithMarkup = fastenerMid > 0 ? Math.round(fastenerMid * (1 + markupTier.materialMarkup)) : 0;
+    const edgeBoardMid = Math.round((edgeBoardUpgradeLow + edgeBoardUpgradeHigh) / 2);
+    const edgeBoardWithMarkup = edgeBoardMid > 0 ? Math.round(edgeBoardMid * (1 + markupTier.materialMarkup)) : 0;
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid + framingWithMarkup + multiLevelWithMarkup + brandWithMarkup + fastenerWithMarkup + edgeBoardWithMarkup;
     const bidVariance = 0.08; // ±8% range
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
@@ -1189,6 +1345,13 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     framingOption,
     framingCostLow,
     framingCostHigh,
+    deckingBrand,
+    brandDeltaLow,
+    brandDeltaHigh,
+    hiddenFastenerCostLow,
+    hiddenFastenerCostHigh,
+    edgeBoardUpgradeLow,
+    edgeBoardUpgradeHigh,
     multiLevelPremiumLow,
     multiLevelPremiumHigh,
     level2SqFt,
