@@ -989,7 +989,8 @@ export default function Home() {
                   onBack={goBack}
                   accentBtnClass={ac.btnClass}
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     {DECK_SIZES.map((s) => {
                       const baseInstalled: Record<string, { low: number; high: number }> = {
                         "100": { low: 2500, high: 4000 },
@@ -1105,6 +1106,7 @@ export default function Home() {
                         )}
                       </div>
                     )}
+                  </div>{/* end main size grid */}
                   {/* Multi-level toggle — contractor + DIY only */}
                   {audience !== "homeowner" && (
                     <div className="mt-4 space-y-3">
@@ -1224,7 +1226,7 @@ export default function Home() {
                       )}
                     </div>
                   )}
-                  </div>
+                  </div>{/* end flex column */}
                 </StepCard>
               )}
 
