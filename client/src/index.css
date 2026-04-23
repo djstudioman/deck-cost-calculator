@@ -187,8 +187,19 @@
     display: none !important;
   }
 
-  /* Show the print estimate */
+  /* Default print mode: show contractor bid estimate, hide customer estimate */
   #print-estimate {
+    display: block !important;
+  }
+  #customer-estimate {
+    display: none !important;
+  }
+
+  /* Customer proposal mode: show customer estimate only, hide contractor bid */
+  body.print-customer-mode #print-estimate {
+    display: none !important;
+  }
+  body.print-customer-mode #customer-estimate {
     display: block !important;
   }
 
