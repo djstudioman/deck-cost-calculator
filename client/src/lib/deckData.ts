@@ -511,6 +511,11 @@ export interface CalculatorInputs {
   markupMaterials?: boolean;
   // Custom size (contractor only)
   customSqFt?: number; // used when sizeId === "custom"
+  // Demolition / removal (contractor only)
+  includeDemoRemoval?: boolean;
+  demoMaterialType?: "wood" | "composite" | "other"; // affects labor difficulty
+  demoIncludeDisposal?: boolean; // include dumpster/haul-away fee
+  demoPermit?: boolean; // some jurisdictions require demo permit
 }
 
 export interface CalculatorResult {
@@ -529,6 +534,8 @@ export interface CalculatorResult {
   stairsHigh: number;
   stairRailingLow: number;
   stairRailingHigh: number;
+  demolitionLow: number;
+  demolitionHigh: number;
   climatePremium: number;
   perSqFtLow: number;
   perSqFtHigh: number;
@@ -560,6 +567,8 @@ export interface CalculatorResult {
   };
   // Contractor extras
   contractor?: {
+    demolitionCostLow: number;
+    demolitionCostHigh: number;
     markupTier: typeof CONTRACTOR_MARKUP_TIERS[number];
     crewSize: typeof CREW_SIZES[number];
     materialCostRaw: number;
@@ -691,6 +700,35 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
         : Math.round(railing.installedPerLFMax * stairRailingLF * railingPremiumMultiplier * STAIR_RAILING_PREMIUM))
     : 0;
 
+  // Demolition / removal cost (contractor only)
+  // Sources: HomeGuide 2026, Angi 2026, contractor field data (Facebook Decking Pros group)
+  // Labor: PT wood $5–$8/sqft, composite $6–$10/sqft, other $7–$11/sqft
+  // Height premium: deck > 30" adds $1–$2/sqft
+  // Disposal (dumpster): small deck $300–$450, medium $400–$600, large $550–$800
+  // Demo permit (when required): $75 flat pass-through
+  let demolitionLow = 0;
+  let demolitionHigh = 0;
+  if (isContractor && inputs.includeDemoRemoval) {
+    const demoSqFt = inputs.sizeId === "custom" ? (inputs.customSqFt ?? 320) : (DECK_SIZES.find(s => s.id === inputs.sizeId)?.sqFt ?? 320);
+    const mat = inputs.demoMaterialType ?? "wood";
+    const laborLowPerSqFt = mat === "composite" ? 6 : mat === "other" ? 7 : 5;
+    const laborHighPerSqFt = mat === "composite" ? 10 : mat === "other" ? 11 : 8;
+    // Height premium (deckHeightIn is stored in inputs but not yet in CalculatorInputs — use a proxy: if deck is elevated, add $1–$2)
+    const heightPremiumLow = 0; // height data not in inputs yet; conservative
+    const heightPremiumHigh = 0;
+    const demoLaborLow = Math.round(demoSqFt * (laborLowPerSqFt + heightPremiumLow));
+    const demoLaborHigh = Math.round(demoSqFt * (laborHighPerSqFt + heightPremiumHigh));
+    const disposalLow = inputs.demoIncludeDisposal
+      ? (demoSqFt <= 200 ? 300 : demoSqFt <= 400 ? 400 : 550)
+      : 0;
+    const disposalHigh = inputs.demoIncludeDisposal
+      ? (demoSqFt <= 200 ? 450 : demoSqFt <= 400 ? 600 : 800)
+      : 0;
+    const demoPermitCost = inputs.demoPermit ? 75 : 0;
+    demolitionLow = demoLaborLow + disposalLow + demoPermitCost;
+    demolitionHigh = demoLaborHigh + disposalHigh + demoPermitCost;
+  }
+
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
@@ -701,8 +739,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -767,6 +805,17 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
             low: stairRailingLow,
             high: stairRailingHigh,
             note: `${railing.label} — ${stairRailingLF} LF (both sides)`,
+          },
+        ]
+      : []),
+    ...(demolitionLow > 0
+      ? [
+          {
+            category: "Demo & Removal",
+            pctOfTotal: 0,
+            low: demolitionLow,
+            high: demolitionHigh,
+            note: `Existing deck removal${inputs.demoIncludeDisposal ? " + disposal" : ""}`,
           },
         ]
       : []),
@@ -901,6 +950,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const estimatedDays = Math.max(1, Math.round((size.sqFt / 40 / crewSize.laborEfficiencyFactor) * complexity.laborMultiplier));
 
     contractorExtras = {
+      demolitionCostLow: demolitionLow,
+      demolitionCostHigh: demolitionHigh,
       markupTier,
       crewSize,
       materialCostRaw,
@@ -934,6 +985,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     stairsHigh,
     stairRailingLow,
     stairRailingHigh,
+    demolitionLow,
+    demolitionHigh,
     climatePremium,
     perSqFtLow,
     perSqFtHigh,

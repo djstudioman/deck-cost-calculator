@@ -123,6 +123,11 @@ export default function Home() {
   const [customWidth, setCustomWidth] = useState<number>(20);
   const [customLength, setCustomLength] = useState<number>(20);
   const customSqFt = customWidth * customLength;
+  // Demo / removal (contractor only)
+  const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
+  const [demoMaterialType, setDemoMaterialType] = useState<"wood" | "composite" | "other">("wood");
+  const [demoIncludeDisposal, setDemoIncludeDisposal] = useState(true);
+  const [demoPermit, setDemoPermit] = useState(false);
 
   const totalSteps = getTotalSteps(audience);
   const stepLabels = getStepLabels(audience);
@@ -150,11 +155,16 @@ export default function Home() {
       includeCrew,
       subFootings,
       customSqFt: sizeId === "custom" ? customSqFt : undefined,
+      includeDemoRemoval,
+      demoMaterialType,
+      demoIncludeDisposal,
+      demoPermit,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
+      includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit,
     ]
   );
 
@@ -1649,6 +1659,101 @@ export default function Home() {
                       </div>
                     </div>
 
+                    {/* Demo / Removal toggle */}
+                    <div className={cn(
+                      "p-4 rounded-lg border transition-all",
+                      includeDemoRemoval ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
+                    )}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm text-white">Include demo & removal of existing deck?</div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            Adds labor, disposal, and optional demo permit to your bid.
+                            Pricing based on 2026 HomeGuide & Angi data.
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setIncludeDemoRemoval((v) => !v)}
+                          className={cn(
+                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
+                            includeDemoRemoval ? ac.bgSolid : "bg-white/20"
+                          )}
+                        >
+                          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                            style={{ transform: includeDemoRemoval ? 'translateX(20px)' : 'translateX(2px)' }}
+                          />
+                        </button>
+                      </div>
+
+                      {includeDemoRemoval && (
+                        <div className="mt-4 space-y-3">
+                          {/* Existing material type */}
+                          <div>
+                            <div className="text-xs text-slate-400 mb-2">Existing deck material</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              {(["wood", "composite", "other"] as const).map((mat) => (
+                                <button
+                                  key={mat}
+                                  onClick={() => setDemoMaterialType(mat)}
+                                  className={cn(
+                                    "p-2 rounded border text-xs font-medium transition-all",
+                                    demoMaterialType === mat
+                                      ? `${sel.border} ${sel.bg} text-white`
+                                      : "border-white/20 text-slate-400 hover:border-white/40"
+                                  )}
+                                >
+                                  {mat === "wood" ? "PT Wood" : mat === "composite" ? "Composite" : "Other / Unknown"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Disposal toggle */}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-300">Include disposal / dumpster?</div>
+                              <div className="text-xs text-slate-500">Haul-away fee: {result.demolitionLow > 0 ? `+${formatCurrency(demoMaterialType === "composite" ? (result.size.sqFt <= 200 ? 300 : result.size.sqFt <= 400 ? 400 : 550) : (result.size.sqFt <= 200 ? 300 : result.size.sqFt <= 400 ? 400 : 550))} – ${formatCurrency(result.size.sqFt <= 200 ? 450 : result.size.sqFt <= 400 ? 600 : 800)}` : "$300–$800 depending on size"}</div>
+                            </div>
+                            <button
+                              onClick={() => setDemoIncludeDisposal((v) => !v)}
+                              className={cn(
+                                "relative w-10 h-5 rounded-full transition-colors shrink-0",
+                                demoIncludeDisposal ? ac.bgSolid : "bg-white/20"
+                              )}
+                            >
+                              <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                                style={{ transform: demoIncludeDisposal ? 'translateX(20px)' : 'translateX(2px)' }}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Demo permit toggle */}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-300">Demo permit required?</div>
+                              <div className="text-xs text-slate-500">Some jurisdictions require a permit for deck removal (+$75 pass-through)</div>
+                            </div>
+                            <button
+                              onClick={() => setDemoPermit((v) => !v)}
+                              className={cn(
+                                "relative w-10 h-5 rounded-full transition-colors shrink-0",
+                                demoPermit ? ac.bgSolid : "bg-white/20"
+                              )}
+                            >
+                              <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                                style={{ transform: demoPermit ? 'translateX(20px)' : 'translateX(2px)' }}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Demo cost preview */}
+                          <div className={`text-xs font-mono ${ac.text} pt-1`}>
+                            Demo & removal cost: {formatRange(result.demolitionLow, result.demolitionHigh)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Bid preview card */}
                     {result.contractor && (
                       <div className={`p-4 rounded-lg border ${sel.border} bg-opacity-5 ${sel.bg}`}>
@@ -1673,6 +1778,14 @@ export default function Home() {
                               <div className="text-slate-400">Footing sub (pass-through)</div>
                               <div className="font-mono text-right text-white">
                                 {formatCurrency(result.contractor.subFootingsCost)}
+                              </div>
+                            </>
+                          )}
+                          {includeDemoRemoval && (
+                            <>
+                              <div className="text-slate-400">Demo & removal</div>
+                              <div className="font-mono text-right text-white">
+                                {formatRange(result.demolitionLow, result.demolitionHigh)}
                               </div>
                             </>
                           )}
