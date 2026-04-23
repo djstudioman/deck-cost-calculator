@@ -1342,13 +1342,8 @@ export default function Home() {
                                 <span className="text-slate-500 ml-2">Use tier baseline pricing</span>
                               </button>
                               {brandsForTier.map((b) => {
-                                const dLow = b.materialDeltaLow as number;
-                                const dHigh = b.materialDeltaHigh as number;
-                                const delta = dLow === 0 && dHigh === 0
-                                  ? "Baseline"
-                                  : dLow < 0
-                                    ? `$${dLow.toFixed(2)}/SF to ${dHigh >= 0 ? "+" : ""}$${dHigh.toFixed(2)}/SF`
-                                    : `+$${dLow.toFixed(2)}–$${dHigh.toFixed(2)}/SF`;
+                                const cLow = (b as { materialCostLow: number }).materialCostLow;
+                                const cHigh = (b as { materialCostHigh: number }).materialCostHigh;
                                 return (
                                   <button
                                     key={b.id}
@@ -1367,9 +1362,9 @@ export default function Home() {
                                           <span className="ml-2 text-xs text-slate-500">(solid boards only)</span>
                                         )}
                                       </div>
-                                      <span className={`text-xs font-mono shrink-0 ${
-                                        b.materialDeltaLow < 0 ? "text-green-400" : b.materialDeltaLow > 0 ? "text-amber-400" : "text-slate-400"
-                                      }`}>{delta}</span>
+                                      <span className="text-xs font-mono shrink-0 text-amber-400">
+                                        ${cLow.toFixed(2)}–${cHigh.toFixed(2)}/SF
+                                      </span>
                                     </div>
                                     <div className="text-xs text-slate-500 mt-0.5">{b.description}</div>
                                     <div className="text-xs text-slate-600 mt-0.5">Warranty: {b.warranty}</div>

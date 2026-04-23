@@ -220,13 +220,18 @@ export const MATERIAL_TIERS: MaterialTier[] = [
 // (Apr 2026), DecksDirect cost guide (Feb 2026), dgfloors.com composite pricing (Apr 2026).
 // materialDeltaPerSqFt = additional material cost ABOVE the base tier rate.
 // hiddenFastenerCompatible = supports hidden clip fastening systems.
+// Sources for absolute material costs (boards only, no labor):
+// Advantage Lumber price chart Apr 2026, rmfp.com brand comparison Apr 2026,
+// DecksDirect cost guide Feb 2026, dgfloors.com composite pricing Apr 2026.
 export const DECKING_BRANDS = [
   {
     id: "trex-enhance",
     name: "Trex Enhance Basics",
     brand: "Trex",
     tierIds: ["composite"],
-    materialDeltaLow: -2.00,
+    materialCostLow: 2.33,   // $/SF materials only (boards)
+    materialCostHigh: 3.50,
+    materialDeltaLow: -2.00, // delta vs tier baseline (used in calculate())
     materialDeltaHigh: -1.00,
     description: "Entry-level composite. Solid boards only — no hidden fastener groove. Best value for budget-conscious builds.",
     warranty: "25-year limited",
@@ -237,6 +242,8 @@ export const DECKING_BRANDS = [
     name: "Fiberon Good Life",
     brand: "Fiberon",
     tierIds: ["composite"],
+    materialCostLow: 4.48,
+    materialCostHigh: 6.85,
     materialDeltaLow: -1.00,
     materialDeltaHigh: 0.00,
     description: "Mid-range composite with grooved-edge option. Good color selection, hidden fastener compatible.",
@@ -248,6 +255,8 @@ export const DECKING_BRANDS = [
     name: "Trex Select",
     brand: "Trex",
     tierIds: ["composite"],
+    materialCostLow: 5.00,
+    materialCostHigh: 7.00,
     materialDeltaLow: 0.00,
     materialDeltaHigh: 0.50,
     description: "Standard composite with grooved-edge boards available. Solid color palette, hidden fastener compatible.",
@@ -259,6 +268,8 @@ export const DECKING_BRANDS = [
     name: "Trex Transcend",
     brand: "Trex",
     tierIds: ["pvc"],
+    materialCostLow: 8.00,
+    materialCostHigh: 12.00,
     materialDeltaLow: 0.00,
     materialDeltaHigh: 1.00,
     description: "Premium composite with realistic wood grain. Grooved-edge boards available. Hidden fastener compatible.",
@@ -270,6 +281,8 @@ export const DECKING_BRANDS = [
     name: "Fiberon Paramount",
     brand: "Fiberon",
     tierIds: ["pvc"],
+    materialCostLow: 9.00,
+    materialCostHigh: 13.18,
     materialDeltaLow: 0.50,
     materialDeltaHigh: 2.00,
     description: "High-end PVC composite with deep wood grain texture. Grooved-edge boards available for hidden fasteners.",
@@ -281,6 +294,8 @@ export const DECKING_BRANDS = [
     name: "TimberTech AZEK Vintage",
     brand: "TimberTech",
     tierIds: ["pvc"],
+    materialCostLow: 11.00,
+    materialCostHigh: 13.50,
     materialDeltaLow: 2.00,
     materialDeltaHigh: 4.00,
     description: "Ultra-premium capped PVC. Highest durability and aesthetics. Grooved-edge available for hidden fasteners.",
