@@ -733,6 +733,8 @@ export interface CalculatorInputs {
   marketTierId?: string; // defaults to "suburban" if not set
   // 3D rendering (contractor only)
   rendering3dTier?: "none" | "basic" | "professional" | "premium";
+  // Joist spacing (contractor only)
+  joistSpacingIn?: 12 | 16 | 24; // on-center spacing in inches; defaults to 16
   // Multi-level deck (contractor + DIY)
   isMultiLevel?: boolean;
   level2SizeId?: string;  // same IDs as sizeId, or "custom"
@@ -765,6 +767,12 @@ export interface CalculatorResult {
   framingOption: FramingOption;
   framingCostLow: number;
   framingCostHigh: number;
+  // Joist spacing (contractor only)
+  joistSpacingIn: 12 | 16 | 24;
+  joistCount: number;          // number of joists (including end joists)
+  joistLengthFt: number;       // span of each joist in feet
+  joistBoardFeet: number;      // total board-feet of joist lumber
+  joistSpacingCostDelta: number; // cost delta vs 16" OC baseline (can be negative)
   // Brand / fastener / edge board (contractor only)
   deckingBrand: DeckingBrand | null;
   brandDeltaLow: number;
@@ -986,6 +994,33 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   }
 
   // Framing material cost (contractor only)
+  // ── Joist spacing calculation (contractor only) ──────────────────────────────
+  // Joists run perpendicular to the deck boards across the shorter dimension.
+  // For a rectangular deck: joist span = shorter dimension, joist count = ceil(longer / spacing) + 1
+  // Board-feet formula: count × span_ft × (1.5/12 × 9.25/12) × 12 = count × span_ft × (1.5 × 9.25 / 12)
+  // Standard 2×10 joist: 1.5" thick × 9.25" wide
+  // Cost delta vs 16" OC baseline: extra joists at ~$0.80–$1.20/board-foot (PT lumber 2026)
+  // Sources: National Lumber Prices Apr 2026, IRC Table R507.6 (joist span tables), contractor field data.
+  const joistSpacingIn: 12 | 16 | 24 = isContractor
+    ? (inputs.joistSpacingIn ?? 16)
+    : 16;
+  // Estimate deck short/long dimensions from sqFt (use size.sqFt; assume ~4:3 aspect if no custom dims)
+  const deckSqFt = size.sqFt;
+  // Approximate dimensions: short side ≈ sqrt(sqFt * 3/4), long side ≈ sqrt(sqFt * 4/3)
+  const deckShortFt = Math.round(Math.sqrt(deckSqFt * 0.75));
+  const deckLongFt  = Math.round(deckSqFt / Math.max(deckShortFt, 1));
+  const joistLengthFt = deckShortFt;  // joists span the short dimension
+  const joistSpacingFt = joistSpacingIn / 12;
+  const joistCount = Math.ceil(deckLongFt / joistSpacingFt) + 1; // +1 for end joist
+  // Board-feet: count × length × (1.5" × 9.25") / 144 in² per sq ft × 12 (BF formula)
+  const joistBoardFeet = Math.round(joistCount * joistLengthFt * (1.5 * 9.25) / 12);
+  // Cost delta vs 16" OC baseline
+  const joistCount16 = Math.ceil(deckLongFt / (16 / 12)) + 1;
+  const joistBF16    = joistCount16 * joistLengthFt * (1.5 * 9.25) / 12;
+  const joistDeltaBF = joistBoardFeet - joistBF16;
+  // PT lumber ~$1.00/BF avg (2026); labor ~$0.50/BF for extra joists
+  const joistSpacingCostDelta = isContractor ? Math.round(joistDeltaBF * 1.50) : 0;
+
   // Standard PT framing is already baked into the base installed cost (tier.installedPerSqFtMin/Max).
   // For PWT, steel, and aluminum, we calculate the DELTA vs standard PT framing and add it.
   // The delta = (framingOption.materialCostPerSqFt - PT baseline) * sqFt * laborMultiplier adjustment.
@@ -1091,8 +1126,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + Math.min(joistSpacingCostDelta, 0);
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + Math.max(joistSpacingCostDelta, 0);
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -1412,6 +1447,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     framingOption,
     framingCostLow,
     framingCostHigh,
+    joistSpacingIn,
+    joistCount,
+    joistLengthFt,
+    joistBoardFeet,
+    joistSpacingCostDelta,
     deckingBrand,
     brandDeltaLow,
     brandDeltaHigh,

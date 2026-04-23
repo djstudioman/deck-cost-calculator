@@ -133,6 +133,7 @@ export default function Home() {
   const customSqFt = customWidth * customLength;
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
+  const [joistSpacingIn, setJoistSpacingIn] = useState<12 | 16 | 24>(16);
   // Labor market tier (contractor only)
   const [marketTierId, setMarketTierId] = useState("suburban");
   // Multi-level deck (contractor + DIY)
@@ -193,6 +194,7 @@ export default function Home() {
       demoIncludeDisposal,
       demoPermit,
       framingId,
+      joistSpacingIn,
       marketTierId,
       isMultiLevel,
       level2SizeId: isMultiLevel ? level2SizeId : undefined,
@@ -333,6 +335,7 @@ export default function Home() {
     setIncludeCrew(snap.includeCrew);
     setSubFootings(snap.subFootings);
     setFramingId(snap.framingId ?? "pt");
+    setJoistSpacingIn((snap.joistSpacingIn ?? 16) as 12 | 16 | 24);
     setMarketTierId(snap.marketTierId ?? "suburban");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
@@ -373,6 +376,7 @@ export default function Home() {
     setIncludeCrew(snap.includeCrew);
     setSubFootings(snap.subFootings);
     setFramingId(snap.framingId ?? "pt");
+    setJoistSpacingIn((snap.joistSpacingIn ?? 16) as 12 | 16 | 24);
     setMarketTierId(snap.marketTierId ?? "suburban");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
@@ -401,6 +405,7 @@ export default function Home() {
       skillLevelId, selectedTools, includePermit, permitCost,
       markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
       framingId,
+      joistSpacingIn,
       marketTierId,
       customWidth, customLength,
       isMultiLevel,
@@ -1618,6 +1623,67 @@ export default function Home() {
                         }
                       </div>
                     )}
+
+                    {/* Joist spacing selector */}
+                    <div className="pt-1">
+                      <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-2`}>Joist Spacing (on-center)</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([12, 16, 24] as const).map((spacing) => {
+                          const isSelected = joistSpacingIn === spacing;
+                          // Joist count and board-feet for this spacing option (same math as deckData.ts)
+                          const deckSqFt = result.size.sqFt;
+                          const shortFt = Math.round(Math.sqrt(deckSqFt * 0.75));
+                          const longFt  = Math.round(deckSqFt / Math.max(shortFt, 1));
+                          const count   = Math.ceil(longFt / (spacing / 12)) + 1;
+                          const bf      = Math.round(count * shortFt * (1.5 * 9.25) / 12);
+                          const count16 = Math.ceil(longFt / (16 / 12)) + 1;
+                          const bf16    = Math.round(count16 * shortFt * (1.5 * 9.25) / 12);
+                          const deltaBF = bf - bf16;
+                          const deltaCost = Math.round(deltaBF * 1.50);
+                          return (
+                            <button
+                              key={spacing}
+                              onClick={() => setJoistSpacingIn(spacing)}
+                              className={cn(
+                                "text-left px-3 py-3 rounded-lg border transition-all",
+                                isSelected
+                                  ? `${sel.border} ${sel.bg}`
+                                  : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                              )}
+                            >
+                              <div className={`text-sm font-bold ${isSelected ? "text-white" : "text-slate-300"}`}>{spacing}" OC</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">{count} joists</div>
+                              <div className="text-[10px] text-slate-500">{bf} BF</div>
+                              {spacing !== 16 && (
+                                <div className={cn(
+                                  "text-[10px] font-mono mt-1",
+                                  deltaCost > 0 ? "text-amber-400" : "text-green-400"
+                                )}>
+                                  {deltaCost > 0 ? `+${formatCurrency(deltaCost)}` : formatCurrency(deltaCost)}
+                                </div>
+                              )}
+                              {spacing === 16 && (
+                                <div className="text-[10px] text-slate-500 mt-1">Baseline</div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-2 text-[10px] text-slate-500 leading-relaxed">
+                        <span className="text-slate-400 font-medium">Selected: </span>
+                        {joistSpacingIn === 12 && "12\" OC — required for composite decking, heavy loads, or spans over 12\'. More lumber, stronger floor feel."}
+                        {joistSpacingIn === 16 && "16\" OC — IRC standard for most residential decks. Best balance of cost and stiffness."}
+                        {joistSpacingIn === 24 && "24\" OC — allowed for shorter spans with 2×10+ joists. Reduces lumber cost but may feel springy underfoot."}
+                      </div>
+                      {result.joistSpacingCostDelta !== 0 && (
+                        <div className={`text-xs mt-1 font-mono ${result.joistSpacingCostDelta > 0 ? ac.text : "text-green-400"}`}>
+                          {result.joistSpacingCostDelta > 0
+                            ? `+${formatCurrency(result.joistSpacingCostDelta)} vs 16\" OC baseline (${result.joistCount} joists × ${result.joistLengthFt}\' = ${result.joistBoardFeet} BF)`
+                            : `${formatCurrency(result.joistSpacingCostDelta)} vs 16\" OC baseline (${result.joistCount} joists × ${result.joistLengthFt}\' = ${result.joistBoardFeet} BF)`
+                          }
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </StepCard>
               )}

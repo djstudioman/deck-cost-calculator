@@ -46,6 +46,8 @@ export interface EstimateSnapshot {
   includeHiddenFasteners?: boolean;
   fastenerSystemId?: "none" | "clip" | "cortex";
   edgeBoardType?: "solid" | "grooved";
+  // Joist spacing (contractor only)
+  joistSpacingIn?: 12 | 16 | 24;
   // 3D rendering (contractor only)
   rendering3dTier?: "none" | "basic" | "professional" | "premium";
   notes?: string;           // optional free-text context
