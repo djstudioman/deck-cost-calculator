@@ -66,6 +66,10 @@ export default function PrintEstimate({ result }: Props) {
             { label: "Railing", value: result.railing.label },
             { label: "Frost Depth", value: result.region.frostDepthLabel },
             { label: "Labor Rate", value: `${result.regionMultiplier.toFixed(2)}× national` },
+            ...(result.isContractor ? [
+              { label: "Framing", value: `${result.framingOption.shortLabel} · ${result.joistSpacingIn}" OC` },
+              { label: "Joist Qty", value: `${result.joistCount} joists · ${result.joistLengthFt}' span · ${result.joistBoardFeet} BF` },
+            ] : []),
           ].map((s) => (
             <div key={s.label} className="bg-gray-50 rounded p-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{s.label}</div>
@@ -96,6 +100,23 @@ export default function PrintEstimate({ result }: Props) {
                 </td>
               </tr>
             ))}
+            {/* Framing spec info row — contractor only, no cost (informational) */}
+            {result.isContractor && (
+              <tr className="border-t border-gray-200 bg-blue-50">
+                <td className="py-2 px-2 font-medium text-gray-700 text-xs">
+                  Framing Spec ({result.framingOption.shortLabel})
+                </td>
+                <td className="py-2 px-2 text-gray-500 text-xs">
+                  {result.joistSpacingIn}" OC · {result.joistCount} joists · {result.joistLengthFt}' span · {result.joistBoardFeet} BF total
+                  {result.joistSpacingCostDelta !== 0 && (
+                    <span className={result.joistSpacingCostDelta > 0 ? " text-amber-700" : " text-green-700"}>
+                      {" "}({result.joistSpacingCostDelta > 0 ? "+" : ""}{formatCurrency(result.joistSpacingCostDelta)} vs 16" OC)
+                    </span>
+                  )}
+                </td>
+                <td className="py-2 px-2 text-right font-mono text-xs text-gray-400">—</td>
+              </tr>
+            )}
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-gray-900">
