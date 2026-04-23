@@ -942,6 +942,11 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         const markupLow = Math.round(markupMid * 0.75);
         const markupHigh = Math.round(markupMid * 1.35);
 
+        // Demo & removal
+        const demoLow = result.demolitionLow;
+        const demoHigh = result.demolitionHigh;
+        const demoMid = Math.round((demoLow + demoHigh) / 2);
+
         const fmt = (n: number) => n > 0 ? formatCurrency(n) : "—";
         const col = (low: number, mid: number, high: number) => ({ low, mid, high });
 
@@ -976,6 +981,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
               { label: "Footings",           note: result.region.frostDepthLabel + " frost depth", ...col(footLow, footMid, footHigh) },
               ...(stairMid > 0 ? [{ label: "Stairs", note: "Stringers, treads, risers", ...col(stairLow, stairMid, stairHigh) }] : []),
               ...(permitVal > 0 ? [{ label: "Permit & inspection", note: "Pass-through at cost", ...col(permitVal, permitVal, permitVal) }] : []),
+              ...(demoMid > 0 ? [{ label: "Demo & removal", note: "Labor + disposal + demo permit (pass-through)", ...col(demoLow, demoMid, demoHigh) }] : []),
             ],
           },
           {
