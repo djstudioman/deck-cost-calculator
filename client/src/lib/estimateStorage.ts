@@ -37,6 +37,10 @@ export interface EstimateSnapshot {
   marketTierId: string;
   customWidth: number;
   customLength: number;
+  isMultiLevel: boolean;
+  level2SizeId: string;
+  level2CustomWidth: number;
+  level2CustomLength: number;
   notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)
   totalLow: number;

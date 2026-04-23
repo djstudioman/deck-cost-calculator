@@ -134,6 +134,12 @@ export default function Home() {
   const [framingId, setFramingId] = useState("pt");
   // Labor market tier (contractor only)
   const [marketTierId, setMarketTierId] = useState("suburban");
+  // Multi-level deck (contractor + DIY)
+  const [isMultiLevel, setIsMultiLevel] = useState(false);
+  const [level2SizeId, setLevel2SizeId] = useState("192");
+  const [level2CustomWidth, setLevel2CustomWidth] = useState<number>(16);
+  const [level2CustomLength, setLevel2CustomLength] = useState<number>(12);
+  const level2CustomSqFt = level2CustomWidth * level2CustomLength;
 
   // Demo / removal (contractor only)
   const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
@@ -178,12 +184,16 @@ export default function Home() {
       demoPermit,
       framingId,
       marketTierId,
+      isMultiLevel,
+      level2SizeId: isMultiLevel ? level2SizeId : undefined,
+      level2CustomSqFt: isMultiLevel && level2SizeId === "custom" ? level2CustomSqFt : undefined,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
       includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, marketTierId,
+      isMultiLevel, level2SizeId, level2CustomSqFt,
     ]
   );
 
@@ -310,6 +320,10 @@ export default function Home() {
     setMarketTierId(snap.marketTierId ?? "suburban");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
+    setIsMultiLevel(snap.isMultiLevel ?? false);
+    setLevel2SizeId(snap.level2SizeId ?? "192");
+    setLevel2CustomWidth(snap.level2CustomWidth ?? 16);
+    setLevel2CustomLength(snap.level2CustomLength ?? 12);
     // Jump straight to results
     setShowResults(true);
   });
@@ -341,6 +355,10 @@ export default function Home() {
     setMarketTierId(snap.marketTierId ?? "suburban");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
+    setIsMultiLevel(snap.isMultiLevel ?? false);
+    setLevel2SizeId(snap.level2SizeId ?? "192");
+    setLevel2CustomWidth(snap.level2CustomWidth ?? 16);
+    setLevel2CustomLength(snap.level2CustomLength ?? 12);
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -359,6 +377,10 @@ export default function Home() {
       framingId,
       marketTierId,
       customWidth, customLength,
+      isMultiLevel,
+      level2SizeId,
+      level2CustomWidth,
+      level2CustomLength,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -374,7 +396,8 @@ export default function Home() {
     includeStairs, stairSteps, stairWidthFt, includeStairRailing,
     skillLevelId, selectedTools, includePermit, permitCost,
     markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
-    framingId, marketTierId, customWidth, customLength, result,
+    framingId, marketTierId, customWidth, customLength,
+    isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -1082,6 +1105,105 @@ export default function Home() {
                         )}
                       </div>
                     )}
+                  {/* Multi-level toggle — contractor + DIY only */}
+                  {audience !== "homeowner" && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between py-2 px-3 rounded-lg border border-white/10 bg-white/[0.03]">
+                        <div>
+                          <div className="text-sm font-semibold text-white">Multi-level deck?</div>
+                          <div className="text-xs text-slate-400 mt-0.5">Two or more levels with separate framing</div>
+                        </div>
+                        <button
+                          onClick={() => setIsMultiLevel((v) => !v)}
+                          className={cn(
+                            "relative w-11 h-6 rounded-full transition-colors",
+                            isMultiLevel ? ac.btnClass : "bg-white/10"
+                          )}
+                        >
+                          <span className={cn(
+                            "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                            isMultiLevel ? "translate-x-5" : "translate-x-0"
+                          )} />
+                        </button>
+                      </div>
+
+                      {isMultiLevel && (
+                        <div className="space-y-2">
+                          <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Upper / second level size</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {DECK_SIZES.map((s) => (
+                              <button
+                                key={s.id}
+                                onClick={() => setLevel2SizeId(s.id)}
+                                className={cn(
+                                  "text-left p-3 rounded-lg border transition-all",
+                                  level2SizeId === s.id
+                                    ? `${sel.border} ${sel.bg}`
+                                    : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                )}
+                              >
+                                <div className="font-semibold text-sm text-white">{s.label}</div>
+                                <div className="text-xs text-slate-500 mt-0.5">{s.sqFt} sq ft</div>
+                              </button>
+                            ))}
+                            {/* Custom upper level size */}
+                            <div className={cn(
+                              "col-span-1 sm:col-span-2 p-3 rounded-lg border transition-all",
+                              level2SizeId === "custom"
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            )}>
+                              <button className="w-full text-left" onClick={() => setLevel2SizeId("custom")}>
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold text-sm text-white">Custom Size</div>
+                                    <div className="text-xs text-slate-500 mt-0.5">Enter exact dimensions</div>
+                                  </div>
+                                  {level2SizeId === "custom" && (
+                                    <div className={`text-xs font-mono ${ac.text}`}>{level2CustomSqFt} sq ft</div>
+                                  )}
+                                </div>
+                              </button>
+                              {level2SizeId === "custom" && (
+                                <div className="mt-3 grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+                                  <div>
+                                    <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Width (ft)</label>
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => setLevel2CustomWidth((w) => Math.max(4, w - 1))} className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">−</button>
+                                      <input type="number" min={4} max={100} value={level2CustomWidth}
+                                        onChange={(e) => setLevel2CustomWidth(Math.max(4, Math.min(100, Number(e.target.value) || 4)))}
+                                        className="flex-1 text-center font-mono text-sm bg-white/[0.06] border border-white/10 rounded text-white py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      />
+                                      <button onClick={() => setLevel2CustomWidth((w) => Math.min(100, w + 1))} className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">+</button>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Length (ft)</label>
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => setLevel2CustomLength((l) => Math.max(4, l - 1))} className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">−</button>
+                                      <input type="number" min={4} max={200} value={level2CustomLength}
+                                        onChange={(e) => setLevel2CustomLength(Math.max(4, Math.min(200, Number(e.target.value) || 4)))}
+                                        className="flex-1 text-center font-mono text-sm bg-white/[0.06] border border-white/10 rounded text-white py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      />
+                                      <button onClick={() => setLevel2CustomLength((l) => Math.min(200, l + 1))} className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors">+</button>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-2 text-center">
+                                    <span className={`font-mono text-base font-bold ${ac.text}`}>{level2CustomWidth} × {level2CustomLength} = {level2CustomSqFt} sq ft</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {result.multiLevelPremiumLow > 0 && (
+                            <div className={`text-xs font-mono ${ac.text} text-right`}>
+                              +{formatRange(result.multiLevelPremiumLow, result.multiLevelPremiumHigh)} upper level est.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   </div>
                 </StepCard>
               )}
@@ -1152,7 +1274,7 @@ export default function Home() {
                   subtitle={
                     audience === "diy"
                       ? "More complex designs require more skill, time, and tools."
-                      : "Multi-level and custom designs add 50–100% to labor costs."
+                      : "Angled and custom designs add 50–110% to labor costs."
                   }
                   onNext={goNextFromComplexity}
                   onBack={goBack}

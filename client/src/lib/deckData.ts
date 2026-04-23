@@ -240,10 +240,10 @@ export const COMPLEXITIES: Complexity[] = [
     laborPctRange: "50–60%",
   },
   {
-    id: "multi",
-    label: "Multi-Level",
-    description: "Two or more levels, multiple stair runs, complex framing",
-    laborMultiplier: 1.75,
+    id: "angled",
+    label: "Angled / Non-Rectangular",
+    description: "45° angles, L-shape, T-shape, or non-rectangular layout. Extra cuts, waste, and layout time.",
+    laborMultiplier: 1.65,
     laborPctRange: "55–65%",
   },
   {
@@ -632,6 +632,10 @@ export interface CalculatorInputs {
   framingId?: string; // defaults to "pt" if not set
   // Labor market tier (contractor only)
   marketTierId?: string; // defaults to "suburban" if not set
+  // Multi-level deck (contractor + DIY)
+  isMultiLevel?: boolean;
+  level2SizeId?: string;  // same IDs as sizeId, or "custom"
+  level2CustomSqFt?: number;
 }
 
 export interface CalculatorResult {
@@ -660,6 +664,9 @@ export interface CalculatorResult {
   framingOption: FramingOption;
   framingCostLow: number;
   framingCostHigh: number;
+  multiLevelPremiumLow: number;
+  multiLevelPremiumHigh: number;
+  level2SqFt: number;
   climatePremium: number;
   perSqFtLow: number;
   perSqFtHigh: number;
@@ -883,6 +890,31 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const framingCostLow  = isContractor ? Math.round(framingMaterialDeltaLow  + framingLaborDeltaLow)  : 0;
   const framingCostHigh = isContractor ? Math.round(framingMaterialDeltaHigh + framingLaborDeltaHigh) : 0;
 
+  // Multi-level structural premium
+  // Sources: HomeAdvisor 2025 ($9–$12/sqft framing labor), O'Keefe Built, Legacy Decking,
+  // Angi 2026 ($50/sqft avg for multi-level vs $30–$40 for single level).
+  // Premium applies to the UPPER level sq ft only: extra rim joist, posts, ledger-to-ledger
+  // connection, inter-level stair, and additional layout/engineering time.
+  // ~70% labor, 30% materials split.
+  const level2Size: DeckSize | null = inputs.isMultiLevel
+    ? (inputs.level2SizeId === "custom"
+        ? { id: "custom", label: "Custom", sqFt: inputs.level2CustomSqFt ?? 200, dimensions: "" }
+        : (DECK_SIZES.find((s) => s.id === inputs.level2SizeId) ?? DECK_SIZES[2]))
+    : null;
+  const level2SqFt = level2Size?.sqFt ?? 0;
+  // Base cost of upper level (materials + labor at same tier/region/complexity)
+  const level2BaseLow = level2SqFt > 0
+    ? Math.round(tier.installedPerSqFtMin * level2SqFt * materialFraction +
+        tier.installedPerSqFtMin * level2SqFt * laborFraction * regionMultiplier * complexityMultiplier * marketMultiplier)
+    : 0;
+  const level2BaseHigh = level2SqFt > 0
+    ? Math.round(tier.installedPerSqFtMax * level2SqFt * materialFraction +
+        tier.installedPerSqFtMax * level2SqFt * laborFraction * regionMultiplier * complexityMultiplier * marketMultiplier)
+    : 0;
+  // Structural premium on upper level: +$8–$15/sqft
+  const multiLevelPremiumLow  = level2SqFt > 0 ? level2BaseLow  + Math.round(8  * level2SqFt) : 0;
+  const multiLevelPremiumHigh = level2SqFt > 0 ? level2BaseHigh + Math.round(15 * level2SqFt) : 0;
+
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
@@ -893,8 +925,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -1154,6 +1186,9 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     framingOption,
     framingCostLow,
     framingCostHigh,
+    multiLevelPremiumLow,
+    multiLevelPremiumHigh,
+    level2SqFt,
     climatePremium,
     perSqFtLow,
     perSqFtHigh,
