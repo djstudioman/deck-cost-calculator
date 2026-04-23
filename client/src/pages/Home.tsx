@@ -22,6 +22,7 @@ import {
   CONTRACTOR_MARKUP_TIERS,
   CREW_SIZES,
   FRAMING_OPTIONS,
+  MARKET_TIERS,
   calculate,
   formatCurrency,
   formatRange,
@@ -131,6 +132,8 @@ export default function Home() {
   const customSqFt = customWidth * customLength;
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
+  // Labor market tier (contractor only)
+  const [marketTierId, setMarketTierId] = useState("suburban");
 
   // Demo / removal (contractor only)
   const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
@@ -174,12 +177,13 @@ export default function Home() {
       demoIncludeDisposal,
       demoPermit,
       framingId,
+      marketTierId,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
-      includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId,
+      includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, marketTierId,
     ]
   );
 
@@ -303,6 +307,7 @@ export default function Home() {
     setIncludeCrew(snap.includeCrew);
     setSubFootings(snap.subFootings);
     setFramingId(snap.framingId ?? "pt");
+    setMarketTierId(snap.marketTierId ?? "suburban");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
     // Jump straight to results
@@ -333,6 +338,7 @@ export default function Home() {
     setIncludeCrew(snap.includeCrew);
     setSubFootings(snap.subFootings);
     setFramingId(snap.framingId ?? "pt");
+    setMarketTierId(snap.marketTierId ?? "suburban");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
     setStep(0);
@@ -351,6 +357,7 @@ export default function Home() {
       skillLevelId, selectedTools, includePermit, permitCost,
       markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
       framingId,
+      marketTierId,
       customWidth, customLength,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
@@ -367,7 +374,7 @@ export default function Home() {
     includeStairs, stairSteps, stairWidthFt, includeStairRailing,
     skillLevelId, selectedTools, includePermit, permitCost,
     markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
-    framingId, customWidth, customLength, result,
+    framingId, marketTierId, customWidth, customLength, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -876,7 +883,7 @@ export default function Home() {
                     {REGIONS.map((r) => (
                       <button
                         key={r.id}
-                        onClick={() => selectOrAdvance(regionId === r.id, () => setRegionId(r.id))}
+                        onClick={() => { setRegionId(r.id); setConfirmedStep(step); }}
                         className={cn(
                           "text-left p-3 rounded-lg border transition-all",
                           regionId === r.id
@@ -907,6 +914,45 @@ export default function Home() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Market Tier — contractor only */}
+                  {audience === "contractor" && (
+                    <div className="mt-4">
+                      <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-2`}>
+                        Labor Market Tier
+                      </div>
+                      <div className="text-xs text-slate-400 mb-3">
+                        Adjust for your local labor market — affects labor cost only, not materials.
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {MARKET_TIERS.map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => setMarketTierId(m.id)}
+                            className={cn(
+                              "text-left p-3 rounded-lg border transition-all",
+                              marketTierId === m.id
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            )}
+                          >
+                            <div className="text-lg mb-1">{m.icon}</div>
+                            <div className="font-semibold text-xs text-white leading-tight">{m.shortLabel}</div>
+                            <div className={cn(
+                              "text-xs font-mono font-bold mt-1",
+                              m.laborMultiplier < 1 ? "text-emerald-400"
+                              : m.laborMultiplier > 1 ? "text-amber-400"
+                              : "text-blue-400"
+                            )}>
+                              {m.laborMultiplier < 1 ? "-" : m.laborMultiplier > 1 ? "+" : ""}
+                              {Math.abs(Math.round((m.laborMultiplier - 1) * 100))}% labor
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5 leading-tight">{m.examples}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </StepCard>
               )}
 

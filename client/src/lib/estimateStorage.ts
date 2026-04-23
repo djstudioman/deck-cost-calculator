@@ -34,6 +34,7 @@ export interface EstimateSnapshot {
   includeCrew: boolean;
   subFootings: boolean;
   framingId: string;
+  marketTierId: string;
   customWidth: number;
   customLength: number;
   notes?: string;           // optional free-text context

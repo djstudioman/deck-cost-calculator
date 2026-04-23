@@ -544,6 +544,51 @@ export const FRAMING_OPTIONS = [
 
 export type FramingOption = typeof FRAMING_OPTIONS[number];
 
+// ─── LABOR MARKET TIERS (contractor-only) ────────────────────────────────────
+// Sources: RSMeans City Cost Index 2025/2026, BLS Occupational Employment Stats,
+// HomeGuide 2026 regional labor data, contractor field reports.
+// Applied as a multiplier on top of the regional labor multiplier.
+// Rural: limited skilled labor pool, lower COL, lower overhead → 0.82×
+// Suburban: national baseline → 1.00×
+// Metro: union presence, higher wages, parking/access costs, higher demand → 1.28×
+export const MARKET_TIERS = [
+  {
+    id: "rural",
+    label: "Rural / Small Town",
+    shortLabel: "Rural",
+    description: "Limited labor pool, lower cost of living, lower overhead. Typical for projects outside metro areas.",
+    laborMultiplier: 0.82,
+    examples: "Population under 50K, 30+ min from major city",
+    icon: "🌾",
+    badge: "Lower labor rates",
+    badgeColor: "emerald" as const,
+  },
+  {
+    id: "suburban",
+    label: "Suburban",
+    shortLabel: "Suburban",
+    description: "National baseline. Typical residential contractor market with standard labor availability.",
+    laborMultiplier: 1.00,
+    examples: "Suburbs of mid-size or major cities",
+    icon: "🏘️",
+    badge: "National baseline",
+    badgeColor: "blue" as const,
+  },
+  {
+    id: "metro",
+    label: "Metro / High-Demand",
+    shortLabel: "Metro",
+    description: "Union presence, higher wages, parking/access costs, high contractor demand. Major metro areas.",
+    laborMultiplier: 1.28,
+    examples: "NYC, LA, Chicago, Boston, Seattle, SF, DC",
+    icon: "🏙️",
+    badge: "Higher labor rates",
+    badgeColor: "amber" as const,
+  },
+] as const;
+
+export type MarketTier = typeof MARKET_TIERS[number];
+
 export const CREW_SIZES = [
   { id: "solo", label: "Solo Contractor", size: 1, laborEfficiencyFactor: 0.7 },
   { id: "two", label: "2-Person Crew", size: 2, laborEfficiencyFactor: 1.0 },
@@ -585,6 +630,8 @@ export interface CalculatorInputs {
   demoPermit?: boolean; // some jurisdictions require demo permit
   // Framing material (contractor only)
   framingId?: string; // defaults to "pt" if not set
+  // Labor market tier (contractor only)
+  marketTierId?: string; // defaults to "suburban" if not set
 }
 
 export interface CalculatorResult {
@@ -625,6 +672,7 @@ export interface CalculatorResult {
   size: DeckSize;
   complexity: Complexity;
   railing: RailingSystem;
+  marketTier: MarketTier;
   isDIY: boolean;
   isContractor: boolean;
   permitCost: number;
@@ -700,19 +748,21 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const materialFraction = 1 - laborFraction;
   const regionMultiplier = region.laborMultiplier;
   const complexityMultiplier = complexity.laborMultiplier;
+  const marketTier = MARKET_TIERS.find((m) => m.id === inputs.marketTierId) ?? MARKET_TIERS[1]; // default suburban
+  const marketMultiplier = isContractor ? marketTier.laborMultiplier : 1.0;
 
   // Adjust for region and complexity
   const adjustedLow = isDIY
     ? baseMaterials.low
     : Math.round(
         baseInstalled.low * materialFraction +
-          baseInstalled.low * laborFraction * regionMultiplier * complexityMultiplier
+          baseInstalled.low * laborFraction * regionMultiplier * complexityMultiplier * marketMultiplier
       );
   const adjustedHigh = isDIY
     ? baseMaterials.high
     : Math.round(
         baseInstalled.high * materialFraction +
-          baseInstalled.high * laborFraction * regionMultiplier * complexityMultiplier
+          baseInstalled.high * laborFraction * regionMultiplier * complexityMultiplier * marketMultiplier
       );
 
   // Railing cost — 25% premium applied to all systems except cable and glass
@@ -1116,6 +1166,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     size,
     complexity,
     railing,
+    marketTier,
     isDIY,
     isContractor,
     permitCost: inputs.includePermit ? (inputs.permitCost ?? 350) : 0,
