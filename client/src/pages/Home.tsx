@@ -59,12 +59,16 @@ const SHARED_BASE_LABELS = [
 ];
 
 function getStepLabels(audience: AudienceType): string[] {
+  // Step 5 is contractor-only (Framing System).
+  // DIY and homeowner skip it in navigation but we still need step 6 to be Railing for all audiences.
+  // We pad with an empty string at index 5 so the step numbers stay aligned;
+  // the progress bar filters it out for display.
   if (audience === "diy")
-    return [...SHARED_BASE_LABELS, "Railing & Extras", "Skill & Tools", "Permit"];
+    return [...SHARED_BASE_LABELS, "", "Railing & Extras", "Skill & Tools", "Permit"];
   if (audience === "contractor")
     return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Subcontracting", "Permit"];
   // homeowner
-  return [...SHARED_BASE_LABELS, "Railing & Extras", "Permit"];
+  return [...SHARED_BASE_LABELS, "", "Railing & Extras", "Permit"];
 }
 
 function getTotalSteps(audience: AudienceType): number {
@@ -639,31 +643,37 @@ export default function Home() {
       {/* ── PROGRESS BAR ── */}
       {!showResults && (
         <div ref={wizardTopRef} className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-slate-500">
-              Step {step + 1} of {totalSteps}
-            </span>
-            <span className="text-xs text-slate-400 font-medium">{stepLabels[step]}</span>
-            {/* Audience badge on extra steps */}
-            {step >= 6 && (
-              <span className={cn(
-                "text-xs px-2 py-0.5 rounded-full font-semibold",
-                `${ac.badgeBg} ${ac.badgeText}`
-              )}>
-                {audience === "diy" ? "DIYer" : "Contractor"}
-              </span>
-            )}
-          </div>
-          <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-            <motion.div
-              className={cn(
-                "h-full rounded-full",
-                ac.progressBar
-              )}
-              animate={{ width: `${((step + 1) / totalSteps) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
+          {(() => {
+            // For DIY/homeowner, step 5 is a hidden skip slot — exclude it from the visible count
+            const visibleLabels = stepLabels.filter((l) => l !== "");
+            const visibleIndex = stepLabels.slice(0, step + 1).filter((l) => l !== "").length;
+            const currentLabel = stepLabels[step] || stepLabels[step - 1] || "";
+            return (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-slate-500">
+                    Step {visibleIndex} of {visibleLabels.length}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">{currentLabel}</span>
+                  {step >= 6 && (
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full font-semibold",
+                      `${ac.badgeBg} ${ac.badgeText}`
+                    )}>
+                      {audience === "diy" ? "DIYer" : audience === "contractor" ? "Contractor" : "Homeowner"}
+                    </span>
+                  )}
+                </div>
+                <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                  <motion.div
+                    className={cn("h-full rounded-full", ac.progressBar)}
+                    animate={{ width: `${(visibleIndex / visibleLabels.length) * 100}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
