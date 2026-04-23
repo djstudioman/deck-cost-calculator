@@ -285,6 +285,7 @@ export default function Home() {
     setCrewSizeId(snap.crewSizeId);
     setIncludeCrew(snap.includeCrew);
     setSubFootings(snap.subFootings);
+    setFramingId(snap.framingId ?? "pt");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
     // Jump straight to results
@@ -314,6 +315,7 @@ export default function Home() {
     setCrewSizeId(snap.crewSizeId);
     setIncludeCrew(snap.includeCrew);
     setSubFootings(snap.subFootings);
+    setFramingId(snap.framingId ?? "pt");
     setCustomWidth(snap.customWidth);
     setCustomLength(snap.customLength);
     setStep(0);
@@ -331,6 +333,7 @@ export default function Home() {
       includeStairs, stairSteps, stairWidthFt, includeStairRailing,
       skillLevelId, selectedTools, includePermit, permitCost,
       markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
+      framingId,
       customWidth, customLength,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
@@ -347,7 +350,7 @@ export default function Home() {
     includeStairs, stairSteps, stairWidthFt, includeStairRailing,
     skillLevelId, selectedTools, includePermit, permitCost,
     markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
-    customWidth, customLength, result,
+    framingId, customWidth, customLength, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
