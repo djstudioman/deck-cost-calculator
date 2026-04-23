@@ -1873,8 +1873,8 @@ export default function Home() {
                   CONTRACTOR-SPECIFIC STEPS 7–9
               ════════════════════════════════════════════════════════════ */}
 
-              {/* ── CONTRACTOR STEP 8: MARKUP & CREW ── */}
-              {step === 8 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 7: MARKUP & CREW ── */}
+              {step === 7 && audience === "contractor" && (
                 <StepCard
                   title="Markup & crew size"
                   subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
@@ -1983,8 +1983,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── CONTRACTOR STEP 9: SUBCONTRACTING ── */}
-              {step === 9 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 8: SUBCONTRACTING ── */}
+              {step === 8 && audience === "contractor" && (
                 <StepCard
                   title="Subcontracting"
                   subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
@@ -2185,8 +2185,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── CONTRACTOR STEP 10: PERMIT ── */}
-              {step === 10 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 9: PERMIT ── */}
+              {step === 9 && audience === "contractor" && (
                 <StepCard
                   title="Permit & inspection"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
