@@ -9,7 +9,7 @@
  * - Space Grotesk headings, JetBrains Mono for cost figures
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   REGIONS,
@@ -135,6 +135,16 @@ export default function Home() {
 
   const totalSteps = getTotalSteps(audience);
   const stepLabels = getStepLabels(audience);
+
+  // Scroll to top of wizard on every step change (fixes mobile mid-page issue)
+  const wizardTopRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (wizardTopRef.current) {
+      wizardTopRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [step, showResults]);
 
   const inputs: CalculatorInputs = useMemo(
     () => ({
@@ -628,7 +638,7 @@ export default function Home() {
 
       {/* ── PROGRESS BAR ── */}
       {!showResults && (
-        <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
+        <div ref={wizardTopRef} className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs text-slate-500">
               Step {step + 1} of {totalSteps}
