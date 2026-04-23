@@ -1215,7 +1215,151 @@ export default function Home() {
               )}
 
               {/* ── STEP 6: RAILING & EXTRAS ── */}
-              {step === 6 && (
+              {/* ── HOMEOWNER: simplified plain-English variant ── */}
+              {step === 6 && audience === "homeowner" && (
+                <StepCard
+                  title="Railing & stairs"
+                  subtitle="Just a few quick questions — we'll handle the details."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
+                  onBack={goBack}
+                  nextLabel="Continue →"
+                  accentBtnClass={ac.btnClass}
+                >
+                  <div className="space-y-6">
+
+                    {/* Q1: Deck height — plain picture cards */}
+                    <div>
+                      <div className="text-sm font-semibold text-slate-200 mb-3">How high is your deck off the ground?</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {[
+                          { label: "Ground level",        sub: "Under 2 ft — like a patio",       heightIn: 18,  requiresRailing: false },
+                          { label: "Raised",              sub: "2–4 ft off the ground",            heightIn: 42,  requiresRailing: true  },
+                          { label: "High / second story", sub: "4 ft or more off the ground",      heightIn: 72,  requiresRailing: true  },
+                        ].map((opt) => (
+                          <button
+                            key={opt.label}
+                            onClick={() => {
+                              setDeckHeightIn(opt.heightIn);
+                              if (opt.requiresRailing) setIncludeRailing(true);
+                              setConfirmedStep(step);
+                            }}
+                            className={cn(
+                              "text-left p-3 rounded-lg border transition-all",
+                              deckHeightIn === opt.heightIn
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            )}
+                          >
+                            <div className="font-semibold text-sm text-white">{opt.label}</div>
+                            <div className="text-xs text-slate-400 mt-1">{opt.sub}</div>
+                            {opt.requiresRailing && (
+                              <div className="text-xs text-amber-400 mt-1">Railing required by code</div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Q2: Include railing? (only shown when ground-level) */}
+                    {deckHeightIn < 30 && (
+                      <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-200">Add railing anyway?</div>
+                          <div className="text-xs text-slate-400 mt-0.5">Optional at this height — some homeowners add it for looks or resale value</div>
+                        </div>
+                        <button
+                          onClick={() => setIncludeRailing(v => !v)}
+                          className={cn("relative w-10 h-5 rounded-full transition-colors shrink-0 ml-4", includeRailing ? ac.bgSolid : "bg-white/20")}
+                        >
+                          <span className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                            style={{ transform: includeRailing ? 'translateX(20px)' : 'translateX(2px)' }} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Q3: Railing style — friendly names, no LF */}
+                    {includeRailing && (
+                      <div>
+                        <div className="text-sm font-semibold text-slate-200 mb-3">What railing style are you thinking?</div>
+                        <div className="grid grid-cols-1 gap-2">
+                          {[
+                            { id: "pt-wood",           label: "Basic & budget",   sub: "Painted or stained wood posts and balusters — clean and functional",         badge: "Most affordable" },
+                            { id: "composite-select",  label: "Mid-range",        sub: "Low-maintenance composite or aluminum — popular choice for most homes",      badge: "Most popular"    },
+                            { id: "cable",             label: "Premium look",     sub: "Cable, glass, or high-end composite — modern aesthetic, maximum views",      badge: "Premium"         },
+                          ].map((opt) => {
+                            const sys = RAILING_SYSTEMS.find(r => r.id === opt.id)!;
+                            // Auto-set railingLF from deck size when a style is picked
+                            const sizeSqFt = DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320;
+                            const autoLF = Math.round(Math.sqrt(sizeSqFt) * 3); // ~3 open sides
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => {
+                                  setRailingId(opt.id);
+                                  setRailingLF(autoLF);
+                                  setConfirmedRailing(true);
+                                  setConfirmedStep(step);
+                                }}
+                                className={cn(
+                                  "text-left p-3 rounded-lg border transition-all",
+                                  railingId === opt.id
+                                    ? `${sel.border} ${sel.bg}`
+                                    : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                )}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-semibold text-sm text-white">{opt.label}</div>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ac.badgeBg} ${ac.badgeText}`}>{opt.badge}</span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">{opt.sub}</div>
+                                <div className={`text-xs font-mono ${ac.text} mt-1`}>
+                                  ${sys.installedPerLFMin}–${sys.installedPerLFMax}/ft installed
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Q4: Stairs — simple yes/no + step count */}
+                    <div>
+                      <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-200">Do you need stairs?</div>
+                          <div className="text-xs text-slate-400 mt-0.5">Steps from the deck down to the yard or patio</div>
+                        </div>
+                        <button
+                          onClick={() => setIncludeStairs(v => !v)}
+                          className={cn("relative w-10 h-5 rounded-full transition-colors shrink-0 ml-4", includeStairs ? ac.bgSolid : "bg-white/20")}
+                        >
+                          <span className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                            style={{ transform: includeStairs ? 'translateX(20px)' : 'translateX(2px)' }} />
+                        </button>
+                      </div>
+                      {includeStairs && (
+                        <div className="mt-3 px-1">
+                          <div className="text-sm font-semibold text-slate-300 mb-2">How many steps?</div>
+                          <div className="flex items-center gap-3">
+                            <input type="range" min={2} max={18} step={1} value={stairSteps}
+                              onChange={(e) => setStairSteps(Number(e.target.value))}
+                              className={`flex-1 ${ac.accent}`} />
+                            <span className={`font-mono text-sm ${ac.text} w-20 text-right shrink-0`}>
+                              {stairSteps} {stairSteps === 1 ? "step" : "steps"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">A typical raised deck needs 4–6 steps. A second-story deck may need 10–14.</div>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                </StepCard>
+              )}
+
+              {/* ── DIY / CONTRACTOR: full-detail railing step ── */}
+              {step === 6 && audience !== "homeowner" && (
                 <StepCard
                   title="Railing & extras"
                   subtitle="Railing can represent 15–30% of total project cost."
