@@ -731,6 +731,8 @@ export interface CalculatorInputs {
   framingId?: string; // defaults to "pt" if not set
   // Labor market tier (contractor only)
   marketTierId?: string; // defaults to "suburban" if not set
+  // 3D rendering (contractor only)
+  rendering3dTier?: "none" | "basic" | "professional" | "premium";
   // Multi-level deck (contractor + DIY)
   isMultiLevel?: boolean;
   level2SizeId?: string;  // same IDs as sizeId, or "custom"
@@ -772,6 +774,8 @@ export interface CalculatorResult {
   hiddenFastenerCostHigh: number;
   edgeBoardUpgradeLow: number;
   edgeBoardUpgradeHigh: number;
+  rendering3dCostLow: number;
+  rendering3dCostHigh: number;
   multiLevelPremiumLow: number;
   multiLevelPremiumHigh: number;
   level2SqFt: number;
@@ -1063,6 +1067,20 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const edgeBoardUpgradeLow  = useGroovedEdge ? Math.round(0.50 * size.sqFt) : 0;
   const edgeBoardUpgradeHigh = useGroovedEdge ? Math.round(1.00 * size.sqFt) : 0;
 
+  // 3D rendering service cost (contractor only, pass-through line item)
+  // Basic (1–2 views, standard quality): $199–$400
+  // Professional (3–5 views, photo-realistic): $400–$800
+  // Premium (full set + revision round): $800–$1,500
+  // Sources: render3dquick.com Apr 2026, myarchitectai.com Apr 2026, DecksDirect 2026, contractor field data.
+  const RENDERING_COSTS: Record<string, [number, number]> = {
+    none:         [0,   0],
+    basic:        [199, 400],
+    professional: [400, 800],
+    premium:      [800, 1500],
+  };
+  const renderingTier = isContractor ? (inputs.rendering3dTier ?? "none") : "none";
+  const [rendering3dCostLow, rendering3dCostHigh] = RENDERING_COSTS[renderingTier] ?? [0, 0];
+
   // Climate premium (only for professional installs)
   const climatePremium = isDIY ? 0 : region.climatePremium;
 
@@ -1073,8 +1091,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -1174,6 +1192,21 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
             low: edgeBoardUpgradeLow,
             high: edgeBoardUpgradeHigh,
             note: `Grooved-edge board upgrade — ${size.sqFt} sq ft`,
+          },
+        ]
+      : []),
+    ...(rendering3dCostLow > 0
+      ? [
+          {
+            category: "3D Rendering",
+            pctOfTotal: 0,
+            low: rendering3dCostLow,
+            high: rendering3dCostHigh,
+            note: renderingTier === "basic"
+              ? "Basic: 1–2 views, standard quality — pass-through service"
+              : renderingTier === "professional"
+                ? "Professional: 3–5 photo-realistic views — pass-through service"
+                : "Premium: full view set + revision round — pass-through service",
           },
         ]
       : []),
@@ -1387,6 +1420,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     hiddenFastenerCostHigh,
     edgeBoardUpgradeLow,
     edgeBoardUpgradeHigh,
+    rendering3dCostLow,
+    rendering3dCostHigh,
     multiLevelPremiumLow,
     multiLevelPremiumHigh,
     level2SqFt,

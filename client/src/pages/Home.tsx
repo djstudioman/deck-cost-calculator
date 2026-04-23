@@ -148,6 +148,9 @@ export default function Home() {
   const [fastenerSystemId, setFastenerSystemId] = useState<"none" | "clip" | "cortex">("none");
   const [edgeBoardType, setEdgeBoardType] = useState<"solid" | "grooved">("solid");
 
+  // 3D rendering (contractor only)
+  const [rendering3dTier, setRendering3dTier] = useState<"none" | "basic" | "professional" | "premium">("none");
+
   // Demo / removal (contractor only)
   const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
   const [demoMaterialType, setDemoMaterialType] = useState<"wood" | "composite" | "other">("wood");
@@ -198,6 +201,7 @@ export default function Home() {
       includeHiddenFasteners: fastenerSystemId !== "none",
       fastenerSystemId,
       edgeBoardType,
+      rendering3dTier,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -205,7 +209,7 @@ export default function Home() {
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
       includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, marketTierId,
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
-      brandId, fastenerSystemId, edgeBoardType,
+      brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
     ]
   );
 
@@ -340,6 +344,7 @@ export default function Home() {
     setIncludeHiddenFasteners(snap.includeHiddenFasteners ?? false);
     setFastenerSystemId(snap.fastenerSystemId ?? "none");
     setEdgeBoardType(snap.edgeBoardType ?? "solid");
+    setRendering3dTier((snap.rendering3dTier as "none" | "basic" | "professional" | "premium") ?? "none");
     // Jump straight to results
     setShowResults(true);
   });
@@ -379,6 +384,7 @@ export default function Home() {
     setIncludeHiddenFasteners(snap.includeHiddenFasteners ?? false);
     setFastenerSystemId(snap.fastenerSystemId ?? "none");
     setEdgeBoardType(snap.edgeBoardType ?? "solid");
+    setRendering3dTier((snap.rendering3dTier as "none" | "basic" | "professional" | "premium") ?? "none");
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -405,6 +411,7 @@ export default function Home() {
       includeHiddenFasteners: fastenerSystemId !== "none",
       fastenerSystemId,
       edgeBoardType,
+      rendering3dTier,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -422,7 +429,7 @@ export default function Home() {
     markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     framingId, marketTierId, customWidth, customLength,
     isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
-    brandId, fastenerSystemId, edgeBoardType, result,
+    brandId, fastenerSystemId, edgeBoardType, rendering3dTier, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -2510,6 +2517,65 @@ export default function Home() {
                       )}
                     </div>
 
+                    {/* 3D Rendering option */}
+                    <div className={cn(
+                      "p-4 rounded-lg border transition-all",
+                      rendering3dTier !== "none" ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
+                    )}>
+                      <div className="font-semibold text-sm text-white mb-1">3D Rendering Service</div>
+                      <div className="text-xs text-slate-400 mb-3">
+                        Add a professional 3D visualization of the deck to your bid. Passed through at cost — helps clients approve faster and reduces change orders.
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {([
+                          {
+                            id: "none" as const,
+                            label: "No rendering",
+                            sub: "Proceed without a 3D visualization.",
+                            price: "—",
+                          },
+                          {
+                            id: "basic" as const,
+                            label: "Basic",
+                            sub: "1–2 rendered views, standard quality. Good for simple rectangular decks.",
+                            price: "$199–$400",
+                          },
+                          {
+                            id: "professional" as const,
+                            label: "Professional",
+                            sub: "3–5 photo-realistic views with materials shown. Best for most projects.",
+                            price: "$400–$800",
+                          },
+                          {
+                            id: "premium" as const,
+                            label: "Premium",
+                            sub: "Full view set + one revision round. Ideal for multi-level or complex builds.",
+                            price: "$800–$1,500",
+                          },
+                        ]).map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setRendering3dTier(opt.id)}
+                            className={cn(
+                              "text-left px-3 py-2 rounded-md border transition-all",
+                              rendering3dTier === opt.id
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold text-white">{opt.label}</span>
+                              <span className={cn(
+                                "text-xs font-mono shrink-0",
+                                opt.id === "none" ? "text-slate-500" : "text-amber-400"
+                              )}>{opt.price}</span>
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">{opt.sub}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Bid preview card */}
                     {result.contractor && (
                       <div className={`p-4 rounded-lg border ${sel.border} bg-opacity-5 ${sel.bg}`}>
@@ -2542,6 +2608,14 @@ export default function Home() {
                               <div className="text-slate-400">Demo & removal</div>
                               <div className="font-mono text-right text-white">
                                 {formatRange(result.demolitionLow, result.demolitionHigh)}
+                              </div>
+                            </>
+                          )}
+                          {rendering3dTier !== "none" && (
+                            <>
+                              <div className="text-slate-400">3D rendering (pass-through)</div>
+                              <div className="font-mono text-right text-white">
+                                {formatRange(result.rendering3dCostLow, result.rendering3dCostHigh)}
                               </div>
                             </>
                           )}

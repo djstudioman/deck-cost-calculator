@@ -46,6 +46,8 @@ export interface EstimateSnapshot {
   includeHiddenFasteners?: boolean;
   fastenerSystemId?: "none" | "clip" | "cortex";
   edgeBoardType?: "solid" | "grooved";
+  // 3D rendering (contractor only)
+  rendering3dTier?: "none" | "basic" | "professional" | "premium";
   notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)
   totalLow: number;
