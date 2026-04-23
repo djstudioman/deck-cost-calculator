@@ -44,6 +44,7 @@ export interface EstimateSnapshot {
   // Brand / fastener / edge board (contractor only)
   brandId?: string;
   includeHiddenFasteners?: boolean;
+  fastenerSystemId?: "none" | "clip" | "cortex";
   edgeBoardType?: "solid" | "grooved";
   notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)

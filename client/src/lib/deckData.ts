@@ -714,8 +714,10 @@ export interface CalculatorInputs {
   markupMaterials?: boolean;
   // Decking brand / product line (contractor only, composite + pvc tiers)
   brandId?: string;             // id from DECKING_BRANDS; undefined = no specific brand
-  // Hidden fasteners (contractor only)
-  includeHiddenFasteners?: boolean;
+  // Hidden fastener system (contractor only)
+  // "none" | "clip" | "cortex"
+  includeHiddenFasteners?: boolean; // legacy: true = "clip" if fastenerSystemId not set
+  fastenerSystemId?: "none" | "clip" | "cortex";
   // Edge board type (contractor only)
   edgeBoardType?: "solid" | "grooved"; // grooved auto-set when hidden fasteners on
   // Custom size (contractor only)
@@ -765,6 +767,7 @@ export interface CalculatorResult {
   deckingBrand: DeckingBrand | null;
   brandDeltaLow: number;
   brandDeltaHigh: number;
+  fastenerSystem: "none" | "clip" | "cortex";
   hiddenFastenerCostLow: number;
   hiddenFastenerCostHigh: number;
   edgeBoardUpgradeLow: number;
@@ -1029,12 +1032,26 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const brandDeltaLow  = isContractor && deckingBrand ? Math.round(deckingBrand.materialDeltaLow  * size.sqFt) : 0;
   const brandDeltaHigh = isContractor && deckingBrand ? Math.round(deckingBrand.materialDeltaHigh * size.sqFt) : 0;
 
-  // Hidden fasteners: +$1.50–$3.00/sq ft (hardware clips + extra labor for snap-in installation)
-  // Sources: HomeAdvisor 2026, Angi 2026, contractor field data. Only applies to compatible boards.
-  const useHiddenFasteners = isContractor && inputs.includeHiddenFasteners === true
+  // Hidden fasteners — system-specific pricing (contractor only, compatible boards only)
+  // Generic clip system: +$1.50–$2.50/SF (hardware + snap-in labor)
+  // Cortex by FastenMaster: +$0.50–$0.75/SF hardware + ~$0.75–$1.50/SF labor = $1.25–$2.25/SF
+  //   Cortex is a screw+plug system (not a clip): drills, countersinks, and inserts color-matched plug.
+  //   Retail kits ~$7/SF installed; contractor cost ~$1.25–$2.25/SF (hardware + labor premium).
+  //   Sources: Home Depot Apr 2026, FastenMaster product page, contractor field data.
+  const fastenerSystem: "none" | "clip" | "cortex" = (() => {
+    if (!isContractor) return "none";
+    if (inputs.fastenerSystemId && inputs.fastenerSystemId !== "none") return inputs.fastenerSystemId;
+    if (inputs.includeHiddenFasteners) return "clip"; // legacy fallback
+    return "none";
+  })();
+  const useHiddenFasteners = fastenerSystem !== "none"
     && (deckingBrand === null || deckingBrand.hiddenFastenerCompatible);
-  const hiddenFastenerCostLow  = useHiddenFasteners ? Math.round(1.50 * size.sqFt) : 0;
-  const hiddenFastenerCostHigh = useHiddenFasteners ? Math.round(3.00 * size.sqFt) : 0;
+  const hiddenFastenerCostLow  = useHiddenFasteners
+    ? Math.round((fastenerSystem === "cortex" ? 1.25 : 1.50) * size.sqFt)
+    : 0;
+  const hiddenFastenerCostHigh = useHiddenFasteners
+    ? Math.round((fastenerSystem === "cortex" ? 2.25 : 2.50) * size.sqFt)
+    : 0;
 
   // Grooved edge boards: required for hidden fasteners; +$0.50–$1.00/sq ft for edge boards only
   // (~15–20% of total sq ft is edge boards; grooved boards cost ~$3–$5/LF more than solid)
@@ -1143,7 +1160,9 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
             pctOfTotal: 0,
             low: hiddenFastenerCostLow,
             high: hiddenFastenerCostHigh,
-            note: `Clip fastening system — ${size.sqFt} sq ft`,
+            note: fastenerSystem === "cortex"
+              ? `Cortex by FastenMaster (screw + color-matched plug) — ${size.sqFt} sq ft`
+              : `Generic clip fastening system — ${size.sqFt} sq ft`,
           },
         ]
       : []),
@@ -1363,6 +1382,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     deckingBrand,
     brandDeltaLow,
     brandDeltaHigh,
+    fastenerSystem,
     hiddenFastenerCostLow,
     hiddenFastenerCostHigh,
     edgeBoardUpgradeLow,
