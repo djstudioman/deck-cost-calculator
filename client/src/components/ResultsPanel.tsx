@@ -67,6 +67,12 @@ function SummaryPills({ result }: { result: CalculatorResult }) {
       : `${result.footingCount} × ${result.footingDiameterIn}" tube`
     : null;
 
+  const fastenerLabel = result.isContractor
+    ? result.fastenerSystem === "cortex" ? "Cortex"
+    : result.fastenerSystem === "clip" ? "Clip System"
+    : "Face Screws"
+    : null;
+
   const basePills = [
     { label: "Region", value: result.region.label },
     { label: "Size", value: result.size.dimensions },
@@ -82,6 +88,22 @@ function SummaryPills({ result }: { result: CalculatorResult }) {
           <span className="text-slate-200">{p.value}</span>
         </div>
       ))}
+      {fastenerLabel && (
+        <div className={`text-xs border rounded-full px-3 py-1 ${
+          result.fastenerSystem === "cortex"
+            ? "bg-amber-500/10 border-amber-500/30"
+            : result.fastenerSystem === "clip"
+            ? "bg-sky-500/10 border-sky-500/30"
+            : "bg-white/[0.05] border-white/[0.08]"
+        }`}>
+          <span className="text-slate-500">Fastening: </span>
+          <span className={`${
+            result.fastenerSystem === "cortex" ? "text-amber-300"
+            : result.fastenerSystem === "clip" ? "text-sky-300"
+            : "text-slate-400"
+          }`}>{fastenerLabel}</span>
+        </div>
+      )}
       {footingPill && (
         <div className={`text-xs border rounded-full px-3 py-1 ${
           result.useHelicalPiers
