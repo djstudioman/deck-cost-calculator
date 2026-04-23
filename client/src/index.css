@@ -180,6 +180,14 @@
     }
   }
 }
+/* ─── SCREEN: Hide portal print layers ─────────────────────────────────────── */
+@media screen {
+  #print-estimate,
+  #customer-estimate {
+    display: none !important;
+  }
+}
+
 /* ─── PRINT STYLES ──────────────────────────────────────────────────────────── */
 @media print {
   /* Hide the app root — print layers are portaled directly to body so they are unaffected */
