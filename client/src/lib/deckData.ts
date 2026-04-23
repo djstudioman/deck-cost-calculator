@@ -773,6 +773,13 @@ export interface CalculatorResult {
   joistLengthFt: number;       // span of each joist in feet
   joistBoardFeet: number;      // total board-feet of joist lumber
   joistSpacingCostDelta: number; // cost delta vs 16" OC baseline (can be negative)
+  joistSpanWarning: {
+    exceeded: boolean;
+    spanFt: number;           // actual joist span (short deck dimension)
+    maxAllowedFt: number;     // IRC R507.6 max for 2×10 @ selected spacing
+    upgradeMaxFt: number;     // max span if upgraded to 2×12
+    message: string;
+  } | null;
   // Brand / fastener / edge board (contractor only)
   deckingBrand: DeckingBrand | null;
   brandDeltaLow: number;
@@ -1025,6 +1032,27 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const joistSpacingCostDeltaHigh = isContractor ? Math.round(joistDeltaBF * 3.50) : 0;
   // For the single-value field used in display/print, use the midpoint
   const joistSpacingCostDelta = isContractor ? Math.round(joistDeltaBF * 3.00) : 0;
+
+  // ── IRC R507.6 Joist Span Warning ─────────────────────────────────────────
+  // Max spans for SYP No.2 PT lumber (most common residential deck framing)
+  // Source: 2021 IRC Table R507.6
+  const IRC_SPAN_2x10: Record<12 | 16 | 24, number> = { 12: 19.5, 16: 17.8, 24: 14.7 };
+  const IRC_SPAN_2x12: Record<12 | 16 | 24, number> = { 12: 23.6, 16: 21.6, 24: 17.9 };
+  const maxAllowedFt   = IRC_SPAN_2x10[joistSpacingIn];
+  const upgradeMaxFt   = IRC_SPAN_2x12[joistSpacingIn];
+  const spanExceeded   = isContractor && joistLengthFt > maxAllowedFt;
+  const joistSpanWarning = isContractor ? {
+    exceeded: spanExceeded,
+    spanFt: joistLengthFt,
+    maxAllowedFt,
+    upgradeMaxFt,
+    message: spanExceeded
+      ? `Joist span of ${joistLengthFt}\' exceeds IRC R507.6 limit of ${maxAllowedFt}\' for 2\u00d710 @ ${joistSpacingIn}\" OC. ` +
+        (joistLengthFt <= upgradeMaxFt
+          ? `Upgrade to 2\u00d712 joists (max ${upgradeMaxFt}\') or add an intermediate beam.`
+          : `Span exceeds even 2\u00d712 limits (${upgradeMaxFt}\') — intermediate beam and post required.`)
+      : `Span of ${joistLengthFt}\' is within the ${maxAllowedFt}\' limit for 2\u00d710 @ ${joistSpacingIn}\" OC (IRC R507.6).`,
+  } : null;
 
   // Standard PT framing is already baked into the base installed cost (tier.installedPerSqFtMin/Max).
   // For PWT, steel, and aluminum, we calculate the DELTA vs standard PT framing and add it.
@@ -1457,6 +1485,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     joistLengthFt,
     joistBoardFeet,
     joistSpacingCostDelta,
+    joistSpanWarning,
     deckingBrand,
     brandDeltaLow,
     brandDeltaHigh,

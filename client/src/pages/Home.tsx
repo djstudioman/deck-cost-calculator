@@ -1678,13 +1678,43 @@ export default function Home() {
                       {result.joistSpacingCostDelta !== 0 && (
                         <div className={`text-xs mt-1 font-mono ${result.joistSpacingCostDelta > 0 ? ac.text : "text-green-400"}`}>
                           {result.joistSpacingCostDelta > 0
-                            ? `+${formatCurrency(result.joistSpacingCostDelta)} vs 16\" OC baseline (${result.joistCount} joists × ${result.joistLengthFt}\' = ${result.joistBoardFeet} BF)`
-                            : `${formatCurrency(result.joistSpacingCostDelta)} vs 16\" OC baseline (${result.joistCount} joists × ${result.joistLengthFt}\' = ${result.joistBoardFeet} BF)`
+                            ? `+${formatCurrency(result.joistSpacingCostDelta)} vs 16" OC baseline (${result.joistCount} joists × ${result.joistLengthFt}' = ${result.joistBoardFeet} BF)`
+                            : `${formatCurrency(result.joistSpacingCostDelta)} vs 16" OC baseline (${result.joistCount} joists × ${result.joistLengthFt}' = ${result.joistBoardFeet} BF)`
                           }
                         </div>
                       )}
                     </div>
                   </div>
+
+                  {/* ── BEAM SPAN WARNING ── */}
+                  {result.joistSpanWarning && (
+                    <div className={`mt-4 rounded-lg border px-4 py-3 flex gap-3 items-start ${
+                      result.joistSpanWarning.exceeded
+                        ? "bg-amber-950/40 border-amber-500/50"
+                        : "bg-emerald-950/30 border-emerald-600/40"
+                    }`}>
+                      <span className="text-lg leading-none mt-0.5">
+                        {result.joistSpanWarning.exceeded ? "⚠️" : "✅"}
+                      </span>
+                      <div className="flex-1">
+                        <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${
+                          result.joistSpanWarning.exceeded ? "text-amber-400" : "text-emerald-400"
+                        }`}>
+                          {result.joistSpanWarning.exceeded ? "Span Limit Exceeded — IRC R507.6" : "Span OK — IRC R507.6"}
+                        </div>
+                        <div className={`text-xs leading-relaxed ${
+                          result.joistSpanWarning.exceeded ? "text-amber-200" : "text-emerald-200"
+                        }`}>
+                          {result.joistSpanWarning.message}
+                        </div>
+                        {result.joistSpanWarning.exceeded && (
+                          <div className="text-xs text-slate-400 mt-1.5">
+                            Max spans (SYP No.2 PT): 2×10 = {result.joistSpanWarning.maxAllowedFt}' · 2×12 = {result.joistSpanWarning.upgradeMaxFt}' at {result.joistSpacingIn}" OC
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </StepCard>
               )}
 
