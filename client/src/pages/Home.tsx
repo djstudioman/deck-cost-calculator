@@ -193,7 +193,7 @@ export default function Home() {
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
       includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, marketTierId,
-      isMultiLevel, level2SizeId, level2CustomSqFt,
+      isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
     ]
   );
 
@@ -1131,21 +1131,41 @@ export default function Home() {
                         <div className="space-y-2">
                           <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Upper / second level size</div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {DECK_SIZES.map((s) => (
-                              <button
-                                key={s.id}
-                                onClick={() => setLevel2SizeId(s.id)}
-                                className={cn(
-                                  "text-left p-3 rounded-lg border transition-all",
-                                  level2SizeId === s.id
-                                    ? `${sel.border} ${sel.bg}`
-                                    : "border-white/20 bg-white/[0.03] hover:border-white/30"
-                                )}
-                              >
-                                <div className="font-semibold text-sm text-white">{s.label}</div>
-                                <div className="text-xs text-slate-500 mt-0.5">{s.sqFt} sq ft</div>
-                              </button>
-                            ))}
+                            {DECK_SIZES.map((s) => {
+                              const baseInstalled: Record<string, { low: number; high: number }> = {
+                                "100": { low: 2500, high: 4000 },
+                                "192": { low: 4800, high: 8000 },
+                                "320": { low: 8000, high: 14000 },
+                                "480": { low: 12000, high: 20000 },
+                                "600": { low: 15000, high: 25000 },
+                              };
+                              const est = baseInstalled[s.id] ?? { low: 0, high: 0 };
+                              return (
+                                <button
+                                  key={s.id}
+                                  onClick={() => setLevel2SizeId(s.id)}
+                                  className={cn(
+                                    "text-left p-3 rounded-lg border transition-all",
+                                    level2SizeId === s.id
+                                      ? `${sel.border} ${sel.bg}`
+                                      : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                  )}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <div className="font-semibold text-sm text-white">{s.label}</div>
+                                      <div className="text-xs text-slate-500 mt-0.5">{s.sqFt} sq ft</div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className={`text-xs font-mono ${ac.text}`}>
+                                        {formatRange(est.low, est.high)}
+                                      </div>
+                                      <div className="text-xs text-slate-600">PT installed est.</div>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
                             {/* Custom upper level size */}
                             <div className={cn(
                               "col-span-1 sm:col-span-2 p-3 rounded-lg border transition-all",
