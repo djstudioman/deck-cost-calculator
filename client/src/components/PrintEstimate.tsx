@@ -18,7 +18,7 @@ export default function PrintEstimate({ result }: Props) {
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
   return (
-    <div id="print-estimate" className="hidden print:block font-sans text-gray-900 bg-white p-8 max-w-[720px] mx-auto">
+    <div id="print-estimate" className="hidden font-sans text-gray-900 bg-white p-8 max-w-[720px] mx-auto">
       {/* ── HEADER ── */}
       <div className="flex items-start justify-between border-b-2 border-gray-900 pb-4 mb-6">
         <div>

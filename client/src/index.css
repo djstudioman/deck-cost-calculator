@@ -182,25 +182,47 @@
 }
 /* ─── PRINT STYLES ──────────────────────────────────────────────────────────── */
 @media print {
-  /* Hide everything on screen except the print estimate */
-  body > #root > * {
-    display: none !important;
+  /* Hide everything on screen — use visibility so children can override */
+  body * {
+    visibility: hidden;
   }
 
-  /* Default print mode: show contractor bid estimate, hide customer estimate */
+  /* Default print mode: show contractor bid estimate */
+  #print-estimate,
+  #print-estimate * {
+    visibility: visible !important;
+  }
   #print-estimate {
     display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
   }
   #customer-estimate {
     display: none !important;
   }
 
-  /* Customer proposal mode: show customer estimate only, hide contractor bid */
+  /* Customer proposal mode: show customer estimate only */
   body.print-customer-mode #print-estimate {
     display: none !important;
+    visibility: hidden !important;
+  }
+  body.print-customer-mode #print-estimate * {
+    visibility: hidden !important;
   }
   body.print-customer-mode #customer-estimate {
     display: block !important;
+  }
+  body.print-customer-mode #customer-estimate,
+  body.print-customer-mode #customer-estimate * {
+    visibility: visible !important;
+  }
+  body.print-customer-mode #customer-estimate {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
   }
 
   /* Reset background and colors for print */
