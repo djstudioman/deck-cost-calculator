@@ -942,7 +942,14 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         const markupLow = Math.round(markupMid * 0.75);
         const markupHigh = Math.round(markupMid * 1.35);
 
-        // Demo & removal
+        // Demo & removal sub-components
+        const demoLaborLow = result.demolitionLaborLow;
+        const demoLaborHigh = result.demolitionLaborHigh;
+        const demoLaborMid = Math.round((demoLaborLow + demoLaborHigh) / 2);
+        const demoDisposalLow = result.demolitionDisposalLow;
+        const demoDisposalHigh = result.demolitionDisposalHigh;
+        const demoDisposalMid = Math.round((demoDisposalLow + demoDisposalHigh) / 2);
+        const demoPermit = result.demolitionPermitCost;
         const demoLow = result.demolitionLow;
         const demoHigh = result.demolitionHigh;
         const demoMid = Math.round((demoLow + demoHigh) / 2);
@@ -981,7 +988,11 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
               { label: "Footings",           note: result.region.frostDepthLabel + " frost depth", ...col(footLow, footMid, footHigh) },
               ...(stairMid > 0 ? [{ label: "Stairs", note: "Stringers, treads, risers", ...col(stairLow, stairMid, stairHigh) }] : []),
               ...(permitVal > 0 ? [{ label: "Permit & inspection", note: "Pass-through at cost", ...col(permitVal, permitVal, permitVal) }] : []),
-              ...(demoMid > 0 ? [{ label: "Demo & removal", note: "Labor + disposal + demo permit (pass-through)", ...col(demoLow, demoMid, demoHigh) }] : []),
+              ...(demoMid > 0 ? [
+                { label: "Demo labor",       note: `Tear-out · ${result.tier.id === "composite" ? "composite" : result.tier.id === "pvc" ? "PVC/other" : "PT wood"} deck`, ...col(demoLaborLow, demoLaborMid, demoLaborHigh) },
+                ...(demoDisposalMid > 0 ? [{ label: "Disposal / haul-away", note: "Dumpster rental + landfill fees",           ...col(demoDisposalLow, demoDisposalMid, demoDisposalHigh) }] : []),
+                ...(demoPermit > 0       ? [{ label: "Demo permit",          note: "Pass-through at cost (jurisdiction req.)",  ...col(demoPermit, demoPermit, demoPermit) }] : []),
+              ] : []),
             ],
           },
           {

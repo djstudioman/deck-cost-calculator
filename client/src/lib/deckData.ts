@@ -536,6 +536,11 @@ export interface CalculatorResult {
   stairRailingHigh: number;
   demolitionLow: number;
   demolitionHigh: number;
+  demolitionLaborLow: number;
+  demolitionLaborHigh: number;
+  demolitionDisposalLow: number;
+  demolitionDisposalHigh: number;
+  demolitionPermitCost: number;
   climatePremium: number;
   perSqFtLow: number;
   perSqFtHigh: number;
@@ -713,6 +718,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Demo permit (when required): $75 flat pass-through
   let demolitionLow = 0;
   let demolitionHigh = 0;
+  let demolitionLaborLow = 0;
+  let demolitionLaborHigh = 0;
+  let demolitionDisposalLow = 0;
+  let demolitionDisposalHigh = 0;
+  let demolitionPermitCost = 0;
   if (isContractor && inputs.includeDemoRemoval) {
     const demoSqFt = inputs.sizeId === "custom" ? (inputs.customSqFt ?? 320) : (DECK_SIZES.find(s => s.id === inputs.sizeId)?.sqFt ?? 320);
     const mat = inputs.demoMaterialType ?? "wood";
@@ -721,17 +731,17 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     // Height premium (deckHeightIn is stored in inputs but not yet in CalculatorInputs — use a proxy: if deck is elevated, add $1–$2)
     const heightPremiumLow = 0; // height data not in inputs yet; conservative
     const heightPremiumHigh = 0;
-    const demoLaborLow = Math.round(demoSqFt * (laborLowPerSqFt + heightPremiumLow));
-    const demoLaborHigh = Math.round(demoSqFt * (laborHighPerSqFt + heightPremiumHigh));
-    const disposalLow = inputs.demoIncludeDisposal
+    demolitionLaborLow = Math.round(demoSqFt * (laborLowPerSqFt + heightPremiumLow));
+    demolitionLaborHigh = Math.round(demoSqFt * (laborHighPerSqFt + heightPremiumHigh));
+    demolitionDisposalLow = inputs.demoIncludeDisposal
       ? (demoSqFt <= 200 ? 300 : demoSqFt <= 400 ? 400 : 550)
       : 0;
-    const disposalHigh = inputs.demoIncludeDisposal
+    demolitionDisposalHigh = inputs.demoIncludeDisposal
       ? (demoSqFt <= 200 ? 450 : demoSqFt <= 400 ? 600 : 800)
       : 0;
-    const demoPermitCost = inputs.demoPermit ? 75 : 0;
-    demolitionLow = demoLaborLow + disposalLow + demoPermitCost;
-    demolitionHigh = demoLaborHigh + disposalHigh + demoPermitCost;
+    demolitionPermitCost = inputs.demoPermit ? 75 : 0;
+    demolitionLow = demolitionLaborLow + demolitionDisposalLow + demolitionPermitCost;
+    demolitionHigh = demolitionLaborHigh + demolitionDisposalHigh + demolitionPermitCost;
   }
 
   // Climate premium (only for professional installs)
@@ -994,6 +1004,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     stairRailingHigh,
     demolitionLow,
     demolitionHigh,
+    demolitionLaborLow,
+    demolitionLaborHigh,
+    demolitionDisposalLow,
+    demolitionDisposalHigh,
+    demolitionPermitCost,
     climatePremium,
     perSqFtLow,
     perSqFtHigh,
