@@ -69,6 +69,9 @@ export default function PrintEstimate({ result }: Props) {
             ...(result.isContractor ? [
               { label: "Framing", value: `${result.framingOption.shortLabel} · ${result.joistSpacingIn}" OC` },
               { label: "Joist Qty", value: `${result.joistCount} joists · ${result.joistLengthFt}' span · ${result.joistBoardFeet} BF` },
+              ...(result.railingPostCount > 0 ? [
+                { label: "Railing Posts", value: `${result.railingPostCount} posts · ${result.railingHeightPremiumLow > 0 ? '42"' : '36"'} ht · ${result.railingPostMountCostLow > result.railingPostCount * 10 ? "Fascia" : "Surface"} mount` },
+              ] : []),
             ] : []),
           ].map((s) => (
             <div key={s.label} className="bg-gray-50 rounded p-2">
@@ -100,6 +103,28 @@ export default function PrintEstimate({ result }: Props) {
                 </td>
               </tr>
             ))}
+            {/* Railing spec info row — contractor only */}
+            {result.isContractor && result.railingPostCount > 0 && (
+              <tr className="border-t border-gray-200 bg-indigo-50">
+                <td className="py-2 px-2 font-medium text-gray-700 text-xs">
+                  Railing Spec
+                </td>
+                <td className="py-2 px-2 text-gray-600 text-xs">
+                  <div>
+                    {result.railingPostCount} posts · {result.railingPostMountCostLow > result.railingPostCount * 10 ? "Fascia mount" : "Surface mount"} · {result.railingHeightPremiumLow > 0 ? '42"' : '36"'} height
+                  </div>
+                  {result.railingDetailCostLow > 0 && (
+                    <div className="mt-0.5 text-indigo-700 font-medium">
+                      Spec upcharge: +{formatRange(result.railingPostMountCostLow + result.railingHeightPremiumLow, result.railingPostMountCostHigh + result.railingHeightPremiumHigh)}
+                      {result.railingHeightPremiumLow > 0 && (
+                        <span className="text-gray-500 font-normal"> (incl. 42" height premium)</span>
+                      )}
+                    </div>
+                  )}
+                </td>
+                <td className="py-2 px-2 text-right font-mono text-xs text-gray-400">—</td>
+              </tr>
+            )}
             {/* Framing spec info row — contractor only, no cost (informational) */}
             {result.isContractor && (
               <tr className={`border-t border-gray-200 ${

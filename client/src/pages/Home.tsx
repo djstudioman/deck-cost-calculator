@@ -152,6 +152,11 @@ export default function Home() {
   // 3D rendering (contractor only)
   const [rendering3dTier, setRendering3dTier] = useState<"none" | "basic" | "professional" | "premium">("none");
 
+  // Railing detail (contractor only)
+  const [postMountId, setPostMountId] = useState<"surface" | "fascia">("surface");
+  const [postSpacingFt, setPostSpacingFt] = useState<4 | 6 | 8>(6);
+  const [railingHeightIn, setRailingHeightIn] = useState<36 | 42>(36);
+
   // Demo / removal (contractor only)
   const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
   const [demoMaterialType, setDemoMaterialType] = useState<"wood" | "composite" | "other">("wood");
@@ -204,6 +209,9 @@ export default function Home() {
       fastenerSystemId,
       edgeBoardType,
       rendering3dTier,
+      postMountId,
+      postSpacingFt,
+      railingHeightIn,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -212,6 +220,7 @@ export default function Home() {
       includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, joistSpacingIn, marketTierId,
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
       brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
+      postMountId, postSpacingFt, railingHeightIn,
     ]
   );
 
@@ -348,6 +357,9 @@ export default function Home() {
     setFastenerSystemId(snap.fastenerSystemId ?? "none");
     setEdgeBoardType(snap.edgeBoardType ?? "solid");
     setRendering3dTier((snap.rendering3dTier as "none" | "basic" | "professional" | "premium") ?? "none");
+    setPostMountId((snap.postMountId as "surface" | "fascia") ?? "surface");
+    setPostSpacingFt((snap.postSpacingFt as 4 | 6 | 8) ?? 6);
+    setRailingHeightIn((snap.railingHeightIn as 36 | 42) ?? 36);
     // Jump straight to results
     setShowResults(true);
   });
@@ -389,6 +401,9 @@ export default function Home() {
     setFastenerSystemId(snap.fastenerSystemId ?? "none");
     setEdgeBoardType(snap.edgeBoardType ?? "solid");
     setRendering3dTier((snap.rendering3dTier as "none" | "basic" | "professional" | "premium") ?? "none");
+    setPostMountId((snap.postMountId as "surface" | "fascia") ?? "surface");
+    setPostSpacingFt((snap.postSpacingFt as 4 | 6 | 8) ?? 6);
+    setRailingHeightIn((snap.railingHeightIn as 36 | 42) ?? 36);
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -417,6 +432,9 @@ export default function Home() {
       fastenerSystemId,
       edgeBoardType,
       rendering3dTier,
+      postMountId,
+      postSpacingFt,
+      railingHeightIn,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -434,7 +452,8 @@ export default function Home() {
     markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings,
     framingId, marketTierId, customWidth, customLength,
     isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
-    brandId, fastenerSystemId, edgeBoardType, rendering3dTier, result,
+    brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
+    postMountId, postSpacingFt, railingHeightIn, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -2046,6 +2065,104 @@ export default function Home() {
                       <div className="text-xs text-slate-500 mt-1">Typical 16×20 deck: ~52 LF (three open sides)</div>
                     </div>
                       </>
+                    )}
+
+                    {/* ── CONTRACTOR RAILING SPEC ── */}
+                    {audience === "contractor" && includeRailing && (
+                      <div className={`rounded-lg border ${sel.border} bg-white/[0.03] p-4 space-y-5`}>
+                        <div className={`text-xs font-bold uppercase tracking-wider ${ac.text}`}>Railing Spec (Contractor)</div>
+
+                        {/* Post Mount Style */}
+                        <div>
+                          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Post Mount Style</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([
+                              { id: "surface" as const, label: "Surface Mount", sub: "Post bolted to deck surface. Faster install.", delta: "+$8–$12/post" },
+                              { id: "fascia"  as const, label: "Fascia Mount",  sub: "Post through fascia board. Cleaner look.",  delta: "+$15–$22/post" },
+                            ]).map((opt) => (
+                              <button
+                                key={opt.id}
+                                onClick={() => setPostMountId(opt.id)}
+                                className={cn(
+                                  "text-left p-3 rounded-lg border transition-all",
+                                  postMountId === opt.id
+                                    ? `${sel.border} ${sel.bg}`
+                                    : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                )}
+                              >
+                                <div className="font-semibold text-sm text-white">{opt.label}</div>
+                                <div className={`text-xs font-mono ${ac.text} mt-0.5`}>{opt.delta}</div>
+                                <div className="text-xs text-slate-500 mt-0.5">{opt.sub}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Post Spacing */}
+                        <div>
+                          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Post Spacing (OC)</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {([4, 6, 8] as const).map((spacing) => {
+                              const postCount = Math.max(2, Math.round(railingLF / spacing) + 1);
+                              return (
+                                <button
+                                  key={spacing}
+                                  onClick={() => setPostSpacingFt(spacing)}
+                                  className={cn(
+                                    "text-left p-3 rounded-lg border transition-all",
+                                    postSpacingFt === spacing
+                                      ? `${sel.border} ${sel.bg}`
+                                      : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                  )}
+                                >
+                                  <div className="font-semibold text-sm text-white">{spacing}' OC</div>
+                                  <div className="text-xs text-slate-400 mt-0.5">{postCount} posts est.</div>
+                                  {spacing === 4 && <div className="text-xs text-slate-500">Max rigidity</div>}
+                                  {spacing === 6 && <div className="text-xs text-slate-500">IRC standard</div>}
+                                  {spacing === 8 && <div className="text-xs text-slate-500">Fewer posts</div>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Railing Height */}
+                        <div>
+                          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Railing Height</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([
+                              { h: 36 as const, label: '36"', sub: 'Standard residential (IRC R507.2)', badge: '' },
+                              { h: 42 as const, label: '42"', sub: 'Elevated decks / commercial code', badge: `+$${Math.round(railingLF * 3)}–$${Math.round(railingLF * 5)}` },
+                            ]).map((opt) => (
+                              <button
+                                key={opt.h}
+                                onClick={() => setRailingHeightIn(opt.h)}
+                                className={cn(
+                                  "text-left p-3 rounded-lg border transition-all",
+                                  railingHeightIn === opt.h
+                                    ? `${sel.border} ${sel.bg}`
+                                    : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                )}
+                              >
+                                <div className="font-semibold text-sm text-white">{opt.label}</div>
+                                {opt.badge && <div className={`text-xs font-mono ${ac.text} mt-0.5`}>{opt.badge}</div>}
+                                <div className="text-xs text-slate-500 mt-0.5">{opt.sub}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Post count summary */}
+                        <div className="text-xs text-slate-400 border-t border-white/10 pt-3">
+                          <span className="text-slate-300 font-medium">{result.railingPostCount} posts</span>
+                          {" "}estimated · {postSpacingFt}' OC · {postMountId === "fascia" ? "Fascia mount" : "Surface mount"} · {railingHeightIn}" height
+                          {result.railingDetailCostLow > 0 && (
+                            <span className={`ml-2 font-mono ${ac.text}`}>
+                              +{formatCurrency(result.railingDetailCostLow)}–{formatCurrency(result.railingDetailCostHigh)} spec upcharge
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
 
                     <div>

@@ -735,6 +735,11 @@ export interface CalculatorInputs {
   rendering3dTier?: "none" | "basic" | "professional" | "premium";
   // Joist spacing (contractor only)
   joistSpacingIn?: 12 | 16 | 24; // on-center spacing in inches; defaults to 16
+  // Railing detail (contractor only)
+  balustradeStyleId?: string;   // "spindle" | "aluminum" | "cable" | "glass"
+  postMountId?: "surface" | "fascia";
+  postSpacingFt?: 4 | 6 | 8;   // on-center post spacing in feet
+  railingHeightIn?: 36 | 42;   // 36" standard residential, 42" elevated/commercial
   // Multi-level deck (contractor + DIY)
   isMultiLevel?: boolean;
   level2SizeId?: string;  // same IDs as sizeId, or "custom"
@@ -806,6 +811,14 @@ export interface CalculatorResult {
   size: DeckSize;
   complexity: Complexity;
   railing: RailingSystem;
+  // Railing detail (contractor only)
+  railingPostCount: number;         // estimated post count based on LF / postSpacingFt
+  railingPostMountCostLow: number;
+  railingPostMountCostHigh: number;
+  railingHeightPremiumLow: number;
+  railingHeightPremiumHigh: number;
+  railingDetailCostLow: number;     // combined post mount + height premium
+  railingDetailCostHigh: number;
   marketTier: MarketTier;
   isDIY: boolean;
   isContractor: boolean;
@@ -913,6 +926,32 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
         ? Math.round(railing.materialPerLFMax * railingLF * railingPremiumMultiplier)
         : Math.round(railing.installedPerLFMax * railingLF * railingPremiumMultiplier))
     : 0;
+
+  // ── Contractor Railing Detail ──────────────────────────────────────────────
+  // Post count: railingLF / postSpacingFt + 1 corner posts (estimate)
+  const postSpacingFt = (inputs.postSpacingFt ?? 6) as 4 | 6 | 8;
+  const railingHeightIn = (inputs.railingHeightIn ?? 36) as 36 | 42;
+  const railingPostCount = isContractor && hasRailingSelection
+    ? Math.max(2, Math.round(railingLF / postSpacingFt) + 1)
+    : 0;
+
+  // Post mount style cost delta per post
+  // Surface-mount: $8–$12/post (hardware + minor labor)
+  // Fascia-mount: $15–$22/post (more complex bracket + fascia board)
+  const postMountId = (inputs.postMountId ?? "surface") as "surface" | "fascia";
+  const postMountDeltaLow  = postMountId === "fascia" ? 15 : 8;
+  const postMountDeltaHigh = postMountId === "fascia" ? 22 : 12;
+  const railingPostMountCostLow  = isContractor && hasRailingSelection ? railingPostCount * postMountDeltaLow  : 0;
+  const railingPostMountCostHigh = isContractor && hasRailingSelection ? railingPostCount * postMountDeltaHigh : 0;
+
+  // Height premium: 42" requires taller posts and more infill material
+  // +$3–$5/LF over standard 36" height
+  const railingHeightPremiumLow  = isContractor && hasRailingSelection && railingHeightIn === 42 ? Math.round(railingLF * 3) : 0;
+  const railingHeightPremiumHigh = isContractor && hasRailingSelection && railingHeightIn === 42 ? Math.round(railingLF * 5) : 0;
+
+  // Combined railing detail cost
+  const railingDetailCostLow  = railingPostMountCostLow  + railingHeightPremiumLow;
+  const railingDetailCostHigh = railingPostMountCostHigh + railingHeightPremiumHigh;
 
   // Footing cost based on region frost depth
   const footingCount = size.sqFt <= 200 ? 6 : size.sqFt <= 350 ? 10 : size.sqFt <= 500 ? 12 : 16;
@@ -1159,8 +1198,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -1511,6 +1550,13 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     size,
     complexity,
     railing,
+    railingPostCount,
+    railingPostMountCostLow,
+    railingPostMountCostHigh,
+    railingHeightPremiumLow,
+    railingHeightPremiumHigh,
+    railingDetailCostLow,
+    railingDetailCostHigh,
     marketTier,
     isDIY,
     isContractor,

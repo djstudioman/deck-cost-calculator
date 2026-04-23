@@ -50,6 +50,10 @@ export interface EstimateSnapshot {
   joistSpacingIn?: 12 | 16 | 24;
   // 3D rendering (contractor only)
   rendering3dTier?: "none" | "basic" | "professional" | "premium";
+  // Railing detail (contractor only)
+  postMountId?: "surface" | "fascia";
+  postSpacingFt?: 4 | 6 | 8;
+  railingHeightIn?: 36 | 42;
   notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)
   totalLow: number;
