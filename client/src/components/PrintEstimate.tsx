@@ -125,6 +125,42 @@ export default function PrintEstimate({ result }: Props) {
                 <td className="py-2 px-2 text-right font-mono text-xs text-gray-400">—</td>
               </tr>
             )}
+            {/* Footing spec info row — contractor only */}
+            {result.isContractor && (
+              <tr className={`border-t border-gray-200 ${
+                result.useHelicalPiers ? "bg-purple-50" : "bg-stone-50"
+              }`}>
+                <td className="py-2 px-2 font-medium text-gray-700 text-xs">
+                  Footing Spec
+                  {result.useHelicalPiers && (
+                    <span className="ml-1 text-purple-700 font-bold">Helical</span>
+                  )}
+                </td>
+                <td className="py-2 px-2 text-gray-600 text-xs">
+                  <div>
+                    {result.footingCount} {result.useHelicalPiers ? "helical piers" : `${result.footingDiameterIn}" tube footings`}
+                    {result.useHelicalPiers
+                      ? " · No excavation · Instant load transfer"
+                      : ` · Concrete tube form · ${result.footingDiameterIn}" diameter`
+                    }
+                  </div>
+                  {result.footingSpecCostLow !== 0 && (
+                    <div className={`mt-0.5 font-medium ${
+                      result.footingSpecCostLow > 0 ? "text-amber-700" : "text-green-700"
+                    }`}>
+                      {result.footingSpecCostLow > 0
+                        ? `+${formatRange(result.footingSpecCostLow, result.footingSpecCostHigh)} vs 10" baseline`
+                        : `saves ${formatRange(Math.abs(result.footingSpecCostHigh), Math.abs(result.footingSpecCostLow))} vs 10" baseline`
+                      }
+                    </div>
+                  )}
+                  {result.footingSpecCostLow === 0 && !result.useHelicalPiers && (
+                    <div className="mt-0.5 text-gray-400 text-[10px]">10" baseline — no cost delta</div>
+                  )}
+                </td>
+                <td className="py-2 px-2 text-right font-mono text-xs text-gray-400">—</td>
+              </tr>
+            )}
             {/* Framing spec info row — contractor only, no cost (informational) */}
             {result.isContractor && (
               <tr className={`border-t border-gray-200 ${

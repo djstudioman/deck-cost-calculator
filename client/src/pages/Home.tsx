@@ -157,6 +157,10 @@ export default function Home() {
   const [postSpacingFt, setPostSpacingFt] = useState<4 | 6 | 8>(6);
   const [railingHeightIn, setRailingHeightIn] = useState<36 | 42>(36);
 
+  // Footing spec (contractor only)
+  const [footingDiameterIn, setFootingDiameterIn] = useState<8 | 10 | 12 | 16>(10);
+  const [useHelicalPiers, setUseHelicalPiers] = useState(false);
+
   // Demo / removal (contractor only)
   const [includeDemoRemoval, setIncludeDemoRemoval] = useState(false);
   const [demoMaterialType, setDemoMaterialType] = useState<"wood" | "composite" | "other">("wood");
@@ -212,6 +216,8 @@ export default function Home() {
       postMountId,
       postSpacingFt,
       railingHeightIn,
+      footingDiameterIn,
+      useHelicalPiers,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -221,6 +227,7 @@ export default function Home() {
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
       brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
       postMountId, postSpacingFt, railingHeightIn,
+      footingDiameterIn, useHelicalPiers,
     ]
   );
 
@@ -360,6 +367,8 @@ export default function Home() {
     setPostMountId((snap.postMountId as "surface" | "fascia") ?? "surface");
     setPostSpacingFt((snap.postSpacingFt as 4 | 6 | 8) ?? 6);
     setRailingHeightIn((snap.railingHeightIn as 36 | 42) ?? 36);
+    setFootingDiameterIn((snap.footingDiameterIn as 8 | 10 | 12 | 16) ?? 10);
+    setUseHelicalPiers(snap.useHelicalPiers ?? false);
     // Jump straight to results
     setShowResults(true);
   });
@@ -404,6 +413,8 @@ export default function Home() {
     setPostMountId((snap.postMountId as "surface" | "fascia") ?? "surface");
     setPostSpacingFt((snap.postSpacingFt as 4 | 6 | 8) ?? 6);
     setRailingHeightIn((snap.railingHeightIn as 36 | 42) ?? 36);
+    setFootingDiameterIn((snap.footingDiameterIn as 8 | 10 | 12 | 16) ?? 10);
+    setUseHelicalPiers(snap.useHelicalPiers ?? false);
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -435,6 +446,8 @@ export default function Home() {
       postMountId,
       postSpacingFt,
       railingHeightIn,
+      footingDiameterIn,
+      useHelicalPiers,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -453,7 +466,8 @@ export default function Home() {
     framingId, marketTierId, customWidth, customLength,
     isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
     brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
-    postMountId, postSpacingFt, railingHeightIn, result,
+    postMountId, postSpacingFt, railingHeightIn,
+    footingDiameterIn, useHelicalPiers, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -2599,6 +2613,95 @@ export default function Home() {
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-4">
+                    {/* ── FOOTING SPEC (contractor only) ── */}
+                    <div className={`p-4 rounded-lg border ${ac.border} bg-white/[0.03]`}>
+                      <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>Footing Spec (Contractor)</div>
+
+                      {/* Helical pier toggle */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <div className="font-semibold text-sm text-white">Use Helical Piers?</div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            Replaces concrete tube footings. No excavation needed — ideal for expansive soils,
+                            high frost zones, or sites with limited access. Installed cost: $250–$450/pier.
+                          </div>
+                          {useHelicalPiers && (
+                            <div className={`text-xs font-mono ${ac.text} mt-1`}>
+                              {result.footingCount} piers ·{" "}
+                              {result.footingSpecCostLow >= 0
+                                ? `+${formatCurrency(result.footingSpecCostLow)} to +${formatCurrency(result.footingSpecCostHigh)} vs tube footings`
+                                : `saves ${formatCurrency(Math.abs(result.footingSpecCostHigh))}–${formatCurrency(Math.abs(result.footingSpecCostLow))} vs tube footings`
+                              }
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setUseHelicalPiers((v) => !v)}
+                          className={cn(
+                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
+                            useHelicalPiers ? ac.bgSolid : "bg-white/20"
+                          )}
+                        >
+                          <span
+                            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                            style={{ transform: useHelicalPiers ? 'translateX(20px)' : 'translateX(2px)' }}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Footing diameter selector — hidden when helical piers selected */}
+                      {!useHelicalPiers && (
+                        <div>
+                          <div className="text-xs text-slate-400 mb-2">Tube Footing Diameter</div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {([8, 10, 12, 16] as const).map((d) => {
+                              const costs: Record<8|10|12|16, [number,number]> = {
+                                8:  [55,  90],
+                                10: [68,  120],
+                                12: [90,  160],
+                                16: [145, 240],
+                              };
+                              const [lo, hi] = costs[d];
+                              const isBase = d === 10;
+                              const delta = (lo - 68) * result.footingCount;
+                              return (
+                                <button
+                                  key={d}
+                                  onClick={() => setFootingDiameterIn(d)}
+                                  className={cn(
+                                    "p-3 rounded-lg border text-left transition-all",
+                                    footingDiameterIn === d
+                                      ? `${sel.border} ${sel.bg}`
+                                      : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                  )}
+                                >
+                                  <div className="font-semibold text-sm text-white">{d}"</div>
+                                  <div className={`text-xs font-mono mt-0.5 ${
+                                    isBase ? 'text-slate-400' :
+                                    delta > 0 ? 'text-amber-400' : 'text-emerald-400'
+                                  }`}>
+                                    {isBase ? 'Baseline' :
+                                     delta > 0 ? `+${formatCurrency(delta)}` :
+                                     `−${formatCurrency(Math.abs(delta))}`}
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">${lo}–${hi}/ea</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-2">
+                            {result.footingCount} footings · {result.footingDiameterIn}" diameter ·{" "}
+                            {result.footingSpecCostLow === 0
+                              ? "Baseline pricing"
+                              : result.footingSpecCostLow > 0
+                                ? `+${formatCurrency(result.footingSpecCostLow)}–+${formatCurrency(result.footingSpecCostHigh)} vs 10" baseline`
+                                : `saves ${formatCurrency(Math.abs(result.footingSpecCostHigh))}–${formatCurrency(Math.abs(result.footingSpecCostLow))} vs 10" baseline`
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Sub footings toggle */}
                     <div className={cn(
                       "p-4 rounded-lg border transition-all",

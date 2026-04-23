@@ -735,6 +735,9 @@ export interface CalculatorInputs {
   rendering3dTier?: "none" | "basic" | "professional" | "premium";
   // Joist spacing (contractor only)
   joistSpacingIn?: 12 | 16 | 24; // on-center spacing in inches; defaults to 16
+  // Footing spec (contractor only)
+  footingDiameterIn?: 8 | 10 | 12 | 16; // tube footing diameter; defaults to 10"
+  useHelicalPiers?: boolean;             // replace tube footings with helical piers
   // Railing detail (contractor only)
   balustradeStyleId?: string;   // "spindle" | "aluminum" | "cable" | "glass"
   postMountId?: "surface" | "fascia";
@@ -785,6 +788,12 @@ export interface CalculatorResult {
     upgradeMaxFt: number;     // max span if upgraded to 2×12
     message: string;
   } | null;
+  // Footing spec (contractor only)
+  footingCount: number;
+  footingDiameterIn: 8 | 10 | 12 | 16;
+  useHelicalPiers: boolean;
+  footingSpecCostLow: number;    // delta vs baseline 10" tube footing
+  footingSpecCostHigh: number;
   // Brand / fastener / edge board (contractor only)
   deckingBrand: DeckingBrand | null;
   brandDeltaLow: number;
@@ -956,7 +965,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Footing cost based on region frost depth
   const footingCount = size.sqFt <= 200 ? 6 : size.sqFt <= 350 ? 10 : size.sqFt <= 500 ? 12 : 16;
   const frostDepth = region.frostDepthInches;
-  let footingCostPerUnit = 68; // baseline 24"
+  let footingCostPerUnit = 68; // baseline 10" tube @ shallow frost
   if (frostDepth >= 36 && frostDepth < 48) footingCostPerUnit = 85;
   else if (frostDepth >= 48 && frostDepth < 60) footingCostPerUnit = 125;
   else if (frostDepth >= 60) footingCostPerUnit = 158;
@@ -966,6 +975,53 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const footingHigh = isDIY
     ? Math.round(footingCostPerUnit * footingCount * 0.7)
     : Math.round(footingCostPerUnit * footingCount * 2.0);
+
+  // ── Contractor Footing Spec ──────────────────────────────────────────────
+  // Footing diameter cost delta vs 10" baseline (tube footings).
+  // Concrete volume scales with r²: 8"=50.3in², 10"=78.5in², 12"=113in², 16"=201in²
+  // Installed cost per footing (materials + labor + tube form + concrete):
+  //   8": $55–$90   (less concrete, faster drill, lighter load capacity)
+  //   10": $68–$120  (baseline — most common residential)
+  //   12": $90–$160  (heavier loads, larger decks, steel framing)
+  //   16": $145–$240 (commercial-grade, high-load, frost-heave zones)
+  // Sources: HomeGuide 2026, Angi 2026, contractor field data (Facebook Decking Pros Apr 2026)
+  // Helical piers: $250–$450/pier installed (no excavation, instant load, expansive soils)
+  // Sources: Foundation Supportworks, GoliathTech, contractor field data Apr 2026
+  const footingDiameterIn = isContractor
+    ? ((inputs.footingDiameterIn ?? 10) as 8 | 10 | 12 | 16)
+    : 10;
+  const useHelicalPiers = isContractor && (inputs.useHelicalPiers ?? false);
+
+  // Per-footing cost for each diameter (low, high) — installed, contractor
+  const FOOTING_DIAMETER_COST: Record<8 | 10 | 12 | 16, [number, number]> = {
+    8:  [55,  90],
+    10: [68,  120],  // baseline
+    12: [90,  160],
+    16: [145, 240],
+  };
+  // Helical pier cost per pier (installed, contractor)
+  const HELICAL_PIER_COST: [number, number] = [250, 450];
+
+  // Cost delta vs 10" baseline tube footing (or vs tube footing if switching to helical)
+  let footingSpecCostLow = 0;
+  let footingSpecCostHigh = 0;
+  if (isContractor) {
+    if (useHelicalPiers) {
+      // Full replacement: helical pier cost - baseline 10" tube cost
+      const baselineLow  = FOOTING_DIAMETER_COST[10][0] * footingCount;
+      const baselineHigh = FOOTING_DIAMETER_COST[10][1] * footingCount;
+      const helicalLow   = HELICAL_PIER_COST[0] * footingCount;
+      const helicalHigh  = HELICAL_PIER_COST[1] * footingCount;
+      footingSpecCostLow  = helicalLow  - baselineLow;
+      footingSpecCostHigh = helicalHigh - baselineHigh;
+    } else {
+      // Diameter delta vs 10" baseline
+      const [dLow,  dHigh]  = FOOTING_DIAMETER_COST[footingDiameterIn];
+      const [bLow,  bHigh]  = FOOTING_DIAMETER_COST[10];
+      footingSpecCostLow  = (dLow  - bLow)  * footingCount;
+      footingSpecCostHigh = (dHigh - bHigh) * footingCount;
+    }
+  }
 
   // Stairs
   // Per-step rates are FULLY INSTALLED costs (stringers, treads, risers, hardware, concrete landing pad, labor).
@@ -1231,8 +1287,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh;
+  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow + footingSpecCostLow;
+  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh + footingSpecCostHigh;
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown
@@ -1538,6 +1594,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     railingHigh,
     footingLow,
     footingHigh,
+    footingCount,
+    footingDiameterIn,
+    useHelicalPiers,
+    footingSpecCostLow,
+    footingSpecCostHigh,
     stairsLow,
     stairsHigh,
     stairRailingLow,
