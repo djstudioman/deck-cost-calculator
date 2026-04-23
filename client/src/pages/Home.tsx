@@ -49,22 +49,22 @@ import {
 // Shared steps 0–5 are the same for all audiences.
 // Steps 6–7 branch by audience.
 
-const SHARED_STEP_LABELS = [
+// Base shared steps (0–4): Audience, Region, Size, Material, Complexity
+const SHARED_BASE_LABELS = [
   "Who are you?",
   "Your Region",
   "Deck Size",
   "Material Tier",
   "Complexity",
-  "Railing & Extras",
 ];
 
-const DIY_EXTRA_LABELS = ["Skill & Tools", "Permit"];
-const CONTRACTOR_EXTRA_LABELS = ["Markup & Crew", "Subcontracting", "Framing System", "Permit"];
-
 function getStepLabels(audience: AudienceType): string[] {
-  if (audience === "diy") return [...SHARED_STEP_LABELS, ...DIY_EXTRA_LABELS];
-  if (audience === "contractor") return [...SHARED_STEP_LABELS, ...CONTRACTOR_EXTRA_LABELS];
-  return [...SHARED_STEP_LABELS, "Permit"]; // homeowner
+  if (audience === "diy")
+    return [...SHARED_BASE_LABELS, "Railing & Extras", "Skill & Tools", "Permit"];
+  if (audience === "contractor")
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Subcontracting", "Permit"];
+  // homeowner
+  return [...SHARED_BASE_LABELS, "Railing & Extras", "Permit"];
 }
 
 function getTotalSteps(audience: AudienceType): number {
@@ -196,11 +196,29 @@ export default function Home() {
     [confirmedStep, step, goNext]
   );
 
+  // After Complexity (step 4), non-contractor audiences skip step 5 (Framing) and jump to step 6 (Railing)
+  const goNextFromComplexity = useCallback(() => {
+    setConfirmedStep(null);
+    if (audience !== "contractor") {
+      // Skip the contractor-only Framing step
+      if (step + 2 < totalSteps) setStep((s) => s + 2);
+      else setShowResults(true);
+    } else {
+      goNext();
+    }
+  }, [audience, step, totalSteps, goNext]);
+
   const goBack = useCallback(() => {
     setConfirmedStep(null);
-    if (showResults) setShowResults(false);
-    else if (step > 0) setStep((s) => s - 1);
-  }, [step, showResults]);
+    if (showResults) {
+      setShowResults(false);
+    } else if (step === 6 && audience !== "contractor") {
+      // Skip back over the contractor-only Framing step (step 5)
+      setStep(4);
+    } else {
+      setStep((s) => Math.max(0, s - 1));
+    }
+  }, [step, audience, showResults]);
 
   const restart = useCallback(() => {
     setStep(0);
@@ -1042,7 +1060,7 @@ export default function Home() {
                       ? "More complex designs require more skill, time, and tools."
                       : "Multi-level and custom designs add 50–100% to labor costs."
                   }
-                  onNext={goNext}
+                  onNext={goNextFromComplexity}
                   onBack={goBack}
                   showTapHint={confirmedStep === step}
                   accentBtnClass={ac.btnClass}
@@ -1078,8 +1096,95 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── STEP 5: RAILING & EXTRAS ── */}
-              {step === 5 && (
+              {/* ── CONTRACTOR STEP 5: FRAMING SYSTEM ── */}
+              {step === 5 && audience === "contractor" && (
+                <StepCard
+                  title="Framing system"
+                  subtitle="The structural framing is the skeleton of your deck. Material choice affects cost, longevity, and installation time."
+                  onNext={goNext}
+                  showTapHint={confirmedStep === step}
+                  onBack={goBack}
+                  nextLabel="Continue →"
+                  accentBtnClass={ac.btnClass}
+                >
+                  <div className="space-y-3">
+                    <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-1`}>Select framing material</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {FRAMING_OPTIONS.map((f) => {
+                        const isSelected = framingId === f.id;
+                        const costDelta = isSelected
+                          ? (result.framingCostLow === 0 && result.framingCostHigh === 0
+                              ? "Included in base"
+                              : `+${formatRange(result.framingCostLow, result.framingCostHigh)}`)
+                          : null;
+                        return (
+                          <button
+                            key={f.id}
+                            onClick={() => selectOrAdvance(framingId === f.id, () => setFramingId(f.id))}
+                            className={cn(
+                              "text-left p-4 rounded-lg border transition-all",
+                              isSelected
+                                ? `${sel.border} ${sel.bg}`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">{f.icon}</span>
+                                <div>
+                                  <div className="font-semibold text-sm text-white">{f.label}</div>
+                                  {f.badge && (
+                                    <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${ac.bgSolid} text-[#0B1120]`}>
+                                      {f.badge}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {isSelected && costDelta && (
+                                <span className={`text-xs font-mono font-semibold ${ac.text} shrink-0`}>{costDelta}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-400 leading-relaxed mb-2">{f.description}</div>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2">
+                              <div>
+                                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Pros</div>
+                                {f.pros.slice(0, 2).map((p, i) => (
+                                  <div key={i} className="text-[10px] text-slate-400 leading-tight">+ {p}</div>
+                                ))}
+                              </div>
+                              <div>
+                                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Cons</div>
+                                {f.cons.slice(0, 2).map((c, i) => (
+                                  <div key={i} className="text-[10px] text-slate-400 leading-tight">− {c}</div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between">
+                              <div className="text-[10px] text-slate-500">Lifespan: <span className="text-slate-400">{f.lifespan}</span></div>
+                              <div className={`text-[10px] font-mono ${isSelected ? ac.text : "text-slate-500"}`}>
+                                ${f.materialCostPerSqFt.low}–${f.materialCostPerSqFt.high}/sqft material
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Cost impact note */}
+                    {framingId !== "pt" && (
+                      <div className={`text-xs ${ac.text} bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 mt-1`}>
+                        <span className="font-semibold">Framing upgrade cost: </span>
+                        {result.framingCostLow === 0 && result.framingCostHigh === 0
+                          ? "No additional cost over standard PT"
+                          : `${formatRange(result.framingCostLow, result.framingCostHigh)} added to your bid (marked up at your margin tier)`
+                        }
+                      </div>
+                    )}
+                  </div>
+                </StepCard>
+              )}
+
+              {/* ── STEP 6: RAILING & EXTRAS ── */}
+              {step === 6 && (
                 <StepCard
                   title="Railing & extras"
                   subtitle="Railing can represent 15–30% of total project cost."
@@ -1266,12 +1371,12 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ══════════════════════════════════════════════════════════════
-                  DIY-SPECIFIC STEPS 6–7
-              ══════════════════════════════════════════════════════════════ */}
+               {/* ════════════════════════════════════════════════════════════
+                  DIY-SPECIFIC STEPS 7–8
+              ════════════════════════════════════════════════════════════ */}
 
-              {/* ── DIY STEP 6: SKILL LEVEL & TOOL RENTAL ── */}
-              {step === 6 && audience === "diy" && (
+              {/* ── DIY STEP 7: SKILL LEVEL & TOOL RENTAL ── */}
+              {step === 7 && audience === "diy" && (
                 <StepCard
                   title="Your skill level & tools"
                   subtitle="Skill level affects material waste. Tool rental adds to your true project cost."
@@ -1371,8 +1476,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── DIY STEP 7: PERMIT ── */}
-              {step === 7 && audience === "diy" && (
+              {/* ── DIY STEP 8: PERMIT ── */}
+              {step === 8 && audience === "diy" && (
                 <StepCard
                   title="Permit & inspection"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
@@ -1448,8 +1553,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── HOMEOWNER STEP 6: PERMIT ── */}
-              {step === 6 && audience === "homeowner" && (
+              {/* ── HOMEOWNER STEP 7: PERMIT ── */}
+              {step === 7 && audience === "homeowner" && (
                 <StepCard
                   title="Permit & inspection"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
@@ -1502,12 +1607,12 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ══════════════════════════════════════════════════════════════
-                  CONTRACTOR-SPECIFIC STEPS 6–8
-              ══════════════════════════════════════════════════════════════ */}
+                  {/* ════════════════════════════════════════════════════════════
+                  CONTRACTOR-SPECIFIC STEPS 7–9
+              ════════════════════════════════════════════════════════════ */}
 
-              {/* ── CONTRACTOR STEP 6: MARKUP & CREW ── */}
-              {step === 6 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 7: MARKUP & CREW ── */}
+              {step === 7 && audience === "contractor" && (
                 <StepCard
                   title="Markup & crew size"
                   subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
@@ -1616,8 +1721,8 @@ export default function Home() {
                 </StepCard>
               )}
 
-              {/* ── CONTRACTOR STEP 7: SUBCONTRACTING ── */}
-              {step === 7 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 8: SUBCONTRACTING ── */}
+              {step === 8 && audience === "contractor" && (
                 <StepCard
                   title="Subcontracting"
                   subtitle="Indicate which work you plan to sub out. Subcontracted work is excluded from your markup."
@@ -1812,93 +1917,6 @@ export default function Home() {
                             {result.contractor.estimatedDays} days
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </StepCard>
-              )}
-
-              {/* ── CONTRACTOR STEP 8: FRAMING SYSTEM ── */}
-              {step === 8 && audience === "contractor" && (
-                <StepCard
-                  title="Framing system"
-                  subtitle="The structural framing is the skeleton of your deck. Material choice affects cost, longevity, and installation time."
-                  onNext={goNext}
-                  showTapHint={confirmedStep === step}
-                  onBack={goBack}
-                  nextLabel="Continue →"
-                  accentBtnClass={ac.btnClass}
-                >
-                  <div className="space-y-3">
-                    <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-1`}>Select framing material</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {FRAMING_OPTIONS.map((f) => {
-                        const isSelected = framingId === f.id;
-                        const costDelta = isSelected
-                          ? (result.framingCostLow === 0 && result.framingCostHigh === 0
-                              ? "Included in base"
-                              : `+${formatRange(result.framingCostLow, result.framingCostHigh)}`)
-                          : null;
-                        return (
-                          <button
-                            key={f.id}
-                            onClick={() => selectOrAdvance(framingId === f.id, () => setFramingId(f.id))}
-                            className={cn(
-                              "text-left p-4 rounded-lg border transition-all",
-                              isSelected
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl">{f.icon}</span>
-                                <div>
-                                  <div className="font-semibold text-sm text-white">{f.label}</div>
-                                  {f.badge && (
-                                    <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${ac.bgSolid} text-[#0B1120]`}>
-                                      {f.badge}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {isSelected && costDelta && (
-                                <span className={`text-xs font-mono font-semibold ${ac.text} shrink-0`}>{costDelta}</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-400 leading-relaxed mb-2">{f.description}</div>
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2">
-                              <div>
-                                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Pros</div>
-                                {f.pros.slice(0, 2).map((p, i) => (
-                                  <div key={i} className="text-[10px] text-slate-400 leading-tight">+ {p}</div>
-                                ))}
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Cons</div>
-                                {f.cons.slice(0, 2).map((c, i) => (
-                                  <div key={i} className="text-[10px] text-slate-400 leading-tight">− {c}</div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="mt-2 flex items-center justify-between">
-                              <div className="text-[10px] text-slate-500">Lifespan: <span className="text-slate-400">{f.lifespan}</span></div>
-                              <div className={`text-[10px] font-mono ${isSelected ? ac.text : "text-slate-500"}`}>
-                                ${f.materialCostPerSqFt.low}–${f.materialCostPerSqFt.high}/sqft material
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {/* Cost impact note */}
-                    {framingId !== "pt" && (
-                      <div className={`text-xs ${ac.text} bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 mt-1`}>
-                        <span className="font-semibold">Framing upgrade cost: </span>
-                        {result.framingCostLow === 0 && result.framingCostHigh === 0
-                          ? "No additional cost over standard PT"
-                          : `${formatRange(result.framingCostLow, result.framingCostHigh)} added to your bid (marked up at your margin tier)`
-                        }
                       </div>
                     )}
                   </div>
