@@ -12,6 +12,7 @@
 export interface BoardSku {
   id: string;
   brandId: string;           // matches DECKING_BRANDS id in deckData.ts
+  manufacturer: string;      // e.g. "Trex", "Fiberon", "TimberTech", "PT Wood"
   productLine: string;       // e.g. "Transcend", "Enhance Basics"
   name: string;              // display name
   nominalWidth: number;      // inches (e.g. 6 for a 1x6)
@@ -60,6 +61,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "trex-enhance-basics-6",
     brandId: "trex-enhance-basics",
+    manufacturer: "Trex",
     productLine: "Enhance Basics",
     name: "Trex Enhance Basics 1×6",
     nominalWidth: 6,
@@ -85,6 +87,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "fiberon-good-life-6-solid",
     brandId: "fiberon-good-life",
+    manufacturer: "Fiberon",
     productLine: "Good Life",
     name: "Fiberon Good Life 1×6 Solid",
     nominalWidth: 6,
@@ -108,6 +111,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "fiberon-good-life-6-grooved",
     brandId: "fiberon-good-life",
+    manufacturer: "Fiberon",
     productLine: "Good Life",
     name: "Fiberon Good Life 1×6 Grooved",
     nominalWidth: 6,
@@ -133,6 +137,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "trex-select-6-solid",
     brandId: "trex-select",
+    manufacturer: "Trex",
     productLine: "Select",
     name: "Trex Select 1×6 Solid",
     nominalWidth: 6,
@@ -155,6 +160,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "trex-select-6-grooved",
     brandId: "trex-select",
+    manufacturer: "Trex",
     productLine: "Select",
     name: "Trex Select 1×6 Grooved",
     nominalWidth: 6,
@@ -179,6 +185,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "trex-transcend-6-solid",
     brandId: "trex-transcend",
+    manufacturer: "Trex",
     productLine: "Transcend",
     name: "Trex Transcend 1×6 Solid",
     nominalWidth: 6,
@@ -201,6 +208,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "trex-transcend-6-grooved",
     brandId: "trex-transcend",
+    manufacturer: "Trex",
     productLine: "Transcend",
     name: "Trex Transcend 1×6 Grooved",
     nominalWidth: 6,
@@ -225,6 +233,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "fiberon-paramount-6-solid",
     brandId: "fiberon-paramount",
+    manufacturer: "Fiberon",
     productLine: "Paramount",
     name: "Fiberon Paramount 1×6 Solid",
     nominalWidth: 6,
@@ -247,6 +256,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "fiberon-paramount-6-grooved",
     brandId: "fiberon-paramount",
+    manufacturer: "Fiberon",
     productLine: "Paramount",
     name: "Fiberon Paramount 1×6 Grooved",
     nominalWidth: 6,
@@ -271,6 +281,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "timbertech-azek-vintage-6-solid",
     brandId: "timbertech-azek",
+    manufacturer: "TimberTech",
     productLine: "AZEK Vintage",
     name: "TimberTech AZEK Vintage 1×6 Solid",
     nominalWidth: 6,
@@ -294,6 +305,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "timbertech-azek-vintage-6-grooved",
     brandId: "timbertech-azek",
+    manufacturer: "TimberTech",
     productLine: "AZEK Vintage",
     name: "TimberTech AZEK Vintage 1×6 Grooved",
     nominalWidth: 6,
@@ -319,6 +331,7 @@ export const DECK_BOARD_SKUS: BoardSku[] = [
   {
     id: "pt-wood-5-4x6",
     brandId: "pt-wood",
+    manufacturer: "PT Wood",
     productLine: "Pressure Treated",
     name: "PT 5/4×6 Decking (SYP)",
     nominalWidth: 6,

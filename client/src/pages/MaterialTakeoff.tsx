@@ -58,10 +58,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const [taxRate, setTaxRate] = useState<number>(0.06);
   const [boardsOverride, setBoardsOverride] = useState<number | null>(null);
   const [unitPriceOverride, setUnitPriceOverride] = useState<number | null>(null);
-  // Which product-line accordion is open in Phase 1
+  // Which manufacturer accordion is open in Phase 1
   const [expandedBoardBrand, setExpandedBoardBrand] = useState<string | null>(() => {
     const def = getDefaultSku(defaultBrandId, preferGrooved) ?? DECK_BOARD_SKUS[0];
-    return def.productLine;
+    return def.manufacturer;
   });
 
   // ── Phase 2 state ──
@@ -118,10 +118,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   // ── Phase 1: Group SKUs by brand for the selector ──
   const skusByBrand = useMemo(() => {
     const groups: Record<string, BoardSku[]> = {};
-    for (const sku of DECK_BOARD_SKUS) {
-      if (!groups[sku.productLine]) groups[sku.productLine] = [];
-      groups[sku.productLine].push(sku);
-    }
+    DECK_BOARD_SKUS.forEach(sku => {
+      if (!groups[sku.manufacturer]) groups[sku.manufacturer] = [];
+      groups[sku.manufacturer].push(sku);
+    });
     return groups;
   }, []);
 
@@ -221,7 +221,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                         {hasSelected && (
                           <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
                         )}
-                        <span className="text-xs text-slate-500">{skus.length} option{skus.length !== 1 ? "s" : ""}</span>
+                        <span className="text-xs text-slate-500">{skus.length} product line{skus.length !== 1 ? "s" : ""}</span>
                       </div>
                       <svg
                         className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
