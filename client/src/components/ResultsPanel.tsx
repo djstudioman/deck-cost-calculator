@@ -279,7 +279,7 @@ function HomeownerPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="text-xs font-semibold tracking-widest text-slate-500 uppercase mb-1">
-              Installed Cost Estimate
+              Contractor Quote Range
             </div>
             <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
               {formatRange(result.totalLow, result.totalHigh)}
@@ -425,7 +425,7 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
               💰 Estimated savings vs. hiring a contractor: <span className="font-mono text-lg text-emerald-300">{formatCurrency(d.savingsVsHiring)}</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Based on regional installed cost estimate for the same project.
+              Based on typical contractor quote range for the same project.
             </div>
           </div>
         )}

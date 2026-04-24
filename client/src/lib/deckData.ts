@@ -176,8 +176,8 @@ export const MATERIAL_TIERS: MaterialTier[] = [
     examples: ["5/4×6 PT #2 SYP", "2×6 PT framing", "PT wood railing"],
     materialPerSqFtMin: 10,
     materialPerSqFtMax: 25,
-    installedPerSqFtMin: 25,
-    installedPerSqFtMax: 44,
+    installedPerSqFtMin: 30,  // contractor quote low (budget tier)
+    installedPerSqFtMax: 75,  // contractor quote high (premium tier)
     lifespan: "15–25 years with maintenance",
     maintenance: "Annual sealing/staining required. ~$200–$500/yr.",
     tariffImpact: "Most affected: PT lumber 15–25% above 2024 levels due to Canadian softwood tariffs.",
@@ -191,8 +191,8 @@ export const MATERIAL_TIERS: MaterialTier[] = [
     examples: ["Trex Select ($10.47–$11.52/SF)", "Fiberon Good Life ($5.89–$6.85/SF)", "TimberTech EDGE ($7.49–$9.51/SF)"],
     materialPerSqFtMin: 15,
     materialPerSqFtMax: 32,
-    installedPerSqFtMin: 35,
-    installedPerSqFtMax: 63,
+    installedPerSqFtMin: 45,  // contractor quote low (budget tier)
+    installedPerSqFtMax: 107, // contractor quote high (premium tier)
     lifespan: "25–30 years",
     maintenance: "Minimal. Annual cleaning ~$50–$150/yr.",
     tariffImpact: "Less affected (domestic manufacturing). Trex confirmed 7.5–15% increases effective 2025.",
@@ -206,8 +206,8 @@ export const MATERIAL_TIERS: MaterialTier[] = [
     examples: ["AZEK Vintage ($16.75/SF)", "Trex Transcend ($15.59/SF)", "Trex Transcend Lineage ($18–$22/SF)"],
     materialPerSqFtMin: 25,
     materialPerSqFtMax: 45,
-    installedPerSqFtMin: 60,
-    installedPerSqFtMax: 133,
+    installedPerSqFtMin: 75,  // contractor quote low (budget tier)
+    installedPerSqFtMax: 200, // contractor quote high (premium tier, AZEK/Transcend Lineage)
     lifespan: "30–50 years",
     maintenance: "Virtually none. Occasional cleaning ~$50/yr.",
     tariffImpact: "Minimal direct impact. Steel tariffs raised connector costs 10–15%.",
@@ -370,31 +370,36 @@ export const RAILING_SYSTEMS: RailingSystem[] = [
 
 // ─── INSTALLED COST LOOKUP TABLE ───────────────────────────────────────────────
 // [sqFt][tier] = { low, high } installed cost (national baseline, before regional multiplier)
+// Contractor-quote-calibrated installed cost table.
+// Values represent what a homeowner will realistically be quoted by a contractor,
+// not the raw installed cost. Low = budget contractor (15% mat / 20% labor / 10% OH),
+// High = premium contractor (30% mat / 45% labor / 20% OH).
+// Sources: HomeAdvisor 2026, Angi 2026, TimberTech/Trex dealer surveys, Reddit r/Decks.
 export const INSTALLED_COST_TABLE: Record<string, Record<string, { low: number; high: number }>> = {
   "100": {
-    pt: { low: 2500, high: 4000 },
-    composite: { low: 3500, high: 6000 },
-    pvc: { low: 6000, high: 12000 },
+    pt: { low: 3000, high: 7000 },
+    composite: { low: 4000, high: 11000 },
+    pvc: { low: 7000, high: 21000 },
   },
   "192": {
-    pt: { low: 4800, high: 8000 },
-    composite: { low: 7000, high: 12000 },
-    pvc: { low: 12000, high: 22000 },
+    pt: { low: 5500, high: 14500 },
+    composite: { low: 8500, high: 21500 },
+    pvc: { low: 14500, high: 39500 },
   },
   "320": {
-    pt: { low: 8000, high: 14000 },
-    composite: { low: 12000, high: 19000 },
-    pvc: { low: 20000, high: 35000 },
+    pt: { low: 9500, high: 25000 },
+    composite: { low: 14500, high: 34000 },
+    pvc: { low: 24000, high: 62500 },
   },
   "480": {
-    pt: { low: 12000, high: 20000 },
-    composite: { low: 18000, high: 28000 },
-    pvc: { low: 30000, high: 55000 },
+    pt: { low: 14500, high: 36000 },
+    composite: { low: 21500, high: 50000 },
+    pvc: { low: 35500, high: 95000 },
   },
   "600": {
-    pt: { low: 15000, high: 25000 },
-    composite: { low: 22000, high: 35000 },
-    pvc: { low: 40000, high: 80000 },
+    pt: { low: 18000, high: 45000 },
+    composite: { low: 26000, high: 62500 },
+    pvc: { low: 47500, high: 120000 },
   },
 };
 
