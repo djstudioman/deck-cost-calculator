@@ -1246,11 +1246,30 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
               <span className="font-mono text-white">{Math.round(c.markupTier.overheadPct * 100)}%</span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-white/[0.06]">
-            <div className="text-xs text-blue-400/80">📊 Sanity Check</div>
-            <div className="text-xs text-slate-500 mt-1">
-              Regional market rate: {formatCurrency(result.totalLow)}–{formatCurrency(result.totalHigh)} installed.
-              Your bid is {c.totalBidLow > result.totalHigh ? "above" : c.totalBidHigh < result.totalLow ? "below" : "within"} market range.
+          <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-2">
+            <div className="text-xs text-blue-400/80">📊 Sanity Check — Bid vs. Market</div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-500">Homeowner installed estimate</span>
+              <span className="font-mono text-slate-300">{formatRange(result.totalLow, result.totalHigh)}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-slate-500">Your pre-markup cost basis</span>
+              <span className="font-mono text-slate-300">{formatCurrency(c.materialCostRaw + c.laborCostRaw)}</span>
+            </div>
+            <div className="flex justify-between text-xs border-t border-white/[0.06] pt-2">
+              <span className="text-slate-400 font-semibold">Your bid range</span>
+              <span className={cn(
+                "font-mono font-bold",
+                c.totalBidLow > result.totalHigh ? "text-amber-400" : c.totalBidHigh < result.totalLow ? "text-red-400" : "text-green-400"
+              )}>{formatRange(c.totalBidLow, c.totalBidHigh)}</span>
+            </div>
+            <div className="text-xs text-slate-600 leading-relaxed">
+              {c.totalBidLow > result.totalHigh
+                ? `Bid is above the homeowner estimate — the ${Math.round(c.markupTier.materialMarkup * 100)}% material + ${Math.round(c.markupTier.laborMarkup * 100)}% labor markup and ${Math.round(c.markupTier.overheadPct * 100)}% overhead account for the difference.`
+                : c.totalBidHigh < result.totalLow
+                ? "Bid is below the homeowner estimate — review your markup tier or overhead allocation."
+                : `Bid is within market range. The difference from the homeowner estimate reflects your ${Math.round(c.markupTier.materialMarkup * 100)}%/${Math.round(c.markupTier.laborMarkup * 100)}% markup and ${Math.round(c.markupTier.overheadPct * 100)}% overhead.`
+              }
             </div>
           </div>
         </div>

@@ -941,27 +941,25 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
         : Math.round(railing.installedPerLFMax * railingLF * railingPremiumMultiplier))
     : 0;
 
-  // ── Contractor Railing Detail ──────────────────────────────────────────────
+  // ── Railing Detail (all paths — contractor overrides defaults, homeowner/DIY use defaults) ────
   // Post count: railingLF / postSpacingFt + 1 corner posts (estimate)
   const postSpacingFt = (inputs.postSpacingFt ?? 6) as 4 | 6 | 8;
   const railingHeightIn = (inputs.railingHeightIn ?? 36) as 36 | 42;
-  const railingPostCount = isContractor && hasRailingSelection
+  const railingPostCount = hasRailingSelection
     ? Math.max(2, Math.round(railingLF / postSpacingFt) + 1)
     : 0;
-
   // Post mount style cost delta per post
-  // Surface-mount: $8–$12/post (hardware + minor labor)
-  // Fascia-mount: $15–$22/post (more complex bracket + fascia board)
+  // Surface-mount: $8–$12/post (hardware + minor labor) — default for homeowner/DIY
+  // Fascia-mount: $15–$22/post (more complex bracket + fascia board) — contractor override
   const postMountId = (inputs.postMountId ?? "surface") as "surface" | "fascia";
   const postMountDeltaLow  = postMountId === "fascia" ? 15 : 8;
   const postMountDeltaHigh = postMountId === "fascia" ? 22 : 12;
-  const railingPostMountCostLow  = isContractor && hasRailingSelection ? railingPostCount * postMountDeltaLow  : 0;
-  const railingPostMountCostHigh = isContractor && hasRailingSelection ? railingPostCount * postMountDeltaHigh : 0;
-
+  const railingPostMountCostLow  = hasRailingSelection ? railingPostCount * postMountDeltaLow  : 0;
+  const railingPostMountCostHigh = hasRailingSelection ? railingPostCount * postMountDeltaHigh : 0;
   // Height premium: 42" requires taller posts and more infill material
-  // +$3–$5/LF over standard 36" height
-  const railingHeightPremiumLow  = isContractor && hasRailingSelection && railingHeightIn === 42 ? Math.round(railingLF * 3) : 0;
-  const railingHeightPremiumHigh = isContractor && hasRailingSelection && railingHeightIn === 42 ? Math.round(railingLF * 5) : 0;
+  // +$3–$5/LF over standard 36" height — default 36" means $0 for homeowner/DIY
+  const railingHeightPremiumLow  = hasRailingSelection && railingHeightIn === 42 ? Math.round(railingLF * 3) : 0;
+  const railingHeightPremiumHigh = hasRailingSelection && railingHeightIn === 42 ? Math.round(railingLF * 5) : 0;
 
   // Combined railing detail cost
   const railingDetailCostLow  = railingPostMountCostLow  + railingHeightPremiumLow;
@@ -1128,10 +1126,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const joistBF16    = joistCount16 * joistLengthFt * (1.5 * 9.25) / 12;
   const joistDeltaBF = joistBoardFeet - joistBF16;
   // Low end: $2.50/BF installed; High end: $3.50/BF installed
-  const joistSpacingCostDeltaLow  = isContractor ? Math.round(joistDeltaBF * 2.50) : 0;
-  const joistSpacingCostDeltaHigh = isContractor ? Math.round(joistDeltaBF * 3.50) : 0;
+  // Applied to all paths — default 16" OC means joistDeltaBF = 0, so $0 for homeowner/DIY
+  const joistSpacingCostDeltaLow  = Math.round(joistDeltaBF * 2.50);
+  const joistSpacingCostDeltaHigh = Math.round(joistDeltaBF * 3.50);
   // For the single-value field used in display/print, use the midpoint
-  const joistSpacingCostDelta = isContractor ? Math.round(joistDeltaBF * 3.00) : 0;
+  const joistSpacingCostDelta = Math.round(joistDeltaBF * 3.00);
 
   // ── Material-Aware Joist Span Warning ────────────────────────────────────────
   // Span limits vary significantly by framing material.
@@ -1198,10 +1197,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const framingMaterialDeltaHigh = Math.max(0, framingOption.materialCostPerSqFt.high - PT_BASELINE_HIGH) * size.sqFt;
   // Labor delta: framing labor is ~30% of total labor; apply the multiplier delta to that fraction
   const framingLaborFraction = 0.30;
-  const framingLaborDeltaLow  = isContractor ? Math.round(adjustedLow  * laborFraction * framingLaborFraction * (framingOption.laborMultiplier - 1.0)) : 0;
-  const framingLaborDeltaHigh = isContractor ? Math.round(adjustedHigh * laborFraction * framingLaborFraction * (framingOption.laborMultiplier - 1.0)) : 0;
-  const framingCostLow  = isContractor ? Math.round(framingMaterialDeltaLow  + framingLaborDeltaLow)  : 0;
-  const framingCostHigh = isContractor ? Math.round(framingMaterialDeltaHigh + framingLaborDeltaHigh) : 0;
+  // Applied to all paths — default PT framing means laborMultiplier = 1.0, so delta = $0 for homeowner/DIY
+  const framingLaborDeltaLow  = Math.round(adjustedLow  * laborFraction * framingLaborFraction * (framingOption.laborMultiplier - 1.0));
+  const framingLaborDeltaHigh = Math.round(adjustedHigh * laborFraction * framingLaborFraction * (framingOption.laborMultiplier - 1.0));
+  const framingCostLow  = Math.round(framingMaterialDeltaLow  + framingLaborDeltaLow);
+  const framingCostHigh = Math.round(framingMaterialDeltaHigh + framingLaborDeltaHigh);
 
   // Multi-level structural premium
   // Sources: HomeAdvisor 2025 ($9–$12/sqft framing labor), O'Keefe Built, Legacy Decking,
