@@ -600,6 +600,30 @@ export default function Home() {
               </motion.div>
             </AnimatePresence>
 
+            {/* DEV SHORTCUT: jump to contractor results instantly */}
+            <button
+              onClick={() => {
+                setAudience("contractor");
+                setRegionId("mid-atlantic");
+                setSizeId("320");
+                setTierId("composite");
+                setComplexityId("standard");
+                setRailingId("composite");
+                setIncludeRailing(true);
+                setIncludeStairs(true);
+                setMarkupTierId("standard");
+                setIncludeCrew(true);
+                setIncludePermit(true);
+                setStep(0);
+                setShowTakeoff(false);
+                setShowResults(true);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 transition-colors text-xs text-amber-400 hover:text-amber-300"
+              title="Dev shortcut: jump to contractor estimate"
+            >
+              <span>⚡ Dev</span>
+            </button>
+
             {/* Saved estimates button */}
             <button
               onClick={() => setShowSavedPanel((v) => !v)}
