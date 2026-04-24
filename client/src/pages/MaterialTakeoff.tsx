@@ -57,6 +57,7 @@ import {
   type HardwareComponentType,
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
+import { exportTakeoffCSV } from "@/lib/exportTakeoffCSV";
 
 interface Props {
   result: CalculatorResult;
@@ -410,6 +411,53 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
   // ── Grand total ──
   const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total + stairTakeoff.total + hardwareTakeoff.total;
+
+  // ── CSV Export ──
+  function handleExportCSV() {
+    const projectLabel = `${deckAreaSqFt} sq ft ${result.tier?.label ?? "Deck"} — ${result.region?.label ?? ""}`;
+    exportTakeoffCSV({
+      boardSku: selectedSku,
+      boardTakeoff: takeoff,
+      wasteFactor,
+      fastenerSku: fastenerTakeoff.sku,
+      fastenerTakeoff,
+      fastenerBoxQty: fastenerTakeoff.unitsEdited,
+      lumberSku: joistSku,
+      lumberTakeoff,
+      joistLengthFt,
+      joistSpacingLabel: `${joistSpacingIn}"`,
+      footingConcreteSku: concreteSku,
+      footingPostBaseSku: postBaseSku,
+      footingTakeoff,
+      tubeDiameterIn,
+      footingDepthIn: Math.round(footingDepthFt * 12),
+      railingSkus: [
+        { component: "Post Sleeves", sku: postRailSku },
+        { component: "Top Rail", sku: topRailSku },
+        { component: "Bottom Rail", sku: bottomRailSku },
+        { component: "Balusters", sku: balustrSku },
+        { component: "Post Caps", sku: postCapRailSku },
+      ],
+      railingTakeoff,
+      railingLF,
+      railingBrand,
+      treadSku,
+      stringerSku,
+      bracketSku: stringerBracketSku,
+      treadHardwareSku,
+      stairTakeoff,
+      joistHangerSku,
+      postCapSku: hwPostCapSku,
+      ledgerFlashingSku,
+      structuralScrewSku,
+      joistTapeSku,
+      hardwareTakeoff,
+      ledgerLF,
+      taxRate,
+      grandTotal,
+      projectLabel,
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -2090,19 +2138,32 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
       </div>
 
       {/* ── Navigation ── */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
         <button
           onClick={onBack}
           className="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm font-medium hover:border-slate-500 hover:text-white transition-all"
         >
           ← Back to Estimate
         </button>
-        <button
-          onClick={onFinish}
-          className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
-        >
-          Done ✓
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="px-5 py-2.5 rounded-lg border border-amber-600/60 text-amber-400 text-sm font-medium hover:border-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export CSV
+          </button>
+          <button
+            onClick={onFinish}
+            className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
+          >
+            Done ✓
+          </button>
+        </div>
       </div>
     </div>
   );
