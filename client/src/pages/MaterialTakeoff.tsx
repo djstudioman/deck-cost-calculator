@@ -93,7 +93,20 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   });
   const [boardLengthFt, setBoardLengthFt] = useState<number>(16);
   const [wasteFactor, setWasteFactor] = useState<number>(0.10);
-  const [selectedStateCode, setSelectedStateCode] = useState<string>("");
+  // Map wizard region → most representative state for default tax pre-fill
+  const REGION_DEFAULT_STATE: Record<string, string> = {
+    "southeast":        "GA",  // Georgia 7.32%
+    "southwest":        "TX",  // Texas 8.19%
+    "midwest":          "OH",  // Ohio 7.22%
+    "mid-atlantic":     "MD",  // Maryland 6.00%
+    "northeast":        "NY",  // New York 8.52%
+    "mountain-west":    "CO",  // Colorado 7.73%
+    "pacific-northwest":"WA",  // Washington 9.21%
+    "california":       "CA",  // California 8.68%
+  };
+  const [selectedStateCode, setSelectedStateCode] = useState<string>(
+    () => REGION_DEFAULT_STATE[result.region?.id ?? ""] ?? ""
+  );
   const taxRate = selectedStateCode
     ? (STATE_TAX_RATES.find(s => s.code === selectedStateCode)?.rate ?? 0)
     : 0;
