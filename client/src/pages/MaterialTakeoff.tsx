@@ -43,6 +43,12 @@ import {
   estimateRailingLF,
   type RailingSku,
   type RailingComponentType,
+  STAIR_SKUS,
+  calculateStairTakeoff,
+  getStairSkusByComponent,
+  getDefaultStairSkus,
+  type StairSku,
+  type StairComponentType,
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
 
@@ -315,8 +321,49 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const railingSkusByManufacturer = useMemo(() => getRailingSkusByManufacturer(), []);
   const isPhase5Edited = railPostQtyOverride !== null || railTopQtyOverride !== null || railBottomQtyOverride !== null || railBalustrQtyOverride !== null || railCapQtyOverride !== null;
 
+  // ── Phase 6 state ──
+  const defaultStair = useMemo(() => getDefaultStairSkus(), []);
+  const [deckHeightIn, setDeckHeightIn] = useState<number>(48);
+  const [stairWidthIn, setStairWidthIn] = useState<number>(36);
+  const [riseIn, setRiseIn] = useState<number>(7);
+  const [runIn, setRunIn] = useState<number>(10);
+  const [treadSkuId, setTreadSkuId] = useState<string>(defaultStair.treadSku.id);
+  const [stringerSkuId, setStringerSkuId] = useState<string>(defaultStair.stringerSku.id);
+  const [stringerBracketSkuId, setStringerBracketSkuId] = useState<string>(defaultStair.stringerBracketSku.id);
+  const [treadHardwareSkuId, setTreadHardwareSkuId] = useState<string>(defaultStair.treadHardwareSku.id);
+  const [stairStepOverride, setStairStepOverride] = useState<number | null>(null);
+  const [stairStringerOverride, setStairStringerOverride] = useState<number | null>(null);
+  const [stairTreadQtyOverride, setStairTreadQtyOverride] = useState<number | null>(null);
+  const [stairBracketQtyOverride, setStairBracketQtyOverride] = useState<number | null>(null);
+  const [stairHardwareQtyOverride, setStairHardwareQtyOverride] = useState<number | null>(null);
+  const [expandedStairComponent, setExpandedStairComponent] = useState<StairComponentType | null>("tread");
+
+  const treadSku: StairSku = useMemo(() => STAIR_SKUS.find(s => s.id === treadSkuId) ?? defaultStair.treadSku, [treadSkuId, defaultStair]);
+  const stringerSku: StairSku = useMemo(() => STAIR_SKUS.find(s => s.id === stringerSkuId) ?? defaultStair.stringerSku, [stringerSkuId, defaultStair]);
+  const stringerBracketSku: StairSku = useMemo(() => STAIR_SKUS.find(s => s.id === stringerBracketSkuId) ?? defaultStair.stringerBracketSku, [stringerBracketSkuId, defaultStair]);
+  const treadHardwareSku: StairSku = useMemo(() => STAIR_SKUS.find(s => s.id === treadHardwareSkuId) ?? defaultStair.treadHardwareSku, [treadHardwareSkuId, defaultStair]);
+
+  const stairTakeoff = useMemo(() => calculateStairTakeoff({
+    deckHeightIn,
+    stairWidthIn,
+    riseIn,
+    runIn,
+    treadSku,
+    stringerSku,
+    stringerBracketSku,
+    treadHardwareSku,
+    stepCountOverride: stairStepOverride ?? undefined,
+    stringerCountOverride: stairStringerOverride ?? undefined,
+    treadQtyOverride: stairTreadQtyOverride ?? undefined,
+    stringerBracketQtyOverride: stairBracketQtyOverride ?? undefined,
+    treadHardwareQtyOverride: stairHardwareQtyOverride ?? undefined,
+    taxRate,
+  }), [deckHeightIn, stairWidthIn, riseIn, runIn, treadSku, stringerSku, stringerBracketSku, treadHardwareSku, stairStepOverride, stairStringerOverride, stairTreadQtyOverride, stairBracketQtyOverride, stairHardwareQtyOverride, taxRate]);
+
+  const isPhase6Edited = stairStepOverride !== null || stairStringerOverride !== null || stairTreadQtyOverride !== null || stairBracketQtyOverride !== null || stairHardwareQtyOverride !== null;
+
   // ── Grand total ──
-  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total;
+  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total + stairTakeoff.total;
 
   return (
     <div className="space-y-6">
@@ -1557,16 +1604,233 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
+      {/* ══════════════════════════════════════════════════════════════
+          PHASE 6: STAIRS
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+        <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 6</span>
+            <span className="text-white font-semibold">Stairs</span>
+          </div>
+          <span className="text-xs text-slate-400">Category 6 of 7</span>
+        </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* Stair geometry inputs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Deck Height (in)</label>
+              <input type="number" min={12} max={240} step={1}
+                value={deckHeightIn}
+                onChange={e => setDeckHeightIn(Math.max(12, parseInt(e.target.value) || 48))}
+                className="w-full bg-slate-700 border border-slate-500 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-400" />
+              <div className="text-[11px] text-slate-500 mt-1">Total rise above grade</div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Stair Width</label>
+              <div className="flex gap-2">
+                {[36, 48].map(w => (
+                  <button key={w} onClick={() => setStairWidthIn(w)}
+                    className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                      stairWidthIn === w ? "border-amber-500 bg-amber-500/10 text-amber-300" : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                    }`}>{w}"</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Rise per Step (in)</label>
+              <div className="flex gap-2">
+                {[6.5, 7, 7.5].map(r => (
+                  <button key={r} onClick={() => setRiseIn(r)}
+                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                      riseIn === r ? "border-amber-500 bg-amber-500/10 text-amber-300" : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                    }`}>{r}"</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Run per Step (in)</label>
+              <div className="flex gap-2">
+                {[10, 11, 12].map(r => (
+                  <button key={r} onClick={() => setRunIn(r)}
+                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                      runIn === r ? "border-amber-500 bg-amber-500/10 text-amber-300" : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                    }`}>{r}"</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Geometry summary */}
+          <div className="bg-slate-900/40 border border-slate-700 rounded-lg px-4 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div><div className="text-lg font-bold text-amber-300">{stairTakeoff.stepCountCalc}</div><div className="text-[11px] text-slate-500 uppercase tracking-wider">Steps</div></div>
+            <div><div className="text-lg font-bold text-amber-300">{stairTakeoff.stringerCountCalc}</div><div className="text-[11px] text-slate-500 uppercase tracking-wider">Stringers</div></div>
+            <div><div className="text-lg font-bold text-amber-300">{stairTakeoff.stringerLengthFt} ft</div><div className="text-[11px] text-slate-500 uppercase tracking-wider">Stringer Length</div></div>
+            <div><div className="text-lg font-bold text-amber-300">{stairWidthIn}"</div><div className="text-[11px] text-slate-500 uppercase tracking-wider">Stair Width</div></div>
+          </div>
+
+          {/* Component accordions */}
+          {([
+            { type: "tread" as StairComponentType, label: "Stair Treads", skuId: treadSkuId, setSkuId: setTreadSkuId },
+            { type: "stringer" as StairComponentType, label: "Stringers", skuId: stringerSkuId, setSkuId: setStringerSkuId },
+            { type: "stringer-bracket" as StairComponentType, label: "Stringer Brackets & Hardware", skuId: stringerBracketSkuId, setSkuId: setStringerBracketSkuId },
+            { type: "tread-hardware" as StairComponentType, label: "Tread Fasteners", skuId: treadHardwareSkuId, setSkuId: setTreadHardwareSkuId },
+          ]).map(({ type, label, skuId, setSkuId }) => {
+            const skus = getStairSkusByComponent(type);
+            const isOpen = expandedStairComponent === type;
+            const hasSelected = skus.some(s => s.id === skuId);
+            return (
+              <div key={type} className={`rounded-xl border transition-all ${
+                hasSelected ? "border-amber-500/60" : "border-slate-600"
+              }`}>
+                <button
+                  onClick={() => setExpandedStairComponent(isOpen ? null : type)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-semibold ${hasSelected ? "text-amber-300" : "text-slate-200"}`}>{label}</span>
+                    {hasSelected && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
+                    )}
+                    <span className="text-xs text-slate-500">{skus.length} option{skus.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isOpen && (
+                  <div className="px-3 pb-3 space-y-2">
+                    {skus.map(sku => (
+                      <button key={sku.id} onClick={() => setSkuId(sku.id)}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                          skuId === sku.id
+                            ? "border-amber-500 bg-amber-500/10 text-white"
+                            : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+                        }`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-600/60 text-slate-400">{sku.manufacturer}</span>
+                              <span className="text-sm font-medium text-white">{sku.name.replace(sku.manufacturer + " ", "")}</span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">{sku.description}</div>
+                            {sku.notes && <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>}
+                          </div>
+                          <div className="text-right shrink-0 ml-2">
+                            <div className="text-sm font-bold text-amber-300">${sku.contractorPricePerUnit.toFixed(2)}/{sku.unit}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Takeoff table */}
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">Stair Takeoff</div>
+            <div className="grid grid-cols-3 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-700">
+              <span>Item</span><span className="text-center">Qty</span><span className="text-right">Amount</span>
+            </div>
+            {/* Steps / Treads */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Stair treads</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={stairTreadQtyOverride ?? stairTakeoff.treadQtyEdited}
+                  onChange={e => setStairTreadQtyOverride(Math.max(1, parseInt(e.target.value) || stairTakeoff.treadQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.treadSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{treadSku.name.split(" — ")[0]}</span>
+              <span /><span className="text-right">${stairTakeoff.treadUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Stringers */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Stringers</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={stairStringerOverride ?? stairTakeoff.stringerCountEdited}
+                  onChange={e => setStairStringerOverride(Math.max(1, parseInt(e.target.value) || stairTakeoff.stringerCountCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.stringerSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{stringerSku.name.split(" — ")[0]}</span>
+              <span /><span className="text-right">${stairTakeoff.stringerUnitPrice.toFixed(2)}/ea · ~{stairTakeoff.stringerLengthFt} ft ea</span>
+            </div>
+            {/* Stringer brackets */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Stringer brackets</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={stairBracketQtyOverride ?? stairTakeoff.stringerBracketQtyEdited}
+                  onChange={e => setStairBracketQtyOverride(Math.max(1, parseInt(e.target.value) || stairTakeoff.stringerBracketQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.stringerBracketSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{stringerBracketSku.name.split(" — ")[0]}</span>
+              <span /><span className="text-right">${stairTakeoff.stringerBracketUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Tread hardware */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Tread fasteners</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={stairHardwareQtyOverride ?? stairTakeoff.treadHardwareQtyEdited}
+                  onChange={e => setStairHardwareQtyOverride(Math.max(1, parseInt(e.target.value) || stairTakeoff.treadHardwareQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.treadHardwareSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{treadHardwareSku.name.split(" — ")[0]}</span>
+              <span /><span className="text-right">${stairTakeoff.treadHardwareUnitPrice.toFixed(2)}/{treadHardwareSku.unit}</span>
+            </div>
+            {/* Subtotals */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Subtotal (materials)</span><span />
+              <span className="text-right text-slate-200 font-semibold">{formatTakeoffCurrency(stairTakeoff.subtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Sales tax ({(taxRate * 100).toFixed(2)}%)</span><span />
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.taxAmount)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-3 bg-slate-700/30">
+              <span className="text-white font-bold text-base">Total — Stairs</span><span />
+              <span className="text-right text-emerald-400 font-bold text-xl">{formatTakeoffCurrency(stairTakeoff.total)}</span>
+            </div>
+          </div>
+
+          {isPhase6Edited && (
+            <button
+              onClick={() => { setStairStepOverride(null); setStairStringerOverride(null); setStairTreadQtyOverride(null); setStairBracketQtyOverride(null); setStairHardwareQtyOverride(null); }}
+              className="text-xs text-amber-400 hover:text-amber-300 underline"
+            >Reset to calculated values</button>
+          )}
+        </div>
+      </div>
+
       {/* ── Running Grand Total ── */}
       <div className="bg-slate-800/80 border border-emerald-500/30 rounded-xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–5)</div>
-            <div className="text-sm text-slate-500">Boards + fasteners + framing + footings + railing · tax included</div>
+            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–6)</div>
+            <div className="text-sm text-slate-500">Boards + fasteners + framing + footings + railing + stairs · tax included</div>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
-            <div className="text-xs text-slate-500 mt-0.5">2 more categories remaining</div>
+            <div className="text-xs text-slate-500 mt-0.5">1 more category remaining</div>
           </div>
         </div>
       </div>
@@ -1574,16 +1838,9 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
       {/* ── Coming Next ── */}
       <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Coming Next in Material Takeoff</div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            "Stairs (stringers, treads, risers)",
-            "Hardware & misc (hangers, flashing)",
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">{i + 6}</span>
-              {item}
-            </div>
-          ))}
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">7</span>
+          Hardware &amp; misc (joist hangers, flashing, post caps)
         </div>
       </div>
 

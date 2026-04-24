@@ -2189,3 +2189,408 @@ export function estimateRailingLF(deckWidthFt: number, deckLengthFt: number): nu
   // 3 sides: 2 × width + 1 × length (house side has no railing)
   return Math.round(2 * deckWidthFt + deckLengthFt);
 }
+
+// ─── PHASE 6: STAIRS SKUs ─────────────────────────────────────────────────────
+// Stair components:
+//   Stringers: PT lumber 2×12 (cut or pre-notched), typically 3 stringers per 36" wide stair
+//   Treads: composite (Trex, TimberTech) or PT 5/4×6 decking
+//   Risers: composite or PVC (optional — open risers common)
+//   Hardware: stringer-to-deck brackets, tread clips, angle brackets, galvanized bolts
+//
+// Standard stair geometry:
+//   Rise: 7" per step (IRC max 7.75")
+//   Run: 10" per step (IRC min 10")
+//   Total rise = deck height above grade
+//   Number of steps = ceil(totalRiseIn / 7)
+//   Stringer length (approx) = sqrt(totalRise² + totalRun²)
+//   Stringers per stair run: 3 for 36" width, 4 for 48" width
+//
+// 2026 contractor pricing:
+//   Trex Transcend Stair Tread 6': ~$38–$48
+//   TimberTech Stair Tread 6': ~$36–$45
+//   PT 2×12×12 stringer: ~$28–$38
+//   Simpson Strong-Tie stringer bracket: ~$6–$12
+//   Galvanized carriage bolt kit: ~$8–$15
+
+export type StairComponentType = "tread" | "riser" | "stringer" | "stringer-bracket" | "tread-hardware";
+
+export interface StairSku {
+  id: string;
+  manufacturer: string;
+  productLine: string;
+  name: string;
+  description: string;
+  componentType: StairComponentType;
+  unit: string;
+  lengthFt?: number;
+  contractorPricePerUnit: number;
+  notes?: string;
+}
+
+export interface StairTakeoffInputs {
+  deckHeightIn: number;       // total rise in inches (deck surface above grade)
+  stairWidthIn: number;       // 36 or 48 inches
+  riseIn: number;             // target rise per step (default 7)
+  runIn: number;              // target run per step (default 10)
+  treadSku: StairSku;
+  stringerSku: StairSku;
+  stringerBracketSku: StairSku;
+  treadHardwareSku: StairSku;
+  // overrides
+  stepCountOverride?: number;
+  stringerCountOverride?: number;
+  treadQtyOverride?: number;
+  stringerBracketQtyOverride?: number;
+  treadHardwareQtyOverride?: number;
+  taxRate: number;
+}
+
+export interface StairTakeoffResult {
+  deckHeightIn: number;
+  stairWidthIn: number;
+  riseIn: number;
+  runIn: number;
+  stepCountCalc: number;
+  stepCountEdited: number;
+  stringerCountCalc: number;
+  stringerCountEdited: number;
+  stringerLengthFt: number;
+  // Treads
+  treadQtyCalc: number;
+  treadQtyEdited: number;
+  treadUnitPrice: number;
+  treadSubtotal: number;
+  // Stringers
+  stringerUnitPrice: number;
+  stringerSubtotal: number;
+  // Stringer brackets
+  stringerBracketQtyCalc: number;
+  stringerBracketQtyEdited: number;
+  stringerBracketUnitPrice: number;
+  stringerBracketSubtotal: number;
+  // Tread hardware
+  treadHardwareQtyCalc: number;
+  treadHardwareQtyEdited: number;
+  treadHardwareUnitPrice: number;
+  treadHardwareSubtotal: number;
+  // Totals
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+}
+
+export function calculateStairTakeoff(inputs: StairTakeoffInputs): StairTakeoffResult {
+  const {
+    deckHeightIn, stairWidthIn, riseIn, runIn,
+    treadSku, stringerSku, stringerBracketSku, treadHardwareSku,
+    stepCountOverride, stringerCountOverride,
+    treadQtyOverride, stringerBracketQtyOverride, treadHardwareQtyOverride,
+    taxRate,
+  } = inputs;
+
+  // Steps
+  const stepCountCalc = Math.ceil(deckHeightIn / riseIn);
+  const stepCountEdited = stepCountOverride ?? stepCountCalc;
+
+  // Stringers: 3 for 36", 4 for 48"+
+  const stringersPerRun = stairWidthIn <= 36 ? 3 : 4;
+  const stringerCountCalc = stringerCountOverride ?? stringersPerRun;
+  const stringerCountEdited = stringerCountCalc;
+
+  // Stringer length (hypotenuse of total rise × total run)
+  const totalRiseIn = stepCountEdited * riseIn;
+  const totalRunIn = stepCountEdited * runIn;
+  const stringerLengthFt = Math.round(Math.sqrt(totalRiseIn ** 2 + totalRunIn ** 2) / 12 * 10) / 10;
+
+  // Treads: one per step (6 ft tread covers 36" or 48" width)
+  const treadQtyCalc = stepCountEdited;
+  const treadQtyEdited = treadQtyOverride ?? treadQtyCalc;
+  const treadUnitPrice = treadSku.contractorPricePerUnit;
+  const treadSubtotal = Math.round(treadQtyEdited * treadUnitPrice * 100) / 100;
+
+  // Stringers
+  const stringerUnitPrice = stringerSku.contractorPricePerUnit;
+  const stringerSubtotal = Math.round(stringerCountEdited * stringerUnitPrice * 100) / 100;
+
+  // Stringer brackets: 2 per stringer (top and bottom attachment)
+  const stringerBracketQtyCalc = stringerCountEdited * 2;
+  const stringerBracketQtyEdited = stringerBracketQtyOverride ?? stringerBracketQtyCalc;
+  const stringerBracketUnitPrice = stringerBracketSku.contractorPricePerUnit;
+  const stringerBracketSubtotal = Math.round(stringerBracketQtyEdited * stringerBracketUnitPrice * 100) / 100;
+
+  // Tread hardware: 1 kit per step (clips + screws)
+  const treadHardwareQtyCalc = stepCountEdited;
+  const treadHardwareQtyEdited = treadHardwareQtyOverride ?? treadHardwareQtyCalc;
+  const treadHardwareUnitPrice = treadHardwareSku.contractorPricePerUnit;
+  const treadHardwareSubtotal = Math.round(treadHardwareQtyEdited * treadHardwareUnitPrice * 100) / 100;
+
+  const subtotal = Math.round((treadSubtotal + stringerSubtotal + stringerBracketSubtotal + treadHardwareSubtotal) * 100) / 100;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const total = Math.round((subtotal + taxAmount) * 100) / 100;
+
+  return {
+    deckHeightIn, stairWidthIn, riseIn, runIn,
+    stepCountCalc, stepCountEdited,
+    stringerCountCalc, stringerCountEdited, stringerLengthFt,
+    treadQtyCalc, treadQtyEdited, treadUnitPrice, treadSubtotal,
+    stringerUnitPrice, stringerSubtotal,
+    stringerBracketQtyCalc, stringerBracketQtyEdited, stringerBracketUnitPrice, stringerBracketSubtotal,
+    treadHardwareQtyCalc, treadHardwareQtyEdited, treadHardwareUnitPrice, treadHardwareSubtotal,
+    subtotal, taxRate, taxAmount, total,
+  };
+}
+
+// ─── STAIR SKU CATALOG ────────────────────────────────────────────────────────
+
+export const STAIR_SKUS: StairSku[] = [
+
+  // ════════════════════════════════════════════════════════════════
+  // TREX — Transcend Stair Treads
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "trex-transcend-tread-6-vintage",
+    manufacturer: "Trex",
+    productLine: "Transcend Stair Treads",
+    name: "Trex Transcend Stair Tread 6 ft — Spiced Rum",
+    description: "Pre-grooved composite stair tread, 6 ft. Capped four sides. Fade and stain resistant. Fits 36\" or 48\" stair width.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 44.98,
+    notes: "Most popular color. Coordinates with Trex Transcend Spiced Rum deck boards.",
+  },
+  {
+    id: "trex-transcend-tread-6-gravel",
+    manufacturer: "Trex",
+    productLine: "Transcend Stair Treads",
+    name: "Trex Transcend Stair Tread 6 ft — Gravel Path",
+    description: "Pre-grooved composite stair tread, 6 ft. Capped four sides. Grey tone.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 44.98,
+    notes: "Coordinates with Trex Transcend Gravel Path deck boards.",
+  },
+  {
+    id: "trex-transcend-tread-6-island",
+    manufacturer: "Trex",
+    productLine: "Transcend Stair Treads",
+    name: "Trex Transcend Stair Tread 6 ft — Island Mist",
+    description: "Pre-grooved composite stair tread, 6 ft. Capped four sides. Light grey tone.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 44.98,
+  },
+  {
+    id: "trex-transcend-tread-6-tiki",
+    manufacturer: "Trex",
+    productLine: "Transcend Stair Treads",
+    name: "Trex Transcend Stair Tread 6 ft — Tiki Torch",
+    description: "Pre-grooved composite stair tread, 6 ft. Capped four sides. Warm brown tone.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 46.48,
+    notes: "Premium color. Coordinates with Tiki Torch deck boards.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // TIMBERTECH — Stair Treads
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "timbertech-tread-6-mocha",
+    manufacturer: "TimberTech",
+    productLine: "AZEK Stair Treads",
+    name: "TimberTech AZEK Stair Tread 6 ft — Mocha",
+    description: "Capped polymer composite stair tread, 6 ft. 100% capped — superior moisture resistance.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 46.98,
+    notes: "AZEK capped polymer — best-in-class moisture and stain resistance.",
+  },
+  {
+    id: "timbertech-tread-6-slate",
+    manufacturer: "TimberTech",
+    productLine: "AZEK Stair Treads",
+    name: "TimberTech AZEK Stair Tread 6 ft — Slate Grey",
+    description: "Capped polymer composite stair tread, 6 ft. Cool grey tone.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 46.98,
+  },
+  {
+    id: "timbertech-tread-6-tigerwood",
+    manufacturer: "TimberTech",
+    productLine: "AZEK Stair Treads",
+    name: "TimberTech AZEK Stair Tread 6 ft — Tigerwood",
+    description: "Capped polymer composite stair tread, 6 ft. Rich brown exotic look.",
+    componentType: "tread",
+    unit: "each",
+    lengthFt: 6,
+    contractorPricePerUnit: 48.48,
+    notes: "Premium exotic color. Coordinates with TimberTech Tigerwood deck boards.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // PT LUMBER — Stringers (2×12)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "pt-stringer-2x12-12",
+    manufacturer: "PT Lumber",
+    productLine: "Pressure-Treated Stringers",
+    name: "PT 2×12×12 Stringer — SYP ACQ",
+    description: "Southern Yellow Pine pressure-treated 2×12, 12 ft. Cut to stringer profile on site. ACQ treatment.",
+    componentType: "stringer",
+    unit: "each",
+    lengthFt: 12,
+    contractorPricePerUnit: 32.98,
+    notes: "Most common stringer stock. Cut to rise/run on site with circular saw.",
+  },
+  {
+    id: "pt-stringer-2x12-16",
+    manufacturer: "PT Lumber",
+    productLine: "Pressure-Treated Stringers",
+    name: "PT 2×12×16 Stringer — SYP ACQ",
+    description: "Southern Yellow Pine pressure-treated 2×12, 16 ft. For taller decks requiring longer stringers.",
+    componentType: "stringer",
+    unit: "each",
+    lengthFt: 16,
+    contractorPricePerUnit: 42.98,
+    notes: "Use for decks 36\"+ above grade requiring longer stringer stock.",
+  },
+  {
+    id: "pt-stringer-precut-36",
+    manufacturer: "PT Lumber",
+    productLine: "Pre-Cut Stringers",
+    name: "Pre-Cut PT Stringer 36\" Rise — 3-Step",
+    description: "Pre-notched pressure-treated stringer for 3-step application. Saves layout and cutting time.",
+    componentType: "stringer",
+    unit: "each",
+    contractorPricePerUnit: 28.48,
+    notes: "Pre-cut saves 15–20 min per stringer. Available at most big-box stores.",
+  },
+  {
+    id: "pt-stringer-precut-48",
+    manufacturer: "PT Lumber",
+    productLine: "Pre-Cut Stringers",
+    name: "Pre-Cut PT Stringer 48\" Rise — 4-Step",
+    description: "Pre-notched pressure-treated stringer for 4-step application.",
+    componentType: "stringer",
+    unit: "each",
+    contractorPricePerUnit: 34.48,
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // SIMPSON STRONG-TIE — Stringer Brackets & Hardware
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "simpson-lscz-stringer-bracket",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "Stringer Connectors",
+    name: "Simpson LSCZ Stair Stringer Connector",
+    description: "Adjustable stringer-to-rim-joist connector. Supports up to 1,500 lb per stringer. Fits 2× lumber.",
+    componentType: "stringer-bracket",
+    unit: "each",
+    contractorPricePerUnit: 9.48,
+    notes: "Code-required connection at top of stringer. Adjustable angle for any rise/run.",
+  },
+  {
+    id: "simpson-lscz-stringer-bottom",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "Stringer Connectors",
+    name: "Simpson A34 Angle Bracket — Stringer Base",
+    description: "Galvanized angle bracket for stringer-to-concrete-pad connection at base. 18-gauge.",
+    componentType: "stringer-bracket",
+    unit: "each",
+    contractorPricePerUnit: 4.98,
+    notes: "Use at bottom of each stringer where it meets the concrete landing pad.",
+  },
+  {
+    id: "simpson-lscz-stringer-hanger",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "Stringer Connectors",
+    name: "Simpson LUS210 Stringer Hanger",
+    description: "Face-mount hanger for 2×10 or 2×12 stringer. Concealed fastener profile.",
+    componentType: "stringer-bracket",
+    unit: "each",
+    contractorPricePerUnit: 7.48,
+    notes: "Alternative to LSCZ for flush-mount stringer attachment to rim joist.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // TREAD HARDWARE — Cortex / Screws
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "trex-cortex-tread-kit",
+    manufacturer: "FastenMaster",
+    productLine: "Cortex Stair Tread Kit",
+    name: "Cortex for Trex Stair Tread — Fastener Kit (per tread)",
+    description: "Hidden fastener kit for Trex Transcend stair treads. Includes plugs and screws for one tread. Color-matched.",
+    componentType: "tread-hardware",
+    unit: "per tread",
+    contractorPricePerUnit: 6.98,
+    notes: "Plug-and-screw system — concealed fasteners, color-matched to tread.",
+  },
+  {
+    id: "deck-drive-tread-screws",
+    manufacturer: "FastenMaster",
+    productLine: "Deck-Drive Stair Screws",
+    name: "Deck-Drive DCU Stair Tread Screws — Box of 100",
+    description: "Stainless steel composite deck screws for stair tread face-fastening. #10 × 2.5\". Box of 100.",
+    componentType: "tread-hardware",
+    unit: "box (100 screws)",
+    contractorPricePerUnit: 18.98,
+    notes: "Face-screw option. One box covers approx. 8–10 treads (10 screws per tread).",
+  },
+  {
+    id: "grk-tread-screws",
+    manufacturer: "GRK",
+    productLine: "RSS Stair Screws",
+    name: "GRK RSS Stair Tread Screws — Box of 100",
+    description: "Stainless steel composite deck screws for stair tread face-fastening. #10 × 2.75\". Box of 100.",
+    componentType: "tread-hardware",
+    unit: "box (100 screws)",
+    contractorPricePerUnit: 21.48,
+    notes: "Premium RSS thread — better pull-out resistance in composite.",
+  },
+];
+
+/** Group stair SKUs by manufacturer */
+export function getStairSkusByManufacturer(): Record<string, StairSku[]> {
+  const groups: Record<string, StairSku[]> = {};
+  STAIR_SKUS.forEach(sku => {
+    if (!groups[sku.manufacturer]) groups[sku.manufacturer] = [];
+    groups[sku.manufacturer].push(sku);
+  });
+  return groups;
+}
+
+/** Get stair SKUs filtered by component type */
+export function getStairSkusByComponent(componentType: StairComponentType): StairSku[] {
+  return STAIR_SKUS.filter(s => s.componentType === componentType);
+}
+
+/** Default stair SKUs */
+export function getDefaultStairSkus(): {
+  treadSku: StairSku;
+  stringerSku: StairSku;
+  stringerBracketSku: StairSku;
+  treadHardwareSku: StairSku;
+} {
+  return {
+    treadSku: STAIR_SKUS.find(s => s.id === "trex-transcend-tread-6-vintage")!,
+    stringerSku: STAIR_SKUS.find(s => s.id === "pt-stringer-2x12-12")!,
+    stringerBracketSku: STAIR_SKUS.find(s => s.id === "simpson-lscz-stringer-bracket")!,
+    treadHardwareSku: STAIR_SKUS.find(s => s.id === "trex-cortex-tread-kit")!,
+  };
+}
+
+/** Estimate deck height from tier (rough estimate for stair calc) */
+export function estimateDeckHeightIn(deckHeightCategory: "ground" | "mid" | "elevated"): number {
+  const map: Record<string, number> = { ground: 24, mid: 48, elevated: 84 };
+  return map[deckHeightCategory] ?? 48;
+}
