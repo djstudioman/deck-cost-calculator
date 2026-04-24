@@ -10,14 +10,13 @@
 
 import type {
   TakeoffBoardResult,
-  FastenerTakeoffResult,
+  MultiFastenerTakeoffResult,
   LumberTakeoffResult,
   FootingTakeoffResult,
   RailingTakeoffResult,
   StairTakeoffResult,
   HardwareTakeoffResult,
   BoardSku,
-  FastenerSku,
   LumberSku,
   ConcreteSku,
   PostBaseSku,
@@ -25,6 +24,7 @@ import type {
   StairSku,
   HardwareSku,
 } from "./takeoffData";
+import { fastenerCategoryLabel } from "./takeoffData";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -57,9 +57,7 @@ export interface TakeoffExportData {
   boardTakeoff: TakeoffBoardResult;
   wasteFactor: number;
   // Phase 2
-  fastenerSku: FastenerSku;
-  fastenerTakeoff: FastenerTakeoffResult;
-  fastenerBoxQty: number;
+  fastenerTakeoff: MultiFastenerTakeoffResult;
   // Phase 3
   lumberSku: LumberSku;
   lumberTakeoff: LumberTakeoffResult;
@@ -125,18 +123,21 @@ export function exportTakeoffCSV(data: TakeoffExportData): void {
   lines.push(row("", "", `Sales tax (${(data.taxRate * 100).toFixed(2)}%)`, "", "", "", "", currency(data.boardTakeoff.taxAmount)));
   lines.push(row("", "", "Phase 1 TOTAL", "", "", "", "", currency(data.boardTakeoff.total)));
 
-  // ── Phase 2: Fasteners ──
+  // ── Phase 2: Fasteners (multi-line) ──
   lines.push(blank());
   lines.push(row("PHASE 2 — FASTENERS", "", "", "", "", "", "", ""));
-  lines.push(row(
-    "2", "Fasteners",
-    data.fastenerSku.name,
-    `${data.fastenerSku.brand} · ${data.fastenerSku.description}`,
-    data.fastenerSku.unit,
-    data.fastenerTakeoff.unitsEdited,
-    currency(data.fastenerTakeoff.unitPrice),
-    currency(data.fastenerTakeoff.subtotal),
-  ));
+  for (const [cat, lineResult] of Object.entries(data.fastenerTakeoff.lines)) {
+    if (!lineResult) continue;
+    lines.push(row(
+      "2", fastenerCategoryLabel(cat),
+      lineResult.sku.name,
+      `${lineResult.sku.brand} · ${lineResult.basisLabel}`,
+      lineResult.sku.unit,
+      lineResult.unitsEdited,
+      currency(lineResult.unitPrice),
+      currency(lineResult.subtotal),
+    ));
+  }
   lines.push(row("", "", "Phase 2 Subtotal (materials)", "", "", "", "", currency(data.fastenerTakeoff.subtotal)));
   lines.push(row("", "", `Sales tax (${(data.taxRate * 100).toFixed(2)}%)`, "", "", "", "", currency(data.fastenerTakeoff.taxAmount)));
   lines.push(row("", "", "Phase 2 TOTAL", "", "", "", "", currency(data.fastenerTakeoff.total)));

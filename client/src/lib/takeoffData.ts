@@ -430,15 +430,28 @@ export function formatTakeoffCurrency(n: number): string {
 
 export type FastenerSystemId = "none" | "clip" | "cortex";
 
+// Category identifies the structural application of the fastener line.
+// "deck"       — board-to-joist (face screws, hidden clips, Cortex)
+// "ledger"     — ledger-to-rim/band joist (LedgerLOK, Titen HD anchors)
+// "structural" — beam laps, blocking, post-beam connections (GRK RSS, Simpson SDWH)
+// "joist"      — joist toenail / angle-drive to ledger/beam (standard 3" deck screws)
+type FastenerCategory = "deck" | "ledger" | "structural" | "joist";
+
 export interface FastenerSku {
   id: string;
   systemId: FastenerSystemId;
+  category: FastenerCategory;  // application group
   brand: string;             // e.g. "FastenMaster", "CAMO", "GRK"
   name: string;
   description: string;
   unit: string;              // "box", "bag", "pack", "bucket"
   qtyPerUnit: number;        // screws/clips/plugs per unit
-  coverageSqFtPerUnit: number; // sq ft covered per unit (at 16" OC, 6" boards)
+  // For "deck" category: sq ft covered per unit (at 16" OC, 6" boards)
+  // For "ledger" / "structural" / "joist": set to 0 (qty is count-based, not area-based)
+  coverageSqFtPerUnit: number;
+  // For count-based categories: how many fasteners per application point
+  // e.g. ledger: 2 screws per LF; structural: 2 per joist; joist: 2 per joist
+  fastenersPerPoint?: number;
   contractorPricePerUnit: number; // USD, 2026 contractor pricing
   notes?: string;
 }
@@ -454,6 +467,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "fastenmaster-dcu-305ss-100ct",
     systemId: "none",
+    category: "deck",
     brand: "FastenMaster",
     name: "Deck-Drive DCU #10 × 3\" 305 SS (100-ct box)",
     description: "FastenMaster Deck-Drive DCU composite screw. 305 stainless, #10 × 3\", star drive. Designed for composite over PT framing. Reverse-thread tip reduces mushrooming.",
@@ -466,6 +480,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "fastenmaster-dcu-305ss-350ct",
     systemId: "none",
+    category: "deck",
     brand: "FastenMaster",
     name: "Deck-Drive DCU #10 × 3\" 305 SS (350-ct box)",
     description: "FastenMaster Deck-Drive DCU composite screw, bulk box. 305 stainless, #10 × 3\", star drive.",
@@ -478,6 +493,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "fastenmaster-dcu-305ss-1750ct",
     systemId: "none",
+    category: "deck",
     brand: "FastenMaster",
     name: "Deck-Drive DCU #10 × 3\" 305 SS (1,750-ct bucket)",
     description: "FastenMaster Deck-Drive DCU composite screw, contractor bucket. 305 stainless, #10 × 3\", star drive.",
@@ -492,6 +508,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "grk-rss-305ss-100ct",
     systemId: "none",
+    category: "deck",
     brand: "GRK Fasteners",
     name: "GRK RSS #10 × 3\" 305 SS (100-ct box)",
     description: "GRK RSS (Rugged Structural Screw) composite deck screw. 305 stainless, #10 × 3\", W-Cut tip, star drive. Self-countersinking head.",
@@ -504,6 +521,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "grk-rss-305ss-500ct",
     systemId: "none",
+    category: "deck",
     brand: "GRK Fasteners",
     name: "GRK RSS #10 × 3\" 305 SS (500-ct bucket)",
     description: "GRK RSS composite deck screw, bulk bucket. 305 stainless, #10 × 3\", W-Cut tip, star drive.",
@@ -518,6 +536,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "starborn-pro-plug-305ss-100ct",
     systemId: "none",
+    category: "deck",
     brand: "Starborn Industries",
     name: "Starborn Pro Plug #10 × 2-3/4\" 305 SS (100-ct)",
     description: "Starborn Pro Plug System screw for composite decking. 305 stainless, #10 × 2-3/4\", star drive. Countersinks flush for optional plug insert.",
@@ -537,6 +556,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "camo-edge-clip-100pk",
     systemId: "clip",
+    category: "deck",
     brand: "CAMO",
     name: "CAMO Edge Clip (100-pack)",
     description: "CAMO Edge Clip for grooved composite decking. Stainless steel clip snaps into board groove and screws to joist. No face screws visible. Use with CAMO Marksman Pro tool.",
@@ -549,6 +569,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "camo-edge-clip-500pk",
     systemId: "clip",
+    category: "deck",
     brand: "CAMO",
     name: "CAMO Edge Clip (500-pack)",
     description: "CAMO Edge Clip bulk pack for grooved composite decking. Stainless steel, snap-in design.",
@@ -563,6 +584,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "ebty-hidden-clip-175pk",
     systemId: "clip",
+    category: "deck",
     brand: "EB-TY",
     name: "EB-TY Hidden Deck Fastener (175-pack)",
     description: "EB-TY biscuit-style hidden fastener. Fits into a biscuit slot routed in the board edge. Provides a consistent 1/4\" gap. Works with grooved or biscuit-slotted boards.",
@@ -577,6 +599,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "trex-hideaway-universal-175pk",
     systemId: "clip",
+    category: "deck",
     brand: "Trex",
     name: "Trex Hideaway Universal Fastener (175-pack)",
     description: "Trex-branded universal hidden fastener. Fits Trex grooved boards and most other grooved 1×6 composite decking. Stainless steel clip.",
@@ -591,6 +614,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "fiberon-phantom-clip-100pk",
     systemId: "clip",
+    category: "deck",
     brand: "Fiberon",
     name: "Fiberon Phantom Hidden Fastener (100-pack)",
     description: "Fiberon-branded hidden clip for Fiberon grooved composite boards. Stainless steel, snap-in design.",
@@ -609,6 +633,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "cortex-composite-100pk",
     systemId: "cortex",
+    category: "deck",
     brand: "FastenMaster",
     name: "Cortex for Composite — 100-pack",
     description: "Cortex by FastenMaster hidden fastening system. Countersinks a #10 screw below the surface, then inserts a color-matched composite plug flush with the board face. No visible fasteners.",
@@ -621,6 +646,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "cortex-composite-350pk",
     systemId: "cortex",
+    category: "deck",
     brand: "FastenMaster",
     name: "Cortex for Composite — 350-pack",
     description: "Cortex by FastenMaster, bulk pack. Countersinks screw + inserts color-matched plug. Best value for 100–300 sq ft decks.",
@@ -633,6 +659,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "cortex-composite-1750pk",
     systemId: "cortex",
+    category: "deck",
     brand: "FastenMaster",
     name: "Cortex for Composite — 1,750-pack (Contractor)",
     description: "Cortex by FastenMaster, contractor bulk pack. Color-matched plugs included. Best value for large decks over 400 sq ft.",
@@ -647,6 +674,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "cortex-azek-100pk",
     systemId: "cortex",
+    category: "deck",
     brand: "FastenMaster",
     name: "Cortex for AZEK/TimberTech — 100-pack",
     description: "Cortex by FastenMaster, formulated for AZEK PVC and TimberTech composite boards. Color-matched PVC plugs. Drill, countersink, screw, plug.",
@@ -659,6 +687,7 @@ export const FASTENER_SKUS: FastenerSku[] = [
   {
     id: "cortex-azek-350pk",
     systemId: "cortex",
+    category: "deck",
     brand: "FastenMaster",
     name: "Cortex for AZEK/TimberTech — 350-pack",
     description: "Cortex by FastenMaster for AZEK/PVC, bulk pack. Color-matched PVC plugs.",
@@ -668,73 +697,326 @@ export const FASTENER_SKUS: FastenerSku[] = [
     contractorPricePerUnit: 128.00,
     notes: "350-pack covers ~87 sq ft. Best value for mid-size AZEK decks.",
   },
+
+  // ════════════════════════════════════════════════════════════════
+  // LEDGER SCREWS (category: "ledger", systemId: "none")
+  // Used to attach ledger board to house rim joist / band joist.
+  // Qty basis: ledgerLF × 2 fasteners per LF (staggered pattern per IRC R507.9)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "fastenmaster-ledgerlok-50ct",
+    systemId: "none",
+    category: "ledger",
+    brand: "FastenMaster",
+    name: "LedgerLOK 3/8\" × 3\" Structural Screw — Box of 50",
+    description: "FastenMaster LedgerLOK structural screw for ledger-to-rim-joist connections. 3/8\" × 3\", no pre-drilling required, ICC-approved. Box of 50.",
+    unit: "box (50 screws)",
+    qtyPerUnit: 50,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 32.98,
+    notes: "ICC-approved ledger connection. Replaces 2 through-bolts per code. 2 screws per LF staggered.",
+  },
+  {
+    id: "fastenmaster-ledgerlok-250ct",
+    systemId: "none",
+    category: "ledger",
+    brand: "FastenMaster",
+    name: "LedgerLOK 3/8\" × 3\" Structural Screw — Box of 250",
+    description: "FastenMaster LedgerLOK bulk box. 3/8\" × 3\", no pre-drilling, ICC-approved. Box of 250.",
+    unit: "box (250 screws)",
+    qtyPerUnit: 250,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 138.00,
+    notes: "Best value for ledgers over 60 LF. Same ICC-approved screw as 50-ct.",
+  },
+  {
+    id: "simpson-titen-hd-25ct",
+    systemId: "none",
+    category: "ledger",
+    brand: "Simpson Strong-Tie",
+    name: "Titen HD 1/2\" × 3.5\" Concrete Anchor — Box of 25",
+    description: "Simpson Strong-Tie Titen HD heavy-duty screw anchor for ledger-to-concrete or ledger-to-masonry connections. 1/2\" × 3.5\". Box of 25.",
+    unit: "box (25 anchors)",
+    qtyPerUnit: 25,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 38.98,
+    notes: "Use when ledger attaches to concrete foundation or masonry wall. Pre-drill required.",
+  },
+  {
+    id: "grk-rss-ledger-50ct",
+    systemId: "none",
+    category: "ledger",
+    brand: "GRK Fasteners",
+    name: "GRK RSS 5/16\" × 3.5\" Structural Screw — Box of 50",
+    description: "GRK RSS ceramic-coated structural screw for ledger attachment to wood framing. 5/16\" × 3.5\", ACQ-rated. Box of 50.",
+    unit: "box (50 screws)",
+    qtyPerUnit: 50,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 29.98,
+    notes: "ACQ-rated ceramic coating. Superior pull-out in PT lumber. 2 per LF staggered.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // STRUCTURAL SCREWS (category: "structural", systemId: "none")
+  // Used for beam laps, blocking, post-to-beam, and general framing connections.
+  // Qty basis: joistCount × 2 (2 screws per joist at each bearing point)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "grk-rss-structural-50ct",
+    systemId: "none",
+    category: "structural",
+    brand: "GRK Fasteners",
+    name: "GRK RSS 5/16\" × 4\" Structural Screw — Box of 50",
+    description: "GRK RSS structural screw for beam laps, blocking, and post-beam connections. 5/16\" × 4\", ceramic-coated for ACQ compatibility. Box of 50.",
+    unit: "box (50 screws)",
+    qtyPerUnit: 50,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 34.98,
+    notes: "Premium RSS thread — superior pull-out in PT lumber. ACQ-rated coating.",
+  },
+  {
+    id: "grk-rss-structural-100ct",
+    systemId: "none",
+    category: "structural",
+    brand: "GRK Fasteners",
+    name: "GRK RSS 5/16\" × 4\" Structural Screw — Box of 100",
+    description: "GRK RSS structural screw, bulk box. 5/16\" × 4\", ceramic-coated. Box of 100.",
+    unit: "box (100 screws)",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 62.00,
+    notes: "Best value for large framing jobs. Same ACQ-rated screw as 50-ct.",
+  },
+  {
+    id: "simpson-sdwh-50ct",
+    systemId: "none",
+    category: "structural",
+    brand: "Simpson Strong-Tie",
+    name: "Simpson SDWH27600DB 1/4\" × 6\" Structural Screw — Box of 50",
+    description: "Simpson Strong-Tie SDWH structural wood screw. 1/4\" × 6\", double-barrier coating. For beam-to-post and ledger connections. Box of 50.",
+    unit: "box (50 screws)",
+    qtyPerUnit: 50,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 28.98,
+    notes: "Versatile structural screw — beam laps, blocking, and ledger attachment.",
+  },
+  {
+    id: "fastenmaster-headlok-50ct",
+    systemId: "none",
+    category: "structural",
+    brand: "FastenMaster",
+    name: "FastenMaster HeadLOK 5/16\" × 3\" Structural Screw — Box of 50",
+    description: "FastenMaster HeadLOK flat-head structural screw. 5/16\" × 3\", no pre-drilling, ACQ-rated. Box of 50.",
+    unit: "box (50 screws)",
+    qtyPerUnit: 50,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 26.98,
+    notes: "Flat head sits flush — ideal for blocking and rim joist connections.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // JOIST SCREWS (category: "joist", systemId: "none")
+  // Used to toenail or angle-drive joists to ledger / beam.
+  // Qty basis: joistCount × 2 (2 screws per joist end, both ends)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "fastenmaster-dcu-joist-100ct",
+    systemId: "none",
+    category: "joist",
+    brand: "FastenMaster",
+    name: "Deck-Drive DCU #10 × 3\" Joist Toenail (100-ct)",
+    description: "FastenMaster Deck-Drive DCU used for joist toenailing to ledger and beam. 305 stainless, #10 × 3\", star drive. Same screw as deck boards — convenient single-product jobsite.",
+    unit: "box (100 screws)",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 16.75,
+    notes: "2 screws per joist end toenailed at 45°. Use where joist hangers are not specified.",
+  },
+  {
+    id: "grk-rss-joist-100ct",
+    systemId: "none",
+    category: "joist",
+    brand: "GRK Fasteners",
+    name: "GRK RSS #10 × 3\" Joist Toenail (100-ct)",
+    description: "GRK RSS composite deck screw used for joist toenailing. 305 stainless, #10 × 3\", W-Cut tip, star drive.",
+    unit: "box (100 screws)",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 15.50,
+    notes: "W-Cut tip reduces splitting in PT framing. 2 screws per joist end.",
+  },
+  {
+    id: "simpson-strongdrive-joist-100ct",
+    systemId: "none",
+    category: "joist",
+    brand: "Simpson Strong-Tie",
+    name: "Simpson Strong-Drive #10 × 3\" Connector Screw (100-ct)",
+    description: "Simpson Strong-Drive SD connector screw for joist-to-ledger and joist-to-beam toenailing. #10 × 3\", ACQ-rated coating. Box of 100.",
+    unit: "box (100 screws)",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 0,
+    fastenersPerPoint: 2,
+    contractorPricePerUnit: 17.98,
+    notes: "Simpson-approved connector screw. 2 per joist end toenailed at 45°.",
+  },
 ];
 
 // ─── FASTENER CALCULATION ─────────────────────────────────────────────────────
+//
+// Phase 2 supports multiple fastener LINES — one per application category.
+// Each line has its own SKU selection, auto-calculated quantity, and optional
+// quantity override. The user can enable/disable any line.
+//
+// Category quantity basis:
+//   deck       — area-based: deckAreaSqFt / sku.coverageSqFtPerUnit
+//   ledger     — count-based: ceil(ledgerLF * 2 / qtyPerUnit)
+//   structural — count-based: ceil(joistCount * 2 / qtyPerUnit)
+//   joist      — count-based: ceil(joistCount * 2 / qtyPerUnit)
 
-export interface FastenerTakeoffInputs {
-  deckAreaSqFt: number;
-  systemId: FastenerSystemId;
-  selectedSkuId: string;
-  qtyOverride?: number;
-  unitPriceOverride?: number;
-  taxRate: number;
-  wasteFactor?: number;       // default 0.05 (5% extra for drops/waste)
-}
-
-export interface FastenerTakeoffResult {
+// ── Single-line result (one SKU + qty + cost) ──────────────────────────────
+export interface FastenerLineResult {
   sku: FastenerSku;
-  deckAreaSqFt: number;
-  systemId: FastenerSystemId;
-  grossAreaSqFt: number;
-  unitsNeeded: number;
-  unitsEdited: number;
+  unitsNeeded: number;        // calculated units (boxes/packs)
+  unitsEdited: number;        // after optional override
   unitPrice: number;
   subtotal: number;
+  taxAmount: number;
+  total: number;
+  // Context fields for display
+  fastenersNeeded: number;    // total individual fasteners needed
+  basisLabel: string;         // e.g. "320 sq ft × 1.05 waste" or "24 LF ledger × 2/LF"
+}
+
+// ── Multi-line inputs ──────────────────────────────────────────────────────
+export interface FastenerLineInput {
+  skuId: string;
+  qtyOverride?: number;
+  unitPriceOverride?: number;
+  enabled: boolean;
+}
+
+export interface MultiFastenerTakeoffInputs {
+  deckAreaSqFt: number;
+  systemId: FastenerSystemId;       // for deck-category SKU filtering
+  lines: Record<string, FastenerLineInput>; // key = category ("deck"|"ledger"|"structural"|"joist")
+  ledgerLF: number;
+  joistCount: number;
   taxRate: number;
+  wasteFactor?: number;
+}
+
+export interface MultiFastenerTakeoffResult {
+  lines: Record<string, FastenerLineResult | null>; // null when disabled or no SKU
+  subtotal: number;
   taxAmount: number;
   total: number;
 }
 
-export function calculateFastenerTakeoff(inputs: FastenerTakeoffInputs): FastenerTakeoffResult {
-  const { deckAreaSqFt, selectedSkuId, qtyOverride, unitPriceOverride, taxRate, wasteFactor = 0.05 } = inputs;
+export function calculateMultiFastenerTakeoff(inputs: MultiFastenerTakeoffInputs): MultiFastenerTakeoffResult {
+  const { deckAreaSqFt, lines, ledgerLF, joistCount, taxRate, wasteFactor = 0.05 } = inputs;
 
-  const sku = FASTENER_SKUS.find(s => s.id === selectedSkuId) ?? FASTENER_SKUS[0];
-  const grossAreaSqFt = deckAreaSqFt * (1 + wasteFactor);
-  const unitsNeeded = Math.ceil(grossAreaSqFt / sku.coverageSqFtPerUnit);
-  const unitsEdited = qtyOverride ?? unitsNeeded;
-  const unitPrice = unitPriceOverride ?? sku.contractorPricePerUnit;
-  const subtotal = unitsEdited * unitPrice;
-  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
-  const total = subtotal + taxAmount;
+  const results: Record<string, FastenerLineResult | null> = {};
+  let totalSubtotal = 0;
+  let totalTax = 0;
+
+  const categories = ["deck", "ledger", "structural", "joist"] as const;
+
+  for (const cat of categories) {
+    const lineInput = lines[cat];
+    if (!lineInput || !lineInput.enabled) {
+      results[cat] = null;
+      continue;
+    }
+
+    const sku = FASTENER_SKUS.find(s => s.id === lineInput.skuId);
+    if (!sku) { results[cat] = null; continue; }
+
+    let fastenersNeeded: number;
+    let basisLabel: string;
+    let unitsNeeded: number;
+
+    if (cat === "deck") {
+      const grossArea = deckAreaSqFt * (1 + wasteFactor);
+      fastenersNeeded = Math.ceil(grossArea * 4); // ~4 fasteners/sq ft
+      unitsNeeded = Math.ceil(grossArea / sku.coverageSqFtPerUnit);
+      basisLabel = `${deckAreaSqFt} sq ft × 1.05 waste`;
+    } else if (cat === "ledger") {
+      fastenersNeeded = Math.ceil(ledgerLF * 2); // 2 per LF staggered
+      unitsNeeded = Math.ceil(fastenersNeeded / sku.qtyPerUnit);
+      basisLabel = `${ledgerLF} LF ledger × 2/LF`;
+    } else if (cat === "structural") {
+      fastenersNeeded = Math.ceil(joistCount * 2); // 2 per joist bearing point
+      unitsNeeded = Math.ceil(fastenersNeeded / sku.qtyPerUnit);
+      basisLabel = `${joistCount} joists × 2 screws`;
+    } else { // joist
+      fastenersNeeded = Math.ceil(joistCount * 2); // 2 per joist end toenail
+      unitsNeeded = Math.ceil(fastenersNeeded / sku.qtyPerUnit);
+      basisLabel = `${joistCount} joists × 2 toenails`;
+    }
+
+    const unitsEdited = lineInput.qtyOverride ?? unitsNeeded;
+    const unitPrice = lineInput.unitPriceOverride ?? sku.contractorPricePerUnit;
+    const subtotal = Math.round(unitsEdited * unitPrice * 100) / 100;
+    const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+    const total = subtotal + taxAmount;
+
+    totalSubtotal += subtotal;
+    totalTax += taxAmount;
+
+    results[cat] = {
+      sku,
+      unitsNeeded,
+      unitsEdited,
+      unitPrice,
+      subtotal,
+      taxAmount,
+      total,
+      fastenersNeeded,
+      basisLabel,
+    };
+  }
 
   return {
-    sku,
-    deckAreaSqFt,
-    systemId: sku.systemId,
-    grossAreaSqFt: Math.round(grossAreaSqFt * 10) / 10,
-    unitsNeeded,
-    unitsEdited,
-    unitPrice,
-    subtotal: Math.round(subtotal * 100) / 100,
-    taxRate,
-    taxAmount,
-    total: Math.round(total * 100) / 100,
+    lines: results,
+    subtotal: Math.round(totalSubtotal * 100) / 100,
+    taxAmount: Math.round(totalTax * 100) / 100,
+    total: Math.round((totalSubtotal + totalTax) * 100) / 100,
   };
 }
 
+// ── Legacy single-line helpers (kept for backward compat with CSV export) ──
+
 /** Return fastener SKUs for a given system */
 export function getFastenerSkusForSystem(systemId: FastenerSystemId): FastenerSku[] {
-  return FASTENER_SKUS.filter(s => s.systemId === systemId);
+  return FASTENER_SKUS.filter(s => s.systemId === systemId && s.category === "deck");
+}
+
+/** Return fastener SKUs for a given category */
+export function getFastenerSkusByCategory(category: string): FastenerSku[] {
+  return FASTENER_SKUS.filter(s => s.category === category);
 }
 
 /** Return the default (best-value) SKU for a system and deck area */
 export function getDefaultFastenerSku(systemId: FastenerSystemId, deckAreaSqFt: number): FastenerSku {
   const skus = getFastenerSkusForSystem(systemId);
   if (skus.length === 0) return FASTENER_SKUS[0];
-  // Pick the largest pack that doesn't massively over-order (covers ≤ 3× the deck area)
   const sorted = [...skus].sort((a, b) => b.coverageSqFtPerUnit - a.coverageSqFtPerUnit);
   return sorted.find(s => s.coverageSqFtPerUnit <= deckAreaSqFt * 2) ?? sorted[sorted.length - 1];
+}
+
+/** Default SKU for a non-deck category (first SKU in that category) */
+export function getDefaultFastenerSkuByCategory(category: string): FastenerSku | undefined {
+  return FASTENER_SKUS.find(s => s.category === category);
 }
 
 /** Human-readable label for a fastener system */
@@ -742,6 +1024,24 @@ export function fastenerSystemLabel(systemId: FastenerSystemId): string {
   if (systemId === "clip") return "Hidden Clip System";
   if (systemId === "cortex") return "Cortex by FastenMaster";
   return "Face Screws";
+}
+
+/** Human-readable label for a fastener category */
+export function fastenerCategoryLabel(category: string): string {
+  if (category === "deck") return "Deck Screws / Clips";
+  if (category === "ledger") return "Ledger Screws";
+  if (category === "structural") return "Structural Screws";
+  if (category === "joist") return "Joist Toenail Screws";
+  return category;
+}
+
+/** Short description of what a category is used for */
+export function fastenerCategoryDescription(category: string): string {
+  if (category === "deck") return "Board-to-joist fastening (face screws, hidden clips, or Cortex)";
+  if (category === "ledger") return "Ledger-to-rim/band joist attachment (IRC R507.9 staggered pattern)";
+  if (category === "structural") return "Beam laps, blocking, and post-beam connections";
+  if (category === "joist") return "Joist toenailing to ledger and beam where hangers are not used";
+  return "";
 }
 
 // ─── PHASE 3: FRAMING LUMBER SKUs ────────────────────────────────────────────

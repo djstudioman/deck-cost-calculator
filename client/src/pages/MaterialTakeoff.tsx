@@ -14,11 +14,16 @@ import {
   formatTakeoffCurrency,
   type BoardSku,
   FASTENER_SKUS,
-  calculateFastenerTakeoff,
-  getFastenerSkusForSystem,
+  calculateMultiFastenerTakeoff,
+  getFastenerSkusByCategory,
   getDefaultFastenerSku,
+  getDefaultFastenerSkuByCategory,
   fastenerSystemLabel,
+  fastenerCategoryLabel,
+  fastenerCategoryDescription,
   type FastenerSystemId,
+  type FastenerLineInput,
+  type MultiFastenerTakeoffResult,
   LUMBER_SKUS,
   calculateLumberTakeoff,
   getLumberSkusByManufacturer,
@@ -118,17 +123,30 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
     return def.manufacturer;
   });
 
-  // ── Phase 2 state ──
-  const [fastenerSkuId, setFastenerSkuId] = useState<string>(() => {
-    return getDefaultFastenerSku(fastenerSystemId, deckAreaSqFt).id;
+  // ── Phase 2 state — multi-line fastener selection ──
+  // Each category (deck/ledger/structural/joist) has its own enabled flag,
+  // selected SKU, and optional quantity override.
+  const [fastenerLines, setFastenerLines] = useState<Record<string, FastenerLineInput>>(() => {
+    const deckDefault = getDefaultFastenerSku(fastenerSystemId, deckAreaSqFt);
+    const ledgerDefault = getDefaultFastenerSkuByCategory("ledger");
+    const structDefault = getDefaultFastenerSkuByCategory("structural");
+    const joistDefault = getDefaultFastenerSkuByCategory("joist");
+    return {
+      deck:       { skuId: deckDefault.id,                    enabled: true },
+      ledger:     { skuId: ledgerDefault?.id ?? "",           enabled: true },
+      structural: { skuId: structDefault?.id ?? "",           enabled: false },
+      joist:      { skuId: joistDefault?.id ?? "",            enabled: false },
+    };
   });
-  const [fastenerQtyOverride, setFastenerQtyOverride] = useState<number | null>(null);
-  const [fastenerPriceOverride, setFastenerPriceOverride] = useState<number | null>(null);
-  // Which brand accordion is open (null = all collapsed)
-  const [expandedFastenerBrand, setExpandedFastenerBrand] = useState<string | null>(() => {
-    const defaultSku = getDefaultFastenerSku(fastenerSystemId, deckAreaSqFt);
-    return defaultSku.brand;
-  });
+  // Which category accordion is expanded in the SKU picker
+  const [expandedFastenerCat, setExpandedFastenerCat] = useState<string | null>("deck");
+  // Which brand accordion is expanded within each category
+  const [expandedFastenerBrand, setExpandedFastenerBrand] = useState<Record<string, string | null>>({});
+
+  // Helper: update a single field on one fastener line
+  function setFastenerLine(cat: string, patch: Partial<FastenerLineInput>) {
+    setFastenerLines(prev => ({ ...prev, [cat]: { ...prev[cat], ...patch } }));
+  }
 
   // ── Phase 1: Selected SKU ──
   const selectedSku: BoardSku = useMemo(
@@ -153,21 +171,16 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
     setUnitPriceOverride(null);
   }, [selectedSkuId, boardLengthFt]);
 
-  // ── Phase 2: Fastener takeoff ──
-  const fastenerTakeoff = useMemo(() => calculateFastenerTakeoff({
+  // ── Phase 2: Multi-line fastener takeoff ──
+  const fastenerTakeoff: MultiFastenerTakeoffResult = useMemo(() => calculateMultiFastenerTakeoff({
     deckAreaSqFt,
     systemId: fastenerSystemId,
-    selectedSkuId: fastenerSkuId,
-    qtyOverride: fastenerQtyOverride ?? undefined,
-    unitPriceOverride: fastenerPriceOverride ?? undefined,
+    lines: fastenerLines,
+    ledgerLF: ledgerLF ?? 12, // Phase 3 ledger LF from state
+    joistCount: lumberTakeoff.joistCount ?? 20,
     taxRate,
-  }), [deckAreaSqFt, fastenerSystemId, fastenerSkuId, fastenerQtyOverride, fastenerPriceOverride, taxRate]);
-
-  // Reset fastener overrides when SKU changes
-  useEffect(() => {
-    setFastenerQtyOverride(null);
-    setFastenerPriceOverride(null);
-  }, [fastenerSkuId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [deckAreaSqFt, fastenerSystemId, fastenerLines, taxRate]);
 
   // ── Phase 1: Group SKUs by brand for the selector ──
   const skusByBrand = useMemo(() => {
@@ -179,14 +192,16 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
     return groups;
   }, []);
 
-  // ── Phase 2: Fastener SKUs for selected system ──
-  const fastenerSkusForSystem = useMemo(
-    () => getFastenerSkusForSystem(fastenerSystemId),
-    [fastenerSystemId]
-  );
+  // ── Phase 2: SKUs grouped by category then brand ──
+  const fastenerSkusByCategory = useMemo(() => {
+    const cats = ["deck", "ledger", "structural", "joist"];
+    const result: Record<string, ReturnType<typeof getFastenerSkusByCategory>> = {};
+    cats.forEach(cat => { result[cat] = getFastenerSkusByCategory(cat); });
+    return result;
+  }, []);
 
   const isPhase1Edited = boardsOverride !== null || unitPriceOverride !== null;
-  const isFastenerEdited = fastenerQtyOverride !== null || fastenerPriceOverride !== null;
+  const isFastenerEdited = Object.values(fastenerLines).some(l => l.qtyOverride !== undefined || l.unitPriceOverride !== undefined);
 
   // ── Phase 3 state ──
   const { widthFt: defaultWidthFt, lengthFt: defaultLengthFt } = estimateDeckDimensions(deckAreaSqFt);
@@ -443,9 +458,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
       boardSku: selectedSku,
       boardTakeoff: takeoff,
       wasteFactor,
-      fastenerSku: fastenerTakeoff.sku,
       fastenerTakeoff,
-      fastenerBoxQty: fastenerTakeoff.unitsEdited,
       lumberSku: joistSku,
       lumberTakeoff,
       joistLengthFt,
@@ -786,157 +799,241 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               : "bg-slate-700/30 border-slate-600/50 text-slate-300"
           }`}>
             {fastenerSystemId === "cortex" && (
-              <><strong>Cortex by FastenMaster</strong> — Screw + color-matched plug system. Drills, countersinks, and inserts a flush plug over each screw head. No visible fasteners. Requires a grooved or solid board.</>
+              <><strong>Cortex by FastenMaster</strong> — Screw + color-matched plug system. No visible fasteners. Select your deck screws below, then add ledger and structural screws for the framing connections.</>
             )}
             {fastenerSystemId === "clip" && (
-              <><strong>Hidden Clip System</strong> — Snap-in clips sit in the board groove and attach to the joist. No face screws visible. Requires grooved-edge boards. Coverage: ~1.8 clips/sq ft at 16" OC.</>
+              <><strong>Hidden Clip System</strong> — Snap-in clips for the deck boards. Add ledger screws and structural screws below for the framing connections.</>
             )}
             {fastenerSystemId === "none" && (
-              <><strong>Face Screw Install</strong> — Standard #10 × 3" screws driven through the face of each board into the joist. ~4 screws/sq ft at 16" OC with 6" boards.</>
+              <><strong>Face Screw Install</strong> — Select your deck board screws, then add ledger screws and structural screws for the framing connections.</>
             )}
           </div>
 
-          {/* SKU Selector — brand accordion */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Brand &amp; Pack Size
-            </label>
-            {fastenerSkusForSystem.length === 0 ? (
-              <div className="text-sm text-slate-500 italic">No fastener SKUs available for this system.</div>
-            ) : (
-              <div className="space-y-2">
-                {Array.from(new Set(fastenerSkusForSystem.map(s => s.brand))).map(brand => {
-                  const brandSkus = fastenerSkusForSystem.filter(s => s.brand === brand);
-                  const isOpen = expandedFastenerBrand === brand;
-                  const hasSelected = brandSkus.some(s => s.id === fastenerSkuId);
-                  return (
-                    <div key={brand} className={`rounded-xl border transition-all ${
-                      hasSelected ? "border-amber-500/60" : "border-slate-600"
-                    }`}>
-                      {/* Accordion header */}
-                      <button
-                        onClick={() => setExpandedFastenerBrand(isOpen ? null : brand)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`text-sm font-semibold ${
-                            hasSelected ? "text-amber-300" : "text-slate-200"
-                          }`}>{brand}</span>
-                          {hasSelected && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
-                          )}
-                          <span className="text-xs text-slate-500">{brandSkus.length} option{brandSkus.length !== 1 ? "s" : ""}</span>
-                        </div>
+          {/* ────────────────────────────────────────────────────────────────
+               MULTI-LINE FASTENER SELECTOR
+               One accordion per category. Each can be enabled/disabled independently.
+          ──────────────────────────────────────────────────────────────── */}
+          <div className="space-y-3">
+            {(["deck", "ledger", "structural", "joist"] as const).map(cat => {
+              const line = fastenerLines[cat];
+              const catSkus = fastenerSkusByCategory[cat] ?? [];
+              const lineResult = fastenerTakeoff.lines[cat];
+              const selectedSku = catSkus.find(s => s.id === line?.skuId);
+              const brands = Array.from(new Set(catSkus.map(s => s.brand)));
+              const isCatOpen = expandedFastenerCat === cat;
+
+              return (
+                <div key={cat} className={`rounded-xl border transition-all ${
+                  line?.enabled ? "border-amber-500/40 bg-slate-800/40" : "border-slate-700 bg-slate-800/20 opacity-60"
+                }`}>
+
+                  {/* Category header row */}
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    {/* Enable toggle */}
+                    <button
+                      onClick={() => setFastenerLine(cat, { enabled: !line?.enabled })}
+                      className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${
+                        line?.enabled ? "bg-amber-500" : "bg-slate-600"
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                        line?.enabled ? "translate-x-4" : "translate-x-0"
+                      }`} />
+                    </button>
+
+                    {/* Category label + expand toggle */}
+                    <button
+                      onClick={() => setExpandedFastenerCat(isCatOpen ? null : cat)}
+                      className="flex-1 flex items-center justify-between text-left"
+                    >
+                      <div>
+                        <div className={`text-sm font-semibold ${
+                          line?.enabled ? "text-white" : "text-slate-500"
+                        }`}>{fastenerCategoryLabel(cat)}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">{fastenerCategoryDescription(cat)}</div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-3">
+                        {line?.enabled && lineResult && (
+                          <span className="text-xs font-mono text-emerald-400">
+                            {lineResult.unitsEdited} {lineResult.sku.unit} • {formatTakeoffCurrency(lineResult.total)}
+                          </span>
+                        )}
+                        {line?.enabled && selectedSku && (
+                          <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                            {selectedSku.brand}
+                          </span>
+                        )}
                         <svg
                           className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                            isOpen ? "rotate-180" : ""
+                            isCatOpen ? "rotate-180" : ""
                           }`}
                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
-                      </button>
+                      </div>
+                    </button>
+                  </div>
 
-                      {/* Accordion body */}
-                      {isOpen && (
-                        <div className="px-3 pb-3 space-y-2">
-                          {brandSkus.map(sku => (
-                            <button
-                              key={sku.id}
-                              onClick={() => setFastenerSkuId(sku.id)}
-                              className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
-                                fastenerSkuId === sku.id
-                                  ? "border-amber-500 bg-amber-500/10 text-white"
-                                  : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-white">{sku.name}</div>
-                                  <div className="text-xs text-slate-400 mt-1">{sku.description}</div>
-                                  {sku.notes && (
-                                    <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>
+                  {/* Expanded: brand accordion + qty override */}
+                  {isCatOpen && line?.enabled && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-slate-700/50 pt-3">
+
+                      {/* Brand sub-accordions */}
+                      <div className="space-y-2">
+                        {brands.map(brand => {
+                          const brandSkus = catSkus.filter(s => s.brand === brand);
+                          const isBrandOpen = (expandedFastenerBrand[cat] ?? brands[0]) === brand;
+                          const hasSelected = brandSkus.some(s => s.id === line.skuId);
+                          return (
+                            <div key={brand} className={`rounded-lg border transition-all ${
+                              hasSelected ? "border-amber-500/50" : "border-slate-600"
+                            }`}>
+                              <button
+                                onClick={() => setExpandedFastenerBrand(prev => ({
+                                  ...prev,
+                                  [cat]: isBrandOpen ? null : brand,
+                                }))}
+                                className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-slate-700/30 rounded-lg"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm font-medium ${
+                                    hasSelected ? "text-amber-300" : "text-slate-300"
+                                  }`}>{brand}</span>
+                                  {hasSelected && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
                                   )}
+                                  <span className="text-xs text-slate-500">{brandSkus.length} option{brandSkus.length !== 1 ? "s" : ""}</span>
                                 </div>
-                                <div className="text-right shrink-0 ml-2">
-                                  <div className="text-sm font-bold text-amber-300">{formatTakeoffCurrency(sku.contractorPricePerUnit)}</div>
-                                  <div className="text-xs text-slate-500">per {sku.unit}</div>
-                                  <div className="text-xs text-slate-500">{sku.qtyPerUnit.toLocaleString()} {sku.systemId === "none" ? "screws" : sku.systemId === "clip" ? "clips" : "plugs"}</div>
-                                  <div className="text-[11px] text-emerald-500 font-medium mt-0.5">~{sku.coverageSqFtPerUnit} sq ft</div>
+                                <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+                                  isBrandOpen ? "rotate-180" : ""
+                                }`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                              {isBrandOpen && (
+                                <div className="px-3 pb-3 space-y-2">
+                                  {brandSkus.map(sku => (
+                                    <button
+                                      key={sku.id}
+                                      onClick={() => setFastenerLine(cat, { skuId: sku.id })}
+                                      className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                                        line.skuId === sku.id
+                                          ? "border-amber-500 bg-amber-500/10"
+                                          : "border-slate-600 bg-slate-800/40 hover:border-slate-500"
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-sm font-medium text-white">{sku.name}</div>
+                                          <div className="text-xs text-slate-400 mt-1">{sku.description}</div>
+                                          {sku.notes && (
+                                            <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>
+                                          )}
+                                        </div>
+                                        <div className="text-right shrink-0 ml-2">
+                                          <div className="text-sm font-bold text-amber-300">{formatTakeoffCurrency(sku.contractorPricePerUnit)}</div>
+                                          <div className="text-xs text-slate-500">per {sku.unit}</div>
+                                          <div className="text-xs text-slate-500">{sku.qtyPerUnit.toLocaleString()} pcs</div>
+                                          {sku.coverageSqFtPerUnit > 0 && (
+                                            <div className="text-[11px] text-emerald-500 font-medium mt-0.5">~{sku.coverageSqFtPerUnit} sq ft</div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
                                 </div>
-                              </div>
-                            </button>
-                          ))}
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Qty override for this line */}
+                      {lineResult && (
+                        <div className="bg-slate-900/60 border border-slate-700 rounded-lg overflow-hidden">
+                          <div className="px-3 py-1.5 bg-slate-700/40 text-[11px] font-bold tracking-widest uppercase text-slate-400">
+                            Takeoff — {fastenerCategoryLabel(cat)}
+                          </div>
+                          <div className="divide-y divide-slate-700/50">
+                            <div className="grid grid-cols-3 px-3 py-2 text-xs">
+                              <span className="text-slate-400">Basis</span>
+                              <span className="col-span-2 text-right text-slate-300">{lineResult.basisLabel}</span>
+                            </div>
+                            <div className="grid grid-cols-3 px-3 py-2 text-xs bg-slate-800/40">
+                              <span className="text-slate-300 font-semibold">Units needed</span>
+                              <span className="text-center">
+                                <input
+                                  type="number" min={1}
+                                  value={line.qtyOverride ?? lineResult.unitsNeeded}
+                                  onChange={e => setFastenerLine(cat, { qtyOverride: Math.max(1, parseInt(e.target.value) || lineResult.unitsNeeded) })}
+                                  className="w-16 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-xs rounded px-2 py-0.5 focus:outline-none focus:border-amber-400"
+                                />
+                              </span>
+                              <span className="text-right">
+                                {line.qtyOverride !== undefined && line.qtyOverride !== lineResult.unitsNeeded && (
+                                  <span className="text-[10px] text-amber-400">calc: {lineResult.unitsNeeded}</span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 px-3 py-2 text-xs bg-slate-800/40">
+                              <span className="text-slate-300 font-semibold">Unit price</span>
+                              <span className="text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <span className="text-slate-400">$</span>
+                                  <input
+                                    type="number" min={0} step={0.25}
+                                    value={(line.unitPriceOverride ?? lineResult.unitPrice).toFixed(2)}
+                                    onChange={e => setFastenerLine(cat, { unitPriceOverride: Math.max(0, Number(e.target.value)) })}
+                                    className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-xs rounded px-2 py-0.5 focus:outline-none focus:border-amber-400"
+                                  />
+                                </div>
+                              </span>
+                              <span className="text-right">
+                                {line.unitPriceOverride !== undefined && (
+                                  <span className="text-[10px] text-amber-400">list: {formatTakeoffCurrency(lineResult.sku.contractorPricePerUnit)}</span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 px-3 py-2 text-xs">
+                              <span className="text-slate-400">Subtotal</span>
+                              <span />
+                              <span className="text-right text-slate-200 font-semibold">{formatTakeoffCurrency(lineResult.subtotal)}</span>
+                            </div>
+                            <div className="grid grid-cols-3 px-3 py-2 text-xs">
+                              <span className="text-slate-400">Tax ({(taxRate * 100).toFixed(2)}%)</span>
+                              <span />
+                              <span className="text-right text-slate-300">{formatTakeoffCurrency(lineResult.taxAmount)}</span>
+                            </div>
+                            <div className="grid grid-cols-3 px-3 py-2.5 bg-slate-700/30">
+                              <span className="text-white font-bold text-xs">Line total</span>
+                              <span />
+                              <span className="text-right text-emerald-400 font-bold text-sm">{formatTakeoffCurrency(lineResult.total)}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
+
+                      {(line.qtyOverride !== undefined || line.unitPriceOverride !== undefined) && (
+                        <button
+                          onClick={() => setFastenerLine(cat, { qtyOverride: undefined, unitPriceOverride: undefined })}
+                          className="text-xs text-amber-400 hover:text-amber-300 underline"
+                        >
+                          Reset {fastenerCategoryLabel(cat)} to calculated values
+                        </button>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* ── Fastener Takeoff Table ── */}
+          {/* ── Phase 2 Grand Total ── */}
           <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
-              Takeoff Summary — {fastenerTakeoff.sku.name}
-            </div>
             <div className="divide-y divide-slate-700/50">
               <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                <span className="text-slate-400">Deck area (net)</span>
-                <span className="text-center text-slate-300">{deckAreaSqFt.toLocaleString()} sq ft</span>
-                <span className="text-right text-slate-500 text-xs">base</span>
-              </div>
-              <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                <span className="text-slate-400">Waste buffer</span>
-                <span className="text-center text-slate-300">+5%</span>
-                <span className="text-right text-slate-300">{fastenerTakeoff.grossAreaSqFt} sq ft</span>
-              </div>
-              <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                <span className="text-slate-400">Coverage / {fastenerTakeoff.sku.unit}</span>
-                <span className="text-center text-slate-300">{fastenerTakeoff.sku.coverageSqFtPerUnit} sq ft</span>
-                <span className="text-right text-slate-500 text-xs">{fastenerTakeoff.sku.qtyPerUnit.toLocaleString()} {fastenerSystemId === "none" ? "screws" : fastenerSystemId === "clip" ? "clips" : "plugs"}</span>
-              </div>
-              <div className="grid grid-cols-3 px-4 py-2.5 text-sm bg-slate-800/40">
-                <span className="text-slate-300 font-semibold">{fastenerTakeoff.sku.unit === "bucket" ? "Buckets" : fastenerTakeoff.sku.unit === "pack" ? "Packs" : "Boxes"} needed</span>
-                <span className="text-center">
-                  <input
-                    type="number"
-                    min={1}
-                    value={fastenerQtyOverride ?? fastenerTakeoff.unitsNeeded}
-                    onChange={e => setFastenerQtyOverride(Math.max(1, parseInt(e.target.value) || fastenerTakeoff.unitsNeeded))}
-                    className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400"
-                  />
-                </span>
-                <span className="text-right">
-                  {fastenerQtyOverride !== null && fastenerQtyOverride !== fastenerTakeoff.unitsNeeded && (
-                    <span className="text-xs text-amber-400">calc: {fastenerTakeoff.unitsNeeded}</span>
-                  )}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 px-4 py-2.5 text-sm bg-slate-800/40">
-                <span className="text-slate-300 font-semibold">Unit price / {fastenerTakeoff.sku.unit}</span>
-                <span className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-slate-400">$</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.25}
-                      value={(fastenerPriceOverride ?? fastenerTakeoff.unitPrice).toFixed(2)}
-                      onChange={e => setFastenerPriceOverride(Math.max(0, Number(e.target.value)))}
-                      className="w-24 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-                </span>
-                <span className="text-right">
-                  {fastenerPriceOverride !== null && (
-                    <span className="text-xs text-amber-400">list: {formatTakeoffCurrency(fastenerTakeoff.sku.contractorPricePerUnit)}</span>
-                  )}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
-                <span className="text-slate-400">Subtotal (materials)</span>
+                <span className="text-slate-400">Subtotal (all fastener lines)</span>
                 <span />
                 <span className="text-right text-slate-200 font-semibold">{formatTakeoffCurrency(fastenerTakeoff.subtotal)}</span>
               </div>
@@ -952,15 +1049,6 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               </div>
             </div>
           </div>
-
-          {isFastenerEdited && (
-            <button
-              onClick={() => { setFastenerQtyOverride(null); setFastenerPriceOverride(null); }}
-              className="text-xs text-amber-400 hover:text-amber-300 underline"
-            >
-              Reset to calculated values
-            </button>
-          )}
         </div>
       </div>
 
