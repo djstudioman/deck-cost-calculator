@@ -1632,3 +1632,560 @@ export function getDefaultPostBaseSku(): PostBaseSku {
 export function estimatePostCount(deckAreaSqFt: number): number {
   return Math.max(4, Math.ceil(deckAreaSqFt / 64));
 }
+
+// ─── PHASE 5: RAILING SKUs ────────────────────────────────────────────────────
+// Railing systems: composite (Trex Transcend, TimberTech Impression Rail)
+// Components: posts, post sleeves, top rail, bottom rail, balusters, post caps
+//
+// Standard railing section: 6 ft or 8 ft between posts
+// Baluster spacing: max 4" on center (IRC code)
+// Baluster count per section: floor((sectionLengthIn - 1.5) / (4 + 1.5)) + 1
+//   where 1.5" = baluster width, 4" = max clear space
+//   Simplified: ~2 balusters per linear foot
+//
+// Post spacing: typically 6 ft OC (max 8 ft for some systems)
+// Post count: ceil(railingLF / postSpacingFt) + 1
+//
+// 2026 contractor/distributor pricing (before tax):
+//   Trex Transcend composite post sleeve 4×4: ~$45–$55
+//   Trex Transcend top/bottom rail 6': ~$28–$35
+//   Trex Transcend baluster 32": ~$5–$7
+//   Trex Transcend post cap: ~$12–$18
+//   TimberTech Impression composite post sleeve 4×4: ~$42–$52
+//   TimberTech Impression top/bottom rail 6': ~$26–$33
+//   TimberTech Impression baluster 36": ~$5–$7
+//   TimberTech Impression post cap: ~$11–$16
+
+export type RailingComponentType = "post-sleeve" | "top-rail" | "bottom-rail" | "baluster" | "post-cap" | "rail-kit" | "post-hardware";
+
+export interface RailingSku {
+  id: string;
+  manufacturer: string;        // "Trex" | "TimberTech"
+  productLine: string;         // "Transcend Railing" | "Impression Rail"
+  name: string;
+  description: string;
+  componentType: RailingComponentType;
+  unit: string;                // "each", "8-ft section", "6-ft section", "box of 32"
+  lengthFt?: number;           // for rail sections
+  color?: string;              // e.g. "Vintage Lantern", "Classic White"
+  contractorPricePerUnit: number;
+  notes?: string;
+}
+
+export interface RailingTakeoffInputs {
+  railingLF: number;           // total linear feet of railing
+  postSpacingFt: number;       // 6 or 8
+  postSku: RailingSku;
+  topRailSku: RailingSku;
+  bottomRailSku: RailingSku;
+  balustrSku: RailingSku;
+  postCapSku: RailingSku;
+  // overrides
+  postQtyOverride?: number;
+  topRailQtyOverride?: number;
+  bottomRailQtyOverride?: number;
+  balustrQtyOverride?: number;
+  postCapQtyOverride?: number;
+  taxRate: number;
+}
+
+export interface RailingTakeoffResult {
+  railingLF: number;
+  postSpacingFt: number;
+  // Posts
+  postCountCalc: number;
+  postCountEdited: number;
+  postUnitPrice: number;
+  postSubtotal: number;
+  // Top rail
+  topRailSectionsCalc: number;
+  topRailSectionsEdited: number;
+  topRailUnitPrice: number;
+  topRailSubtotal: number;
+  // Bottom rail
+  bottomRailSectionsCalc: number;
+  bottomRailSectionsEdited: number;
+  bottomRailUnitPrice: number;
+  bottomRailSubtotal: number;
+  // Balusters
+  balustrCountCalc: number;
+  balustrCountEdited: number;
+  balustrUnitPrice: number;
+  balustrSubtotal: number;
+  // Post caps
+  postCapCountCalc: number;
+  postCapCountEdited: number;
+  postCapUnitPrice: number;
+  postCapSubtotal: number;
+  // Totals
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+}
+
+export function calculateRailingTakeoff(inputs: RailingTakeoffInputs): RailingTakeoffResult {
+  const {
+    railingLF, postSpacingFt,
+    postSku, topRailSku, bottomRailSku, balustrSku, postCapSku,
+    postQtyOverride, topRailQtyOverride, bottomRailQtyOverride,
+    balustrQtyOverride, postCapQtyOverride,
+    taxRate,
+  } = inputs;
+
+  // Posts: one at each end + one every postSpacingFt
+  const postCountCalc = Math.ceil(railingLF / postSpacingFt) + 1;
+  const postCountEdited = postQtyOverride ?? postCountCalc;
+  const postUnitPrice = postSku.contractorPricePerUnit;
+  const postSubtotal = Math.round(postCountEdited * postUnitPrice * 100) / 100;
+
+  // Rail sections: total LF / section length, rounded up
+  const railSectionLengthFt = topRailSku.lengthFt ?? 8;
+  const topRailSectionsCalc = Math.ceil(railingLF / railSectionLengthFt);
+  const topRailSectionsEdited = topRailQtyOverride ?? topRailSectionsCalc;
+  const topRailUnitPrice = topRailSku.contractorPricePerUnit;
+  const topRailSubtotal = Math.round(topRailSectionsEdited * topRailUnitPrice * 100) / 100;
+
+  const bottomRailSectionLengthFt = bottomRailSku.lengthFt ?? 8;
+  const bottomRailSectionsCalc = Math.ceil(railingLF / bottomRailSectionLengthFt);
+  const bottomRailSectionsEdited = bottomRailQtyOverride ?? bottomRailSectionsCalc;
+  const bottomRailUnitPrice = bottomRailSku.contractorPricePerUnit;
+  const bottomRailSubtotal = Math.round(bottomRailSectionsEdited * bottomRailUnitPrice * 100) / 100;
+
+  // Balusters: ~2 per linear foot (4" OC spacing, 1.5" baluster width)
+  const balustrCountCalc = Math.ceil(railingLF * 2);
+  const balustrCountEdited = balustrQtyOverride ?? balustrCountCalc;
+  const balustrUnitPrice = balustrSku.contractorPricePerUnit;
+  const balustrSubtotal = Math.round(balustrCountEdited * balustrUnitPrice * 100) / 100;
+
+  // Post caps: one per post
+  const postCapCountCalc = postCountCalc;
+  const postCapCountEdited = postCapQtyOverride ?? postCapCountCalc;
+  const postCapUnitPrice = postCapSku.contractorPricePerUnit;
+  const postCapSubtotal = Math.round(postCapCountEdited * postCapUnitPrice * 100) / 100;
+
+  const subtotal = Math.round((postSubtotal + topRailSubtotal + bottomRailSubtotal + balustrSubtotal + postCapSubtotal) * 100) / 100;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const total = Math.round((subtotal + taxAmount) * 100) / 100;
+
+  return {
+    railingLF, postSpacingFt,
+    postCountCalc, postCountEdited, postUnitPrice, postSubtotal,
+    topRailSectionsCalc, topRailSectionsEdited, topRailUnitPrice, topRailSubtotal,
+    bottomRailSectionsCalc, bottomRailSectionsEdited, bottomRailUnitPrice, bottomRailSubtotal,
+    balustrCountCalc, balustrCountEdited, balustrUnitPrice, balustrSubtotal,
+    postCapCountCalc, postCapCountEdited, postCapUnitPrice, postCapSubtotal,
+    subtotal, taxRate, taxAmount, total,
+  };
+}
+
+// ─── RAILING SKU CATALOG ──────────────────────────────────────────────────────
+
+export const RAILING_SKUS: RailingSku[] = [
+
+  // ════════════════════════════════════════════════════════════════
+  // TREX — Transcend Railing
+  // ════════════════════════════════════════════════════════════════
+
+  // Post sleeves (wrap a 4×4 structural post)
+  {
+    id: "trex-transcend-post-sleeve-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Post Sleeve 4×4 — Classic White",
+    description: "Composite post sleeve wraps a 4×4 structural post. Fade and stain resistant. 42\" height.",
+    componentType: "post-sleeve",
+    unit: "each",
+    color: "Classic White",
+    contractorPricePerUnit: 49.98,
+    notes: "Most popular color. Pairs with white rail and balusters.",
+  },
+  {
+    id: "trex-transcend-post-sleeve-vintage",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Post Sleeve 4×4 — Vintage Lantern",
+    description: "Composite post sleeve in warm brown tone. 42\" height.",
+    componentType: "post-sleeve",
+    unit: "each",
+    color: "Vintage Lantern",
+    contractorPricePerUnit: 49.98,
+    notes: "Coordinates with Trex Transcend Spiced Rum and Tiki Torch deck boards.",
+  },
+  {
+    id: "trex-transcend-post-sleeve-charcoal",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Post Sleeve 4×4 — Charcoal Black",
+    description: "Composite post sleeve in dark charcoal. 42\" height.",
+    componentType: "post-sleeve",
+    unit: "each",
+    color: "Charcoal Black",
+    contractorPricePerUnit: 52.48,
+    notes: "Premium dark finish. Pairs with Trex Transcend Gravel Path or Island Mist boards.",
+  },
+
+  // Top rail sections
+  {
+    id: "trex-transcend-top-rail-8-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Top Rail 8 ft — Classic White",
+    description: "Composite top rail, 8 ft section. Grooved for baluster inserts. Includes mounting hardware.",
+    componentType: "top-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Classic White",
+    contractorPricePerUnit: 34.98,
+  },
+  {
+    id: "trex-transcend-top-rail-8-vintage",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Top Rail 8 ft — Vintage Lantern",
+    description: "Composite top rail, 8 ft section. Grooved for baluster inserts.",
+    componentType: "top-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Vintage Lantern",
+    contractorPricePerUnit: 34.98,
+  },
+  {
+    id: "trex-transcend-top-rail-8-charcoal",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Top Rail 8 ft — Charcoal Black",
+    description: "Composite top rail, 8 ft section. Premium dark finish.",
+    componentType: "top-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Charcoal Black",
+    contractorPricePerUnit: 36.48,
+  },
+
+  // Bottom rail sections
+  {
+    id: "trex-transcend-bottom-rail-8-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Bottom Rail 8 ft — Classic White",
+    description: "Composite bottom rail, 8 ft section. Grooved for baluster inserts.",
+    componentType: "bottom-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Classic White",
+    contractorPricePerUnit: 32.48,
+  },
+  {
+    id: "trex-transcend-bottom-rail-8-vintage",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Bottom Rail 8 ft — Vintage Lantern",
+    description: "Composite bottom rail, 8 ft section.",
+    componentType: "bottom-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Vintage Lantern",
+    contractorPricePerUnit: 32.48,
+  },
+  {
+    id: "trex-transcend-bottom-rail-8-charcoal",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Bottom Rail 8 ft — Charcoal Black",
+    description: "Composite bottom rail, 8 ft section. Premium dark finish.",
+    componentType: "bottom-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Charcoal Black",
+    contractorPricePerUnit: 33.98,
+  },
+
+  // Balusters
+  {
+    id: "trex-transcend-baluster-square-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Square Baluster — Classic White (box of 32)",
+    description: "Composite square balusters, 32\" length. Box of 32. Snap-in installation.",
+    componentType: "baluster",
+    unit: "each",
+    color: "Classic White",
+    contractorPricePerUnit: 5.98,
+    notes: "Priced per baluster. Box of 32 = ~$191. Covers approx. 16 LF of railing.",
+  },
+  {
+    id: "trex-transcend-baluster-square-charcoal",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Square Baluster — Charcoal Black (box of 32)",
+    description: "Composite square balusters, 32\" length. Box of 32. Snap-in installation.",
+    componentType: "baluster",
+    unit: "each",
+    color: "Charcoal Black",
+    contractorPricePerUnit: 6.48,
+    notes: "Priced per baluster. Premium dark finish.",
+  },
+
+  // Post caps
+  {
+    id: "trex-transcend-post-cap-flat-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Flat Post Cap — Classic White",
+    description: "Composite flat post cap for 4×4 post sleeve. Snap-on installation.",
+    componentType: "post-cap",
+    unit: "each",
+    color: "Classic White",
+    contractorPricePerUnit: 13.98,
+  },
+  {
+    id: "trex-transcend-post-cap-pyramid-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Pyramid Post Cap — Classic White",
+    description: "Composite pyramid post cap for 4×4 post sleeve. Classic architectural look.",
+    componentType: "post-cap",
+    unit: "each",
+    color: "Classic White",
+    contractorPricePerUnit: 15.48,
+  },
+  {
+    id: "trex-transcend-post-cap-solar-white",
+    manufacturer: "Trex",
+    productLine: "Transcend Railing",
+    name: "Trex Transcend Solar Post Cap — Classic White",
+    description: "Solar-powered LED post cap. Charges during the day, illuminates at night.",
+    componentType: "post-cap",
+    unit: "each",
+    color: "Classic White",
+    contractorPricePerUnit: 34.98,
+    notes: "Premium option. No wiring required. Adds ambiance and safety lighting.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // TIMBERTECH — Impression Rail
+  // ════════════════════════════════════════════════════════════════
+
+  // Post sleeves
+  {
+    id: "timbertech-impression-post-sleeve-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Post Sleeve 4×4 — White",
+    description: "Composite post sleeve for 4×4 structural post. 42\" height. Capped four sides.",
+    componentType: "post-sleeve",
+    unit: "each",
+    color: "White",
+    contractorPricePerUnit: 47.48,
+    notes: "Capped composite — superior moisture resistance vs. wood-based composites.",
+  },
+  {
+    id: "timbertech-impression-post-sleeve-brownstone",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Post Sleeve 4×4 — Brownstone",
+    description: "Composite post sleeve in warm brown. 42\" height. Capped four sides.",
+    componentType: "post-sleeve",
+    unit: "each",
+    color: "Brownstone",
+    contractorPricePerUnit: 47.48,
+    notes: "Coordinates with TimberTech Tigerwood and Mocha deck boards.",
+  },
+  {
+    id: "timbertech-impression-post-sleeve-black",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Post Sleeve 4×4 — Black",
+    description: "Composite post sleeve in matte black. 42\" height. Capped four sides.",
+    componentType: "post-sleeve",
+    unit: "each",
+    color: "Black",
+    contractorPricePerUnit: 49.98,
+    notes: "Premium dark finish. Pairs with TimberTech Slate Grey boards.",
+  },
+
+  // Top rail
+  {
+    id: "timbertech-impression-top-rail-8-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Top Rail 8 ft — White",
+    description: "Composite top rail, 8 ft section. Compatible with square and round balusters.",
+    componentType: "top-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "White",
+    contractorPricePerUnit: 32.98,
+  },
+  {
+    id: "timbertech-impression-top-rail-8-brownstone",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Top Rail 8 ft — Brownstone",
+    description: "Composite top rail, 8 ft section. Warm brown tone.",
+    componentType: "top-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Brownstone",
+    contractorPricePerUnit: 32.98,
+  },
+  {
+    id: "timbertech-impression-top-rail-8-black",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Top Rail 8 ft — Black",
+    description: "Composite top rail, 8 ft section. Matte black premium finish.",
+    componentType: "top-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Black",
+    contractorPricePerUnit: 34.48,
+  },
+
+  // Bottom rail
+  {
+    id: "timbertech-impression-bottom-rail-8-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Bottom Rail 8 ft — White",
+    description: "Composite bottom rail, 8 ft section.",
+    componentType: "bottom-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "White",
+    contractorPricePerUnit: 30.48,
+  },
+  {
+    id: "timbertech-impression-bottom-rail-8-brownstone",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Bottom Rail 8 ft — Brownstone",
+    description: "Composite bottom rail, 8 ft section. Warm brown tone.",
+    componentType: "bottom-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Brownstone",
+    contractorPricePerUnit: 30.48,
+  },
+  {
+    id: "timbertech-impression-bottom-rail-8-black",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Bottom Rail 8 ft — Black",
+    description: "Composite bottom rail, 8 ft section. Matte black premium finish.",
+    componentType: "bottom-rail",
+    unit: "8-ft section",
+    lengthFt: 8,
+    color: "Black",
+    contractorPricePerUnit: 31.98,
+  },
+
+  // Balusters
+  {
+    id: "timbertech-impression-baluster-square-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Square Baluster — White (each)",
+    description: "Composite square baluster, 36\" length. Snap-in installation. Sold individually.",
+    componentType: "baluster",
+    unit: "each",
+    color: "White",
+    contractorPricePerUnit: 5.78,
+    notes: "36\" height (vs Trex 32\"). Slightly taller profile.",
+  },
+  {
+    id: "timbertech-impression-baluster-square-black",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Square Baluster — Black (each)",
+    description: "Composite square baluster, 36\" length. Premium dark finish.",
+    componentType: "baluster",
+    unit: "each",
+    color: "Black",
+    contractorPricePerUnit: 6.28,
+  },
+
+  // Post caps
+  {
+    id: "timbertech-impression-post-cap-flat-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Flat Post Cap — White",
+    description: "Composite flat post cap for 4×4 post sleeve.",
+    componentType: "post-cap",
+    unit: "each",
+    color: "White",
+    contractorPricePerUnit: 12.98,
+  },
+  {
+    id: "timbertech-impression-post-cap-pyramid-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Pyramid Post Cap — White",
+    description: "Composite pyramid post cap for 4×4 post sleeve.",
+    componentType: "post-cap",
+    unit: "each",
+    color: "White",
+    contractorPricePerUnit: 14.48,
+  },
+  {
+    id: "timbertech-impression-post-cap-solar-white",
+    manufacturer: "TimberTech",
+    productLine: "Impression Rail",
+    name: "TimberTech Impression Solar Post Cap — White",
+    description: "Solar LED post cap. Charges during day, illuminates at night. No wiring.",
+    componentType: "post-cap",
+    unit: "each",
+    color: "White",
+    contractorPricePerUnit: 32.98,
+    notes: "No wiring required. Premium lighting option.",
+  },
+];
+
+/** Group railing SKUs by manufacturer, then by componentType */
+export function getRailingSkusByManufacturer(): Record<string, RailingSku[]> {
+  const groups: Record<string, RailingSku[]> = {};
+  RAILING_SKUS.forEach(sku => {
+    if (!groups[sku.manufacturer]) groups[sku.manufacturer] = [];
+    groups[sku.manufacturer].push(sku);
+  });
+  return groups;
+}
+
+/** Get railing SKUs for a manufacturer filtered by component type */
+export function getRailingSkusByComponent(manufacturer: string, componentType: RailingComponentType): RailingSku[] {
+  return RAILING_SKUS.filter(s => s.manufacturer === manufacturer && s.componentType === componentType);
+}
+
+/** Default railing SKUs — Trex Transcend Classic White */
+export function getDefaultRailingSkus(manufacturer: "Trex" | "TimberTech" = "Trex"): {
+  postSku: RailingSku;
+  topRailSku: RailingSku;
+  bottomRailSku: RailingSku;
+  balustrSku: RailingSku;
+  postCapSku: RailingSku;
+} {
+  if (manufacturer === "TimberTech") {
+    return {
+      postSku: RAILING_SKUS.find(s => s.id === "timbertech-impression-post-sleeve-white")!,
+      topRailSku: RAILING_SKUS.find(s => s.id === "timbertech-impression-top-rail-8-white")!,
+      bottomRailSku: RAILING_SKUS.find(s => s.id === "timbertech-impression-bottom-rail-8-white")!,
+      balustrSku: RAILING_SKUS.find(s => s.id === "timbertech-impression-baluster-square-white")!,
+      postCapSku: RAILING_SKUS.find(s => s.id === "timbertech-impression-post-cap-flat-white")!,
+    };
+  }
+  return {
+    postSku: RAILING_SKUS.find(s => s.id === "trex-transcend-post-sleeve-white")!,
+    topRailSku: RAILING_SKUS.find(s => s.id === "trex-transcend-top-rail-8-white")!,
+    bottomRailSku: RAILING_SKUS.find(s => s.id === "trex-transcend-bottom-rail-8-white")!,
+    balustrSku: RAILING_SKUS.find(s => s.id === "trex-transcend-baluster-square-white")!,
+    postCapSku: RAILING_SKUS.find(s => s.id === "trex-transcend-post-cap-flat-white")!,
+  };
+}
+
+/** Estimate railing linear footage from deck perimeter (3 sides typical) */
+export function estimateRailingLF(deckWidthFt: number, deckLengthFt: number): number {
+  // 3 sides: 2 × width + 1 × length (house side has no railing)
+  return Math.round(2 * deckWidthFt + deckLengthFt);
+}

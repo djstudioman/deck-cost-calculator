@@ -35,6 +35,14 @@ import {
   estimatePostCount,
   type ConcreteSku,
   type PostBaseSku,
+  RAILING_SKUS,
+  calculateRailingTakeoff,
+  getRailingSkusByManufacturer,
+  getRailingSkusByComponent,
+  getDefaultRailingSkus,
+  estimateRailingLF,
+  type RailingSku,
+  type RailingComponentType,
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
 
@@ -247,8 +255,68 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const postBaseSkusByProductLine = useMemo(() => getPostBaseSkusByProductLine(), []);
   const isPhase4Edited = concreteQtyOverride !== null || concretePriceOverride !== null || postBaseQtyOverride !== null || postBasePriceOverride !== null;
 
+  // ── Phase 5 state ──
+  const [railingBrand, setRailingBrand] = useState<"Trex" | "TimberTech">("Trex");
+  const defaultRailing = useMemo(() => getDefaultRailingSkus(railingBrand), [railingBrand]);
+  const [railingLF, setRailingLF] = useState<number>(() => estimateRailingLF(deckWidthFt, deckLengthFt));
+  const [postSpacingFt, setPostSpacingFt] = useState<number>(6);
+  const [postSkuId, setPostSkuId] = useState<string>(defaultRailing.postSku.id);
+  const [topRailSkuId, setTopRailSkuId] = useState<string>(defaultRailing.topRailSku.id);
+  const [bottomRailSkuId, setBottomRailSkuId] = useState<string>(defaultRailing.bottomRailSku.id);
+  const [balustrSkuId, setBalustrSkuId] = useState<string>(defaultRailing.balustrSku.id);
+  const [postCapSkuId, setPostCapSkuId] = useState<string>(defaultRailing.postCapSku.id);
+  const [railPostQtyOverride, setRailPostQtyOverride] = useState<number | null>(null);
+  const [railTopQtyOverride, setRailTopQtyOverride] = useState<number | null>(null);
+  const [railBottomQtyOverride, setRailBottomQtyOverride] = useState<number | null>(null);
+  const [railBalustrQtyOverride, setRailBalustrQtyOverride] = useState<number | null>(null);
+  const [railCapQtyOverride, setRailCapQtyOverride] = useState<number | null>(null);
+  const [expandedRailingBrand, setExpandedRailingBrand] = useState<string | null>("Trex");
+  const [expandedRailingComponent, setExpandedRailingComponent] = useState<RailingComponentType | null>("post-sleeve");
+
+  // When brand changes, reset all SKU selections to new brand defaults
+  useEffect(() => {
+    const d = getDefaultRailingSkus(railingBrand);
+    setPostSkuId(d.postSku.id);
+    setTopRailSkuId(d.topRailSku.id);
+    setBottomRailSkuId(d.bottomRailSku.id);
+    setBalustrSkuId(d.balustrSku.id);
+    setPostCapSkuId(d.postCapSku.id);
+    setRailPostQtyOverride(null);
+    setRailTopQtyOverride(null);
+    setRailBottomQtyOverride(null);
+    setRailBalustrQtyOverride(null);
+    setRailCapQtyOverride(null);
+    setExpandedRailingBrand(railingBrand);
+    setExpandedRailingComponent("post-sleeve");
+  }, [railingBrand]);
+
+  const postRailSku: RailingSku = useMemo(() => RAILING_SKUS.find(s => s.id === postSkuId) ?? defaultRailing.postSku, [postSkuId, defaultRailing]);
+  const topRailSku: RailingSku = useMemo(() => RAILING_SKUS.find(s => s.id === topRailSkuId) ?? defaultRailing.topRailSku, [topRailSkuId, defaultRailing]);
+  const bottomRailSku: RailingSku = useMemo(() => RAILING_SKUS.find(s => s.id === bottomRailSkuId) ?? defaultRailing.bottomRailSku, [bottomRailSkuId, defaultRailing]);
+  const balustrSku: RailingSku = useMemo(() => RAILING_SKUS.find(s => s.id === balustrSkuId) ?? defaultRailing.balustrSku, [balustrSkuId, defaultRailing]);
+  const postCapRailSku: RailingSku = useMemo(() => RAILING_SKUS.find(s => s.id === postCapSkuId) ?? defaultRailing.postCapSku, [postCapSkuId, defaultRailing]);
+
+  const railingTakeoff = useMemo(() => calculateRailingTakeoff({
+    railingLF,
+    postSpacingFt,
+    postSku: postRailSku,
+    topRailSku,
+    bottomRailSku,
+    balustrSku,
+    postCapSku: postCapRailSku,
+    postQtyOverride: railPostQtyOverride ?? undefined,
+    topRailQtyOverride: railTopQtyOverride ?? undefined,
+    bottomRailQtyOverride: railBottomQtyOverride ?? undefined,
+    balustrQtyOverride: railBalustrQtyOverride ?? undefined,
+    postCapQtyOverride: railCapQtyOverride ?? undefined,
+    taxRate,
+  }), [railingLF, postSpacingFt, postRailSku, topRailSku, bottomRailSku, balustrSku, postCapRailSku, railPostQtyOverride, railTopQtyOverride, railBottomQtyOverride, railBalustrQtyOverride, railCapQtyOverride, taxRate]);
+
+  const railingSkusByManufacturer = useMemo(() => getRailingSkusByManufacturer(), []);
+  const isPhase5Edited = railPostQtyOverride !== null || railTopQtyOverride !== null || railBottomQtyOverride !== null || railBalustrQtyOverride !== null || railCapQtyOverride !== null;
+
   // ── Grand total ──
-  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total;
+  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total;
 
   return (
     <div className="space-y-6">
@@ -1237,16 +1305,268 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
+      {/* ══════════════════════════════════════════════════════════════
+          PHASE 5: RAILING
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+        <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 5</span>
+            <span className="text-white font-semibold">Railing</span>
+          </div>
+          <span className="text-xs text-slate-400">Category 5 of 7</span>
+        </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* Brand toggle */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Railing Brand</label>
+            <div className="flex gap-3">
+              {(["Trex", "TimberTech"] as const).map(brand => (
+                <button
+                  key={brand}
+                  onClick={() => setRailingBrand(brand)}
+                  className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                    railingBrand === brand
+                      ? "border-amber-500 bg-amber-500/10 text-amber-300"
+                      : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                  }`}
+                >
+                  {brand === "Trex" ? "Trex Transcend" : "TimberTech Impression"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Railing LF + post spacing */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Railing Linear Footage</label>
+              <input
+                type="number" min={1} step={1}
+                value={railingLF}
+                onChange={e => setRailingLF(Math.max(1, parseInt(e.target.value) || railingLF))}
+                className="w-full bg-slate-700 border border-slate-500 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-400"
+              />
+              <div className="text-[11px] text-slate-500 mt-1">Est. from deck dimensions: {estimateRailingLF(deckWidthFt, deckLengthFt)} LF</div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Post Spacing</label>
+              <div className="flex gap-2">
+                {[6, 8].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setPostSpacingFt(s)}
+                    className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                      postSpacingFt === s
+                        ? "border-amber-500 bg-amber-500/10 text-amber-300"
+                        : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                    }`}
+                  >
+                    {s}' OC
+                  </button>
+                ))}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">Posts: {railingTakeoff.postCountCalc} estimated</div>
+            </div>
+          </div>
+
+          {/* Component accordions — one per component type within the selected brand */}
+          {([
+            { type: "post-sleeve" as RailingComponentType, label: "Post Sleeves", skuId: postSkuId, setSkuId: setPostSkuId },
+            { type: "top-rail" as RailingComponentType, label: "Top Rail", skuId: topRailSkuId, setSkuId: setTopRailSkuId },
+            { type: "bottom-rail" as RailingComponentType, label: "Bottom Rail", skuId: bottomRailSkuId, setSkuId: setBottomRailSkuId },
+            { type: "baluster" as RailingComponentType, label: "Balusters", skuId: balustrSkuId, setSkuId: setBalustrSkuId },
+            { type: "post-cap" as RailingComponentType, label: "Post Caps", skuId: postCapSkuId, setSkuId: setPostCapSkuId },
+          ]).map(({ type, label, skuId, setSkuId }) => {
+            const skus = getRailingSkusByComponent(railingBrand, type);
+            const isOpen = expandedRailingComponent === type;
+            const hasSelected = skus.some(s => s.id === skuId);
+            return (
+              <div key={type} className={`rounded-xl border transition-all ${
+                hasSelected ? "border-amber-500/60" : "border-slate-600"
+              }`}>
+                <button
+                  onClick={() => setExpandedRailingComponent(isOpen ? null : type)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-semibold ${
+                      hasSelected ? "text-amber-300" : "text-slate-200"
+                    }`}>{label}</span>
+                    {hasSelected && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
+                    )}
+                    <span className="text-xs text-slate-500">{skus.length} option{skus.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isOpen && (
+                  <div className="px-3 pb-3 space-y-2">
+                    {skus.map(sku => (
+                      <button
+                        key={sku.id}
+                        onClick={() => setSkuId(sku.id)}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                          skuId === sku.id
+                            ? "border-amber-500 bg-amber-500/10 text-white"
+                            : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium text-white">{sku.name}</span>
+                              {sku.color && (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-600/60 text-slate-300">{sku.color}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">{sku.description}</div>
+                            {sku.notes && <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>}
+                          </div>
+                          <div className="text-right shrink-0 ml-2">
+                            <div className="text-sm font-bold text-amber-300">${sku.contractorPricePerUnit.toFixed(2)}/{sku.unit}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Takeoff table */}
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
+              Railing Takeoff
+            </div>
+            <div className="grid grid-cols-3 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-700">
+              <span>Item</span><span className="text-center">Qty</span><span className="text-right">Amount</span>
+            </div>
+            {/* Post sleeves */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Post sleeves</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={railPostQtyOverride ?? railingTakeoff.postCountEdited}
+                  onChange={e => setRailPostQtyOverride(Math.max(1, parseInt(e.target.value) || railingTakeoff.postCountCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.postSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{postRailSku.name}</span>
+              <span />
+              <span className="text-right">${railingTakeoff.postUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Top rail */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Top rail sections</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={railTopQtyOverride ?? railingTakeoff.topRailSectionsEdited}
+                  onChange={e => setRailTopQtyOverride(Math.max(1, parseInt(e.target.value) || railingTakeoff.topRailSectionsCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.topRailSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{topRailSku.name}</span>
+              <span />
+              <span className="text-right">${railingTakeoff.topRailUnitPrice.toFixed(2)}/section</span>
+            </div>
+            {/* Bottom rail */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Bottom rail sections</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={railBottomQtyOverride ?? railingTakeoff.bottomRailSectionsEdited}
+                  onChange={e => setRailBottomQtyOverride(Math.max(1, parseInt(e.target.value) || railingTakeoff.bottomRailSectionsCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.bottomRailSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{bottomRailSku.name}</span>
+              <span />
+              <span className="text-right">${railingTakeoff.bottomRailUnitPrice.toFixed(2)}/section</span>
+            </div>
+            {/* Balusters */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Balusters</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={railBalustrQtyOverride ?? railingTakeoff.balustrCountEdited}
+                  onChange={e => setRailBalustrQtyOverride(Math.max(1, parseInt(e.target.value) || railingTakeoff.balustrCountCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.balustrSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{balustrSku.name}</span>
+              <span className="text-center text-slate-600">~2 per LF</span>
+              <span className="text-right">${railingTakeoff.balustrUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Post caps */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Post caps</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={railCapQtyOverride ?? railingTakeoff.postCapCountEdited}
+                  onChange={e => setRailCapQtyOverride(Math.max(1, parseInt(e.target.value) || railingTakeoff.postCapCountCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.postCapSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{postCapRailSku.name}</span>
+              <span />
+              <span className="text-right">${railingTakeoff.postCapUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Subtotal */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Subtotal (materials)</span>
+              <span />
+              <span className="text-right text-slate-200 font-semibold">{formatTakeoffCurrency(railingTakeoff.subtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Sales tax ({(taxRate * 100).toFixed(2)}%)</span>
+              <span />
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.taxAmount)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-3 bg-slate-700/30">
+              <span className="text-white font-bold text-base">Total — Railing</span>
+              <span />
+              <span className="text-right text-emerald-400 font-bold text-xl">{formatTakeoffCurrency(railingTakeoff.total)}</span>
+            </div>
+          </div>
+
+          {isPhase5Edited && (
+            <button
+              onClick={() => { setRailPostQtyOverride(null); setRailTopQtyOverride(null); setRailBottomQtyOverride(null); setRailBalustrQtyOverride(null); setRailCapQtyOverride(null); }}
+              className="text-xs text-amber-400 hover:text-amber-300 underline"
+            >
+              Reset to calculated values
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Running Grand Total ── */}
       <div className="bg-slate-800/80 border border-emerald-500/30 rounded-xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–4)</div>
-            <div className="text-sm text-slate-500">Boards + fasteners + framing + footings · tax included</div>
+            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–5)</div>
+            <div className="text-sm text-slate-500">Boards + fasteners + framing + footings + railing · tax included</div>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
-            <div className="text-xs text-slate-500 mt-0.5">3 more categories remaining</div>
+            <div className="text-xs text-slate-500 mt-0.5">2 more categories remaining</div>
           </div>
         </div>
       </div>
@@ -1254,14 +1574,13 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
       {/* ── Coming Next ── */}
       <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Coming Next in Material Takeoff</div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {[
-            "Railing (posts, balusters, rail)",
             "Stairs (stringers, treads, risers)",
             "Hardware & misc (hangers, flashing)",
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">{i + 5}</span>
+              <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">{i + 6}</span>
               {item}
             </div>
           ))}
