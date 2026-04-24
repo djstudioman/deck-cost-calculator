@@ -1131,8 +1131,8 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                         <div className="w-16 text-right font-mono text-amber-400/80">{fmt(row.high)}</div>
                       </div>
                     ))}
-                    {/* Section subtotal */}
-                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center px-3 py-2 mt-2 rounded-lg bg-amber-400/[0.07] border border-amber-400/25">
+                    {/* Section subtotal — negative mx bleeds bg to container edges; numbers stay on same grid as line items */}
+                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-2 mt-2 -mx-5 px-5 bg-amber-400/[0.07] border-y border-amber-400/25">
                       <div className="text-xs font-bold text-amber-300 tracking-widest uppercase">Subtotal</div>
                       <div className="w-16 text-right font-mono text-green-400 text-xs font-semibold">{fmt(sec.rows.reduce((s, r) => s + r.low, 0))}</div>
                       <div className="w-16 text-right font-mono text-blue-300 text-xs font-bold">{fmt(sec.rows.reduce((s, r) => s + r.mid, 0))}</div>
