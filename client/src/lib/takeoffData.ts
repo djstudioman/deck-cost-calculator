@@ -405,3 +405,207 @@ export function getDefaultSku(brandId: string, preferGrooved: boolean): BoardSku
 export function formatTakeoffCurrency(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }
+
+// ─── PHASE 2: FASTENER SKUs ───────────────────────────────────────────────────
+// Sources: FastenMaster.com, Deck Screws distributor pricing, contractor quotes Q1 2026.
+// All prices are contractor/distributor pricing (not retail), before tax.
+//
+// Coverage notes:
+//   Face screws: ~350–400 screws per 100 sq ft (2 per joist crossing, 16" OC, 6" boards)
+//   Generic clips: ~175–200 clips per 100 sq ft (1 clip per board end + 1 per mid-joist)
+//   Cortex plugs: 1 plug per screw, same count as face screws (~350–400 per 100 sq ft)
+
+export type FastenerSystemId = "none" | "clip" | "cortex";
+
+export interface FastenerSku {
+  id: string;
+  systemId: FastenerSystemId;
+  name: string;
+  description: string;
+  unit: string;              // "box", "bag", "pack", "bucket"
+  qtyPerUnit: number;        // screws/clips/plugs per unit
+  coverageSqFtPerUnit: number; // sq ft covered per unit (at 16" OC, 6" boards)
+  contractorPricePerUnit: number; // USD, 2026 contractor pricing
+  notes?: string;
+}
+
+export const FASTENER_SKUS: FastenerSku[] = [
+  // ── FACE SCREWS (systemId: "none" — standard face-screw install) ──
+  {
+    id: "face-screw-305ss-box",
+    systemId: "none",
+    name: "Deck Screws #10 × 3\" 305 SS (1 lb box)",
+    description: "305 stainless steel, #10 × 3\", square drive. Corrosion-resistant for coastal or treated lumber.",
+    unit: "box",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 25,   // ~4 screws/sq ft at 16" OC
+    contractorPricePerUnit: 14.50,
+    notes: "1 lb box ≈ 100 screws. Use 305 SS for composite over PT framing.",
+  },
+  {
+    id: "face-screw-305ss-5lb-bucket",
+    systemId: "none",
+    name: "Deck Screws #10 × 3\" 305 SS (5 lb bucket)",
+    description: "305 stainless steel, #10 × 3\", square drive. 5 lb bulk bucket — best value for larger decks.",
+    unit: "bucket",
+    qtyPerUnit: 500,
+    coverageSqFtPerUnit: 125,  // ~4 screws/sq ft at 16" OC
+    contractorPricePerUnit: 58.00,
+    notes: "5 lb bucket ≈ 500 screws. Most economical for decks over 200 sq ft.",
+  },
+  {
+    id: "face-screw-coated-1lb",
+    systemId: "none",
+    name: "Deck Screws #10 × 3\" Coated (1 lb box)",
+    description: "Polymer-coated carbon steel, #10 × 3\", star drive. ACQ-compatible. Budget option for interior regions.",
+    unit: "box",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 25,
+    contractorPricePerUnit: 8.75,
+    notes: "Not recommended for coastal or high-humidity regions. Use SS instead.",
+  },
+
+  // ── GENERIC HIDDEN CLIP SYSTEM (systemId: "clip") ──
+  {
+    id: "generic-clip-ipe-100pk",
+    systemId: "clip",
+    name: "Deck Clip Hidden Fastener (100-pack)",
+    description: "Universal grooved-board clip. Compatible with most 1×6 grooved composite decking at 16\" OC.",
+    unit: "pack",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 55,   // ~1.8 clips/sq ft at 16" OC, 6" boards
+    contractorPricePerUnit: 22.00,
+    notes: "100-pack covers ~55 sq ft. Includes installation bit.",
+  },
+  {
+    id: "generic-clip-ipe-500pk",
+    systemId: "clip",
+    name: "Deck Clip Hidden Fastener (500-pack)",
+    description: "Universal grooved-board clip. Bulk pack for larger decks. Compatible with most 1×6 grooved composite.",
+    unit: "pack",
+    qtyPerUnit: 500,
+    coverageSqFtPerUnit: 275,  // same rate, bulk
+    contractorPricePerUnit: 98.00,
+    notes: "500-pack covers ~275 sq ft. Best value for decks over 300 sq ft.",
+  },
+  {
+    id: "trex-hideaway-clip-175pk",
+    systemId: "clip",
+    name: "Trex Hideaway Universal Clip (175-pack)",
+    description: "Trex-branded universal hidden fastener. Fits Trex grooved boards and most other grooved composite.",
+    unit: "pack",
+    qtyPerUnit: 175,
+    coverageSqFtPerUnit: 97,   // ~1.8 clips/sq ft
+    contractorPricePerUnit: 42.00,
+    notes: "Trex recommends 1 bag per 50 sq ft (conservative). We use 1.8/sq ft.",
+  },
+
+  // ── CORTEX BY FASTENMASTER (systemId: "cortex") ──
+  {
+    id: "cortex-composite-100pk",
+    systemId: "cortex",
+    name: "Cortex by FastenMaster — Composite (100-pack)",
+    description: "Cortex hidden fastening system for composite decking. Includes color-matched plugs. Drill, countersink, screw, plug.",
+    unit: "pack",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 25,   // ~4 screws/sq ft (same as face screws)
+    contractorPricePerUnit: 38.50,
+    notes: "Each pack includes 100 screws + 100 color-matched plugs. Specify color when ordering.",
+  },
+  {
+    id: "cortex-composite-350pk",
+    systemId: "cortex",
+    name: "Cortex by FastenMaster — Composite (350-pack)",
+    description: "Cortex hidden fastening system, bulk pack. Color-matched plugs included. Best value for 100–300 sq ft decks.",
+    unit: "pack",
+    qtyPerUnit: 350,
+    coverageSqFtPerUnit: 87,
+    contractorPricePerUnit: 118.00,
+    notes: "350-pack covers ~87 sq ft. Includes installation tool guide.",
+  },
+  {
+    id: "cortex-composite-1750pk",
+    systemId: "cortex",
+    name: "Cortex by FastenMaster — Composite (1750-pack)",
+    description: "Cortex hidden fastening system, contractor bulk pack. Color-matched plugs included. Best value for large decks.",
+    unit: "pack",
+    qtyPerUnit: 1750,
+    coverageSqFtPerUnit: 437,
+    contractorPricePerUnit: 498.00,
+    notes: "1750-pack covers ~437 sq ft. Best value for decks over 400 sq ft.",
+  },
+];
+
+// ─── FASTENER CALCULATION ─────────────────────────────────────────────────────
+
+export interface FastenerTakeoffInputs {
+  deckAreaSqFt: number;
+  systemId: FastenerSystemId;
+  selectedSkuId: string;
+  qtyOverride?: number;
+  unitPriceOverride?: number;
+  taxRate: number;
+  wasteFactor?: number;       // default 0.05 (5% extra for drops/waste)
+}
+
+export interface FastenerTakeoffResult {
+  sku: FastenerSku;
+  deckAreaSqFt: number;
+  systemId: FastenerSystemId;
+  grossAreaSqFt: number;
+  unitsNeeded: number;
+  unitsEdited: number;
+  unitPrice: number;
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+}
+
+export function calculateFastenerTakeoff(inputs: FastenerTakeoffInputs): FastenerTakeoffResult {
+  const { deckAreaSqFt, selectedSkuId, qtyOverride, unitPriceOverride, taxRate, wasteFactor = 0.05 } = inputs;
+
+  const sku = FASTENER_SKUS.find(s => s.id === selectedSkuId) ?? FASTENER_SKUS[0];
+  const grossAreaSqFt = deckAreaSqFt * (1 + wasteFactor);
+  const unitsNeeded = Math.ceil(grossAreaSqFt / sku.coverageSqFtPerUnit);
+  const unitsEdited = qtyOverride ?? unitsNeeded;
+  const unitPrice = unitPriceOverride ?? sku.contractorPricePerUnit;
+  const subtotal = unitsEdited * unitPrice;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const total = subtotal + taxAmount;
+
+  return {
+    sku,
+    deckAreaSqFt,
+    systemId: sku.systemId,
+    grossAreaSqFt: Math.round(grossAreaSqFt * 10) / 10,
+    unitsNeeded,
+    unitsEdited,
+    unitPrice,
+    subtotal: Math.round(subtotal * 100) / 100,
+    taxRate,
+    taxAmount,
+    total: Math.round(total * 100) / 100,
+  };
+}
+
+/** Return fastener SKUs for a given system */
+export function getFastenerSkusForSystem(systemId: FastenerSystemId): FastenerSku[] {
+  return FASTENER_SKUS.filter(s => s.systemId === systemId);
+}
+
+/** Return the default (best-value) SKU for a system and deck area */
+export function getDefaultFastenerSku(systemId: FastenerSystemId, deckAreaSqFt: number): FastenerSku {
+  const skus = getFastenerSkusForSystem(systemId);
+  if (skus.length === 0) return FASTENER_SKUS[0];
+  // Pick the largest pack that doesn't massively over-order (covers ≤ 3× the deck area)
+  const sorted = [...skus].sort((a, b) => b.coverageSqFtPerUnit - a.coverageSqFtPerUnit);
+  return sorted.find(s => s.coverageSqFtPerUnit <= deckAreaSqFt * 2) ?? sorted[sorted.length - 1];
+}
+
+/** Human-readable label for a fastener system */
+export function fastenerSystemLabel(systemId: FastenerSystemId): string {
+  if (systemId === "clip") return "Hidden Clip System";
+  if (systemId === "cortex") return "Cortex by FastenMaster";
+  return "Face Screws";
+}
