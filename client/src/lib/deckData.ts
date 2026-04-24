@@ -747,6 +747,8 @@ export interface CalculatorInputs {
   isMultiLevel?: boolean;
   level2SizeId?: string;  // same IDs as sizeId, or "custom"
   level2CustomSqFt?: number;
+  // Deck height above grade (used by Material Takeoff for stair step calculation)
+  deckHeightIn?: number; // inches above grade; defaults to 24
 }
 
 export interface CalculatorResult {
@@ -832,6 +834,11 @@ export interface CalculatorResult {
   isDIY: boolean;
   isContractor: boolean;
   permitCost: number;
+  // Inputs echoed back for downstream use (e.g. Material Takeoff)
+  railingLF: number;
+  includeStairs: boolean;
+  stairSteps: number;
+  deckHeightIn: number;  // inches above grade (defaults to 24 if not provided)
   // DIY extras
   diy?: {
     skillLevel: typeof DIY_SKILL_LEVELS[number];
@@ -1655,6 +1662,11 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     isDIY,
     isContractor,
     permitCost: inputs.includePermit ? (inputs.permitCost ?? 350) : 0,
+    // Echo inputs for downstream use
+    railingLF: inputs.railingLF,
+    includeStairs: inputs.includeStairs,
+    stairSteps: inputs.stairSteps,
+    deckHeightIn: inputs.deckHeightIn ?? 24,
     diy: diyExtras,
     contractor: contractorExtras,
   };

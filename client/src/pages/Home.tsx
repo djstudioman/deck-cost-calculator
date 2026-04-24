@@ -221,6 +221,7 @@ export default function Home() {
       railingHeightIn,
       footingDiameterIn,
       useHelicalPiers,
+      deckHeightIn,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -230,7 +231,7 @@ export default function Home() {
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
       brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
       postMountId, postSpacingFt, railingHeightIn,
-      footingDiameterIn, useHelicalPiers,
+      footingDiameterIn, useHelicalPiers, deckHeightIn,
     ]
   );
 

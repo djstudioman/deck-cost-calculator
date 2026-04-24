@@ -237,8 +237,12 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const isPhase3Edited = joistQtyOverride !== null || joistPriceOverride !== null || rimQtyOverride !== null || rimPriceOverride !== null;
 
   // ── Phase 4 state ──
-  const [postCount, setPostCount] = useState<number>(() => estimatePostCount(deckAreaSqFt));
-  const [tubeDiameterIn, setTubeDiameterIn] = useState<number>(10);
+  const [postCount, setPostCount] = useState<number>(() =>
+    result.footingCount > 0 ? result.footingCount : estimatePostCount(deckAreaSqFt)
+  );
+  const [tubeDiameterIn, setTubeDiameterIn] = useState<number>(
+    result.footingDiameterIn ?? 10
+  );
   const [footingDepthFt, setFootingDepthFt] = useState<number>(3.5);
   const [concreteSkuId, setConcreteSkuId] = useState<string>(getDefaultConcreteSku().id);
   const [postBaseSkuId, setPostBaseSkuId] = useState<string>(getDefaultPostBaseSku().id);
@@ -288,7 +292,9 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   // ── Phase 5 state ──
   const [railingBrand, setRailingBrand] = useState<"Trex" | "TimberTech">("Trex");
   const defaultRailing = useMemo(() => getDefaultRailingSkus(railingBrand), [railingBrand]);
-  const [railingLF, setRailingLF] = useState<number>(() => estimateRailingLF(deckWidthFt, deckLengthFt));
+  const [railingLF, setRailingLF] = useState<number>(() =>
+    result.railingLF > 0 ? result.railingLF : estimateRailingLF(deckWidthFt, deckLengthFt)
+  );
   const [postSpacingFt, setPostSpacingFt] = useState<number>(6);
   const [postSkuId, setPostSkuId] = useState<string>(defaultRailing.postSku.id);
   const [topRailSkuId, setTopRailSkuId] = useState<string>(defaultRailing.topRailSku.id);
@@ -347,7 +353,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
   // ── Phase 6 state ──
   const defaultStair = useMemo(() => getDefaultStairSkus(), []);
-  const [deckHeightIn, setDeckHeightIn] = useState<number>(48);
+  const [deckHeightIn, setDeckHeightIn] = useState<number>(result.deckHeightIn ?? 48);
   const [stairWidthIn, setStairWidthIn] = useState<number>(36);
   const [riseIn, setRiseIn] = useState<number>(7);
   const [runIn, setRunIn] = useState<number>(10);
