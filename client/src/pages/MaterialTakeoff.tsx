@@ -847,9 +847,16 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                       className="flex-1 flex items-center justify-between text-left"
                     >
                       <div>
-                        <div className={`text-sm font-semibold ${
-                          line?.enabled ? "text-white" : "text-slate-500"
-                        }`}>{fastenerCategoryLabel(cat)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-semibold ${
+                            line?.enabled ? "text-white" : "text-slate-500"
+                          }`}>{fastenerCategoryLabel(cat)}</span>
+                          {cat === "ledger" && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-400">
+                              ↑ Phase 3
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-500 mt-0.5">{fastenerCategoryDescription(cat)}</div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0 ml-3">
@@ -958,7 +965,17 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                           <div className="divide-y divide-slate-700/50">
                             <div className="grid grid-cols-3 px-3 py-2 text-xs">
                               <span className="text-slate-400">Basis</span>
-                              <span className="col-span-2 text-right text-slate-300">{lineResult.basisLabel}</span>
+                              <span className="col-span-2 text-right text-slate-300">
+                                {lineResult.basisLabel}
+                                {cat === "ledger" && (
+                                  <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-400">
+                                    <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    synced from Phase 3 · {ledgerLF} ft
+                                  </span>
+                                )}
+                              </span>
                             </div>
                             <div className="grid grid-cols-3 px-3 py-2 text-xs bg-slate-800/40">
                               <span className="text-slate-300 font-semibold">Units needed</span>
