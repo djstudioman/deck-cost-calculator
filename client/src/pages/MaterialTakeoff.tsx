@@ -2168,6 +2168,67 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
+      {/* ── Estimate Comparison Banner ── */}
+      {(() => {
+        const estimateMaterialsLow = result.materialsLow;
+        const estimateMaterialsHigh = result.materialsHigh;
+        const takeoffPreTax = grandTotal / (1 + taxRate);
+        const isBelow = takeoffPreTax < estimateMaterialsLow;
+        const isAbove = takeoffPreTax > estimateMaterialsHigh;
+        const isInRange = !isBelow && !isAbove;
+        const pctDiff = isAbove
+          ? Math.round(((takeoffPreTax - estimateMaterialsHigh) / estimateMaterialsHigh) * 100)
+          : isBelow
+          ? Math.round(((estimateMaterialsLow - takeoffPreTax) / estimateMaterialsLow) * 100)
+          : 0;
+        return (
+          <div className={`rounded-xl border p-4 ${
+            isInRange
+              ? 'bg-emerald-950/40 border-emerald-600/40'
+              : isAbove
+              ? 'bg-amber-950/40 border-amber-500/40'
+              : 'bg-blue-950/40 border-blue-500/40'
+          }`}>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div className={`text-xs font-bold tracking-widest uppercase mb-1 ${
+                  isInRange ? 'text-emerald-400' : isAbove ? 'text-amber-400' : 'text-blue-400'
+                }`}>
+                  {isInRange ? '✓ Within Estimate Range' : isAbove ? '⚠ Above Estimate Range' : 'ℹ Below Estimate Range'}
+                </div>
+                <div className="text-sm text-slate-300">
+                  Estimate materials range: <span className="font-semibold text-white">{formatTakeoffCurrency(estimateMaterialsLow)} – {formatTakeoffCurrency(estimateMaterialsHigh)}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Estimate includes all materials (boards, framing, hardware, footings, etc.) — excludes labor.
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-xs text-slate-500 mb-0.5">Takeoff total (pre-tax)</div>
+                <div className={`text-2xl font-bold ${
+                  isInRange ? 'text-emerald-400' : isAbove ? 'text-amber-400' : 'text-blue-400'
+                }`}>{formatTakeoffCurrency(Math.round(takeoffPreTax))}</div>
+                {!isInRange && (
+                  <div className="text-xs mt-0.5 text-slate-400">
+                    {isAbove ? `${pctDiff}% over high estimate` : `${pctDiff}% under low estimate`}
+                  </div>
+                )}
+              </div>
+            </div>
+            {isAbove && (
+              <div className="mt-3 pt-3 border-t border-amber-800/30 text-xs text-amber-300/80">
+                Your selections may exceed the estimate range. Consider reviewing unit prices, waste factor, or board length to align with your project budget.
+              </div>
+            )}
+            {isBelow && (
+              <div className="mt-3 pt-3 border-t border-blue-800/30 text-xs text-blue-300/80">
+                Not all phases may be fully configured yet. Complete all 7 phases to get the most accurate comparison.
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── Navigation ── */}
       <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
         <button
