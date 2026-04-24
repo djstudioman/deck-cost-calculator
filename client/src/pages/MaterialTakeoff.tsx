@@ -415,6 +415,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
   const hardwareTakeoff = useMemo(() => calculateHardwareTakeoff({
     joistCount: lumberTakeoff.joistCount,
+    joistLengthFt,
     postCount,
     ledgerLF,
     joistHangerSku,
@@ -428,7 +429,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
     structuralScrewQtyOverride: hwStructuralScrewQtyOverride ?? undefined,
     joistTapeQtyOverride: hwJoistTapeQtyOverride ?? undefined,
     taxRate,
-  }), [lumberTakeoff.joistCount, postCount, ledgerLF, joistHangerSku, hwPostCapSku, ledgerFlashingSku, structuralScrewSku, joistTapeSku, hwJoistHangerQtyOverride, hwPostCapQtyOverride, hwLedgerFlashingQtyOverride, hwStructuralScrewQtyOverride, hwJoistTapeQtyOverride, taxRate]);
+  }), [lumberTakeoff.joistCount, joistLengthFt, postCount, ledgerLF, joistHangerSku, hwPostCapSku, ledgerFlashingSku, structuralScrewSku, joistTapeSku, hwJoistHangerQtyOverride, hwPostCapQtyOverride, hwLedgerFlashingQtyOverride, hwStructuralScrewQtyOverride, hwJoistTapeQtyOverride, taxRate]);
 
   const isPhase7Edited = hwJoistHangerQtyOverride !== null || hwPostCapQtyOverride !== null || hwLedgerFlashingQtyOverride !== null || hwStructuralScrewQtyOverride !== null || hwJoistTapeQtyOverride !== null;
 

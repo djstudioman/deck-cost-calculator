@@ -698,7 +698,7 @@ export interface CalculatorInputs {
   railingLF: number;
   includeStairs: boolean;
   stairSteps: number;
-  stairWidthFt?: number; // 4–8 ft, base 4ft, +$100/step per extra foot
+  stairWidthFt?: number; // 4–8 ft, base 4ft, +$150/step per extra foot (contractor field data)
   includeStairRailing?: boolean; // opt-in, uses same system as deck railing
   // DIY-specific
   skillLevelId?: string;
@@ -711,7 +711,6 @@ export interface CalculatorInputs {
   crewSizeId?: string;
   includeCrew?: boolean;
   subFootings?: boolean;
-  markupMaterials?: boolean;
   // Decking brand / product line (contractor only, composite + pvc tiers)
   brandId?: string;             // id from DECKING_BRANDS; undefined = no specific brand
   // Hidden fastener system (contractor only)
@@ -739,7 +738,6 @@ export interface CalculatorInputs {
   footingDiameterIn?: 8 | 10 | 12 | 16; // tube footing diameter; defaults to 10"
   useHelicalPiers?: boolean;             // replace tube footings with helical piers
   // Railing detail (contractor only)
-  balustradeStyleId?: string;   // "spindle" | "aluminum" | "cable" | "glass"
   postMountId?: "surface" | "fascia";
   postSpacingFt?: 4 | 6 | 8;   // on-center post spacing in feet
   railingHeightIn?: 36 | 42;   // 36" standard residential, 42" elevated/commercial
@@ -1483,10 +1481,13 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const totalWithExtrasLow = totalLow + wastedMaterialCost + toolRentalLow;
     const totalWithExtrasHigh = totalHigh + Math.round(materialsHigh * wasteFactor) + toolRentalHigh;
 
-    // Savings vs hiring (compare to homeowner installed cost)
+    // Savings vs hiring (compare to contractor-installed cost in the same market).
+    // Uses marketMultiplier so high-cost metros show accurate savings potential.
+    // DIY path does not set marketTierId, so marketMultiplier defaults to 1.0 (suburban baseline).
+    const diyMarketMultiplier = MARKET_TIERS.find((m) => m.id === inputs.marketTierId)?.laborMultiplier ?? 1.0;
     const installedMid = Math.round(
-      (baseInstalled.low * materialFraction + baseInstalled.low * laborFraction * regionMultiplier * complexityMultiplier +
-       baseInstalled.high * materialFraction + baseInstalled.high * laborFraction * regionMultiplier * complexityMultiplier) / 2
+      (baseInstalled.low * materialFraction + baseInstalled.low * laborFraction * regionMultiplier * complexityMultiplier * diyMarketMultiplier +
+       baseInstalled.high * materialFraction + baseInstalled.high * laborFraction * regionMultiplier * complexityMultiplier * diyMarketMultiplier) / 2
     );
     const savingsVsHiring = Math.max(0, installedMid - Math.round((totalWithExtrasLow + totalWithExtrasHigh) / 2));
 
@@ -1562,8 +1563,12 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
 
+    // Gross margin: revenue minus ALL actual costs (materials, labor, extras, pass-throughs).
+    // extrasMid = railing + footings + stairs + stairRailing + climatePremium (actual cost before markup).
+    // Pass-throughs (permit, demo, subFootings) are included at cost with no markup.
+    const totalActualCost = materialCostRaw + laborCostRaw + extrasMid + subFootingsCost + contractorPermitCost + demolitionMid + framingMid + multiLevelMid + brandDeltaMid + fastenerMid + edgeBoardMid;
     const grossMarginPct = Math.round(
-      ((baseBidMid - materialCostRaw - laborCostRaw) / baseBidMid) * 100
+      ((baseBidMid - totalActualCost) / baseBidMid) * 100
     );
 
     // Estimated days: baseline 1 day per 40 sqFt for 2-person crew, adjusted by crew efficiency

@@ -753,7 +753,8 @@ export function fastenerSystemLabel(systemId: FastenerSystemId): string {
 // Lengths: 8', 10', 12', 16', 20'
 //
 // Joist spacing: 12" OC, 16" OC, 24" OC
-// Joist count formula: ceil(deckWidthFt / spacingFt) + 1 (for rim joists × 2)
+// Joist count formula: ceil(deckLengthFt / spacingFt) + 1
+//   Joists span the width (shorter dimension); spacing is measured along the length.
 // Board feet: (thickness × width × lengthFt) / 12
 //
 // 2026 contractor/distributor pricing (before tax):
@@ -1752,8 +1753,9 @@ export function calculateRailingTakeoff(inputs: RailingTakeoffInputs): RailingTa
   const bottomRailUnitPrice = bottomRailSku.contractorPricePerUnit;
   const bottomRailSubtotal = Math.round(bottomRailSectionsEdited * bottomRailUnitPrice * 100) / 100;
 
-  // Balusters: ~2 per linear foot (4" OC spacing, 1.5" baluster width)
-  const balustrCountCalc = Math.ceil(railingLF * 2);
+  // Balusters: IBC max 4" clear opening, 1.5" baluster width → 12/(1.5+4) = 2.18/LF.
+  // Use 2.2/LF (rounded up from 2.18) for accurate IBC-compliant quantity.
+  const balustrCountCalc = Math.ceil(railingLF * 2.2);
   const balustrCountEdited = balustrQtyOverride ?? balustrCountCalc;
   const balustrUnitPrice = balustrSku.contractorPricePerUnit;
   const balustrSubtotal = Math.round(balustrCountEdited * balustrUnitPrice * 100) / 100;
@@ -2631,6 +2633,7 @@ export interface HardwareSku {
 
 export interface HardwareTakeoffInputs {
   joistCount: number;
+  joistLengthFt: number;  // actual joist length from Phase 3 (replaces hardcoded 12 ft avg)
   postCount: number;
   ledgerLF: number;
   joistHangerSku: HardwareSku;
@@ -2682,7 +2685,7 @@ export interface HardwareTakeoffResult {
 
 export function calculateHardwareTakeoff(inputs: HardwareTakeoffInputs): HardwareTakeoffResult {
   const {
-    joistCount, postCount, ledgerLF,
+    joistCount, joistLengthFt, postCount, ledgerLF,
     joistHangerSku, postCapSku, ledgerFlashingSku, structuralScrewSku, joistTapeSku,
     joistHangerQtyOverride, postCapQtyOverride, ledgerFlashingQtyOverride,
     structuralScrewQtyOverride, joistTapeQtyOverride,
@@ -2715,7 +2718,7 @@ export function calculateHardwareTakeoff(inputs: HardwareTakeoffInputs): Hardwar
   const structuralScrewSubtotal = Math.round(structuralScrewQtyEdited * structuralScrewUnitPrice * 100) / 100;
 
   // Joist tape: 1 roll per 50 LF of joists (each roll = 50 LF)
-  const totalJoistLF = joistCount * 12; // rough estimate: avg 12 ft joists
+  const totalJoistLF = joistCount * joistLengthFt; // actual joist length from Phase 3
   const joistTapeQtyCalc = Math.ceil(totalJoistLF / 50);
   const joistTapeQtyEdited = joistTapeQtyOverride ?? joistTapeQtyCalc;
   const joistTapeUnitPrice = joistTapeSku.contractorPricePerUnit;
