@@ -420,6 +420,7 @@ export type FastenerSystemId = "none" | "clip" | "cortex";
 export interface FastenerSku {
   id: string;
   systemId: FastenerSystemId;
+  brand: string;             // e.g. "FastenMaster", "CAMO", "GRK"
   name: string;
   description: string;
   unit: string;              // "box", "bag", "pack", "bucket"
@@ -430,109 +431,229 @@ export interface FastenerSku {
 }
 
 export const FASTENER_SKUS: FastenerSku[] = [
-  // ── FACE SCREWS (systemId: "none" — standard face-screw install) ──
+
+  // ════════════════════════════════════════════════════════════════
+  // FACE SCREWS (systemId: "none")
+  // ~4 screws/sq ft at 16" OC with 6" boards (2 screws per board per joist)
+  // ════════════════════════════════════════════════════════════════
+
+  // ── FASTENMASTER DECK-DRIVE DCU ──
   {
-    id: "face-screw-305ss-box",
+    id: "fastenmaster-dcu-305ss-100ct",
     systemId: "none",
-    name: "Deck Screws #10 × 3\" 305 SS (1 lb box)",
-    description: "305 stainless steel, #10 × 3\", square drive. Corrosion-resistant for coastal or treated lumber.",
-    unit: "box",
-    qtyPerUnit: 100,
-    coverageSqFtPerUnit: 25,   // ~4 screws/sq ft at 16" OC
-    contractorPricePerUnit: 14.50,
-    notes: "1 lb box ≈ 100 screws. Use 305 SS for composite over PT framing.",
-  },
-  {
-    id: "face-screw-305ss-5lb-bucket",
-    systemId: "none",
-    name: "Deck Screws #10 × 3\" 305 SS (5 lb bucket)",
-    description: "305 stainless steel, #10 × 3\", square drive. 5 lb bulk bucket — best value for larger decks.",
-    unit: "bucket",
-    qtyPerUnit: 500,
-    coverageSqFtPerUnit: 125,  // ~4 screws/sq ft at 16" OC
-    contractorPricePerUnit: 58.00,
-    notes: "5 lb bucket ≈ 500 screws. Most economical for decks over 200 sq ft.",
-  },
-  {
-    id: "face-screw-coated-1lb",
-    systemId: "none",
-    name: "Deck Screws #10 × 3\" Coated (1 lb box)",
-    description: "Polymer-coated carbon steel, #10 × 3\", star drive. ACQ-compatible. Budget option for interior regions.",
+    brand: "FastenMaster",
+    name: "Deck-Drive DCU #10 × 3\" 305 SS (100-ct box)",
+    description: "FastenMaster Deck-Drive DCU composite screw. 305 stainless, #10 × 3\", star drive. Designed for composite over PT framing. Reverse-thread tip reduces mushrooming.",
     unit: "box",
     qtyPerUnit: 100,
     coverageSqFtPerUnit: 25,
-    contractorPricePerUnit: 8.75,
-    notes: "Not recommended for coastal or high-humidity regions. Use SS instead.",
+    contractorPricePerUnit: 16.75,
+    notes: "100-ct covers ~25 sq ft. Preferred for Trex, Fiberon, TimberTech installs.",
+  },
+  {
+    id: "fastenmaster-dcu-305ss-350ct",
+    systemId: "none",
+    brand: "FastenMaster",
+    name: "Deck-Drive DCU #10 × 3\" 305 SS (350-ct box)",
+    description: "FastenMaster Deck-Drive DCU composite screw, bulk box. 305 stainless, #10 × 3\", star drive.",
+    unit: "box",
+    qtyPerUnit: 350,
+    coverageSqFtPerUnit: 87,
+    contractorPricePerUnit: 52.00,
+    notes: "350-ct covers ~87 sq ft. Best value for mid-size decks (100–300 sq ft).",
+  },
+  {
+    id: "fastenmaster-dcu-305ss-1750ct",
+    systemId: "none",
+    brand: "FastenMaster",
+    name: "Deck-Drive DCU #10 × 3\" 305 SS (1,750-ct bucket)",
+    description: "FastenMaster Deck-Drive DCU composite screw, contractor bucket. 305 stainless, #10 × 3\", star drive.",
+    unit: "bucket",
+    qtyPerUnit: 1750,
+    coverageSqFtPerUnit: 437,
+    contractorPricePerUnit: 218.00,
+    notes: "1,750-ct covers ~437 sq ft. Best value for decks over 400 sq ft.",
   },
 
-  // ── GENERIC HIDDEN CLIP SYSTEM (systemId: "clip") ──
+  // ── GRK RSS COMPOSITE SCREW ──
   {
-    id: "generic-clip-ipe-100pk",
+    id: "grk-rss-305ss-100ct",
+    systemId: "none",
+    brand: "GRK Fasteners",
+    name: "GRK RSS #10 × 3\" 305 SS (100-ct box)",
+    description: "GRK RSS (Rugged Structural Screw) composite deck screw. 305 stainless, #10 × 3\", W-Cut tip, star drive. Self-countersinking head.",
+    unit: "box",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 25,
+    contractorPricePerUnit: 15.50,
+    notes: "W-Cut tip reduces splitting in PT framing. Star drive prevents cam-out.",
+  },
+  {
+    id: "grk-rss-305ss-500ct",
+    systemId: "none",
+    brand: "GRK Fasteners",
+    name: "GRK RSS #10 × 3\" 305 SS (500-ct bucket)",
+    description: "GRK RSS composite deck screw, bulk bucket. 305 stainless, #10 × 3\", W-Cut tip, star drive.",
+    unit: "bucket",
+    qtyPerUnit: 500,
+    coverageSqFtPerUnit: 125,
+    contractorPricePerUnit: 64.00,
+    notes: "500-ct covers ~125 sq ft. Contractor bulk pricing.",
+  },
+
+  // ── STARBORN CAMO DRIVE (face-screw version) ──
+  {
+    id: "starborn-pro-plug-305ss-100ct",
+    systemId: "none",
+    brand: "Starborn Industries",
+    name: "Starborn Pro Plug #10 × 2-3/4\" 305 SS (100-ct)",
+    description: "Starborn Pro Plug System screw for composite decking. 305 stainless, #10 × 2-3/4\", star drive. Countersinks flush for optional plug insert.",
+    unit: "box",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 25,
+    contractorPricePerUnit: 17.25,
+    notes: "Compatible with Starborn color-matched plugs for a near-hidden look without Cortex pricing.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // HIDDEN CLIP SYSTEM (systemId: "clip")
+  // ~1.8 clips/sq ft at 16" OC with 6" boards
+  // ════════════════════════════════════════════════════════════════
+
+  // ── CAMO MARKSMAN PRO ──
+  {
+    id: "camo-edge-clip-100pk",
     systemId: "clip",
-    name: "Deck Clip Hidden Fastener (100-pack)",
-    description: "Universal grooved-board clip. Compatible with most 1×6 grooved composite decking at 16\" OC.",
+    brand: "CAMO",
+    name: "CAMO Edge Clip (100-pack)",
+    description: "CAMO Edge Clip for grooved composite decking. Stainless steel clip snaps into board groove and screws to joist. No face screws visible. Use with CAMO Marksman Pro tool.",
     unit: "pack",
     qtyPerUnit: 100,
-    coverageSqFtPerUnit: 55,   // ~1.8 clips/sq ft at 16" OC, 6" boards
-    contractorPricePerUnit: 22.00,
-    notes: "100-pack covers ~55 sq ft. Includes installation bit.",
+    coverageSqFtPerUnit: 55,
+    contractorPricePerUnit: 24.50,
+    notes: "100-pack covers ~55 sq ft. Compatible with most 1×6 grooved composite boards.",
   },
   {
-    id: "generic-clip-ipe-500pk",
+    id: "camo-edge-clip-500pk",
     systemId: "clip",
-    name: "Deck Clip Hidden Fastener (500-pack)",
-    description: "Universal grooved-board clip. Bulk pack for larger decks. Compatible with most 1×6 grooved composite.",
+    brand: "CAMO",
+    name: "CAMO Edge Clip (500-pack)",
+    description: "CAMO Edge Clip bulk pack for grooved composite decking. Stainless steel, snap-in design.",
     unit: "pack",
     qtyPerUnit: 500,
-    coverageSqFtPerUnit: 275,  // same rate, bulk
-    contractorPricePerUnit: 98.00,
-    notes: "500-pack covers ~275 sq ft. Best value for decks over 300 sq ft.",
-  },
-  {
-    id: "trex-hideaway-clip-175pk",
-    systemId: "clip",
-    name: "Trex Hideaway Universal Clip (175-pack)",
-    description: "Trex-branded universal hidden fastener. Fits Trex grooved boards and most other grooved composite.",
-    unit: "pack",
-    qtyPerUnit: 175,
-    coverageSqFtPerUnit: 97,   // ~1.8 clips/sq ft
-    contractorPricePerUnit: 42.00,
-    notes: "Trex recommends 1 bag per 50 sq ft (conservative). We use 1.8/sq ft.",
+    coverageSqFtPerUnit: 275,
+    contractorPricePerUnit: 104.00,
+    notes: "500-pack covers ~275 sq ft. Best value for decks over 250 sq ft.",
   },
 
-  // ── CORTEX BY FASTENMASTER (systemId: "cortex") ──
+  // ── EB-TY HIDDEN DECK FASTENER ──
+  {
+    id: "ebty-hidden-clip-175pk",
+    systemId: "clip",
+    brand: "EB-TY",
+    name: "EB-TY Hidden Deck Fastener (175-pack)",
+    description: "EB-TY biscuit-style hidden fastener. Fits into a biscuit slot routed in the board edge. Provides a consistent 1/4\" gap. Works with grooved or biscuit-slotted boards.",
+    unit: "pack",
+    qtyPerUnit: 175,
+    coverageSqFtPerUnit: 97,
+    contractorPricePerUnit: 44.00,
+    notes: "Requires biscuit slot or compatible groove. Consistent spacing without a guide tool.",
+  },
+
+  // ── TREX HIDEAWAY UNIVERSAL ──
+  {
+    id: "trex-hideaway-universal-175pk",
+    systemId: "clip",
+    brand: "Trex",
+    name: "Trex Hideaway Universal Fastener (175-pack)",
+    description: "Trex-branded universal hidden fastener. Fits Trex grooved boards and most other grooved 1×6 composite decking. Stainless steel clip.",
+    unit: "pack",
+    qtyPerUnit: 175,
+    coverageSqFtPerUnit: 97,
+    contractorPricePerUnit: 46.00,
+    notes: "Trex recommends 1 pack per 50 sq ft (conservative). Our calc uses actual coverage rate.",
+  },
+
+  // ── FIBERON PHANTOM CLIP ──
+  {
+    id: "fiberon-phantom-clip-100pk",
+    systemId: "clip",
+    brand: "Fiberon",
+    name: "Fiberon Phantom Hidden Fastener (100-pack)",
+    description: "Fiberon-branded hidden clip for Fiberon grooved composite boards. Stainless steel, snap-in design.",
+    unit: "pack",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 55,
+    contractorPricePerUnit: 26.00,
+    notes: "Designed for Fiberon Good Life, Horizon, and Paramount grooved boards.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // CORTEX BY FASTENMASTER (systemId: "cortex")
+  // ~4 screws+plugs/sq ft — same density as face screws
+  // ════════════════════════════════════════════════════════════════
+
   {
     id: "cortex-composite-100pk",
     systemId: "cortex",
-    name: "Cortex by FastenMaster — Composite (100-pack)",
-    description: "Cortex hidden fastening system for composite decking. Includes color-matched plugs. Drill, countersink, screw, plug.",
+    brand: "FastenMaster",
+    name: "Cortex for Composite — 100-pack",
+    description: "Cortex by FastenMaster hidden fastening system. Countersinks a #10 screw below the surface, then inserts a color-matched composite plug flush with the board face. No visible fasteners.",
     unit: "pack",
     qtyPerUnit: 100,
-    coverageSqFtPerUnit: 25,   // ~4 screws/sq ft (same as face screws)
+    coverageSqFtPerUnit: 25,
     contractorPricePerUnit: 38.50,
-    notes: "Each pack includes 100 screws + 100 color-matched plugs. Specify color when ordering.",
+    notes: "100-pack: 100 screws + 100 plugs. Specify board color when ordering.",
   },
   {
     id: "cortex-composite-350pk",
     systemId: "cortex",
-    name: "Cortex by FastenMaster — Composite (350-pack)",
-    description: "Cortex hidden fastening system, bulk pack. Color-matched plugs included. Best value for 100–300 sq ft decks.",
+    brand: "FastenMaster",
+    name: "Cortex for Composite — 350-pack",
+    description: "Cortex by FastenMaster, bulk pack. Countersinks screw + inserts color-matched plug. Best value for 100–300 sq ft decks.",
     unit: "pack",
     qtyPerUnit: 350,
     coverageSqFtPerUnit: 87,
     contractorPricePerUnit: 118.00,
-    notes: "350-pack covers ~87 sq ft. Includes installation tool guide.",
+    notes: "350-pack covers ~87 sq ft. Includes installation guide.",
   },
   {
     id: "cortex-composite-1750pk",
     systemId: "cortex",
-    name: "Cortex by FastenMaster — Composite (1750-pack)",
-    description: "Cortex hidden fastening system, contractor bulk pack. Color-matched plugs included. Best value for large decks.",
+    brand: "FastenMaster",
+    name: "Cortex for Composite — 1,750-pack (Contractor)",
+    description: "Cortex by FastenMaster, contractor bulk pack. Color-matched plugs included. Best value for large decks over 400 sq ft.",
     unit: "pack",
     qtyPerUnit: 1750,
     coverageSqFtPerUnit: 437,
     contractorPricePerUnit: 498.00,
-    notes: "1750-pack covers ~437 sq ft. Best value for decks over 400 sq ft.",
+    notes: "1,750-pack covers ~437 sq ft. Best value for large decks.",
+  },
+
+  // ── CORTEX FOR TIMBERTECH / AZEK ──
+  {
+    id: "cortex-azek-100pk",
+    systemId: "cortex",
+    brand: "FastenMaster",
+    name: "Cortex for AZEK/TimberTech — 100-pack",
+    description: "Cortex by FastenMaster, formulated for AZEK PVC and TimberTech composite boards. Color-matched PVC plugs. Drill, countersink, screw, plug.",
+    unit: "pack",
+    qtyPerUnit: 100,
+    coverageSqFtPerUnit: 25,
+    contractorPricePerUnit: 41.00,
+    notes: "Use for TimberTech AZEK Vintage and other PVC boards. Specify AZEK color.",
+  },
+  {
+    id: "cortex-azek-350pk",
+    systemId: "cortex",
+    brand: "FastenMaster",
+    name: "Cortex for AZEK/TimberTech — 350-pack",
+    description: "Cortex by FastenMaster for AZEK/PVC, bulk pack. Color-matched PVC plugs.",
+    unit: "pack",
+    qtyPerUnit: 350,
+    coverageSqFtPerUnit: 87,
+    contractorPricePerUnit: 128.00,
+    notes: "350-pack covers ~87 sq ft. Best value for mid-size AZEK decks.",
   },
 ];
 
