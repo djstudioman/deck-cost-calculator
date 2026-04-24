@@ -1308,7 +1308,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Breakdown for chart
   const breakdown: CostBreakdown[] = [
     {
-      category: "Decking & Materials",
+      category: "Decking / Materials",
       pctOfTotal: 0,
       low: materialsLow,
       high: materialsHigh,

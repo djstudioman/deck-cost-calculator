@@ -107,7 +107,10 @@ export default function Home() {
   const [complexityId, setComplexityId] = useState("standard");
   const [railingId, setRailingId] = useState<string | null>("pt-wood");
   const [confirmedRailing, setConfirmedRailing] = useState(false);
-  const [railingLF, setRailingLF] = useState(52);
+  const [railingLF, setRailingLF] = useState(() => {
+    const sqFt = DECK_SIZES.find(s => s.id === "320")?.sqFt ?? 320;
+    return Math.round(Math.sqrt(sqFt) * 3);
+  });
   const [deckHeightIn, setDeckHeightIn] = useState(24); // inches off ground
   const [includeRailing, setIncludeRailing] = useState(true);
   const [includeStairs, setIncludeStairs] = useState(true);
@@ -176,6 +179,12 @@ export default function Home() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step, showResults, showTakeoff]);
+
+  // Bug 1 fix: auto-update railingLF whenever deck size changes
+  useEffect(() => {
+    const sizeSqFt = DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320;
+    setRailingLF(Math.round(Math.sqrt(sizeSqFt) * 3));
+  }, [sizeId]);
 
 
   const inputs: CalculatorInputs = useMemo(
@@ -479,6 +488,8 @@ export default function Home() {
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
     const url = encodeEstimateToUrl(snap);
+    // Bug 2 fix: update address bar so the copied URL matches what's shown
+    window.history.replaceState({}, "", url);
     navigator.clipboard.writeText(url).then(() => {
       setCopiedId(snap.id);
       setTimeout(() => setCopiedId(null), 2000);
@@ -932,7 +943,7 @@ export default function Home() {
                         icon: "🏡",
                         label: "Homeowner",
                         desc: "Hiring a contractor. See full installed costs.",
-                        extra: "6 questions",
+                        extra: "7 questions",
                         color: "amber",
                       },
                       {
@@ -940,7 +951,7 @@ export default function Home() {
                         icon: "🔨",
                         label: "DIYer",
                         desc: "Doing it yourself. Materials + tool rental + permit.",
-                        extra: "8 questions",
+                        extra: "9 questions",
                         color: "emerald",
                       },
                       {
@@ -948,7 +959,7 @@ export default function Home() {
               icon: "📋",
               label: "Contractor",
               desc: "Bidding a project. Full markup, crew, and margin analysis.",
-              extra: "9 questions",
+              extra: "10 questions",
                         color: "blue",
                       },
                     ].map((opt) => (
@@ -984,8 +995,8 @@ export default function Home() {
                   </div>
                 </StepCard>
 
-                {/* DEV SHORTCUT — only visible on step 0 */}
-                <div className="max-w-2xl mx-auto mt-3 text-center">
+                {/* DEV SHORTCUT — only visible in development builds */}
+                {import.meta.env.DEV && <div className="max-w-2xl mx-auto mt-3 text-center">
                   <button
                     onClick={() => {
                       setAudience("contractor");
@@ -1007,7 +1018,7 @@ export default function Home() {
                   >
                     ⚡ Dev: jump to contractor estimate
                   </button>
-                </div>
+                </div>}
                 </>
               )}
 
@@ -2121,11 +2132,14 @@ export default function Home() {
                       <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Railing Length</div>
                       <div className="flex items-center gap-3">
                         <input type="range" min={10} max={200} step={2} value={railingLF}
+                          id={`railing-lf-slider-${audience}`}
                           onChange={(e) => setRailingLF(Number(e.target.value))}
                           className={`flex-1 ${ac.accent}`} />
                         <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>{railingLF} LF</span>
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">Typical 16×20 deck: ~52 LF (three open sides)</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Estimated for {DECK_SIZES.find(s => s.id === sizeId)?.dimensions ?? "your deck"}: ~{railingLF} LF (three open sides)
+                      </div>
                     </div>
                       </>
                     )}

@@ -7,6 +7,7 @@
  * Contractor: Bid range, markup breakdown, gross margin, crew days, subcontracting note
  */
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -23,6 +24,7 @@ import {
   formatRange,
   formatCurrency,
   MATERIAL_TIERS,
+  INSTALLED_COST_TABLE,
 } from "@/lib/deckData";
 import { cn } from "@/lib/utils";
 import PrintEstimate from "@/components/PrintEstimate";
@@ -52,7 +54,7 @@ const CustomTooltip = ({ active, payload, accent }: any) => {
     return (
       <div className="bg-[#1E293B] border border-white/10 rounded-lg px-3 py-2 text-xs shadow-xl">
         <div className="font-semibold text-white mb-1">{d.category}</div>
-        <div className="font-mono" style={{ color: accent }}>{formatRange(d.low, d.high)}</div>
+        <div className="font-mono" style={{ color: accent }}>{d.low === d.high ? formatCurrencyFull(d.low) : formatRange(d.low, d.high)}</div>
         <div className="text-slate-400 mt-0.5">{d.note}</div>
       </div>
     );
@@ -177,7 +179,7 @@ function BreakdownChart({
             <div className="flex items-center gap-3">
               <span className="text-slate-500 hidden sm:block">{item.note}</span>
               <span className="font-mono font-medium" style={{ color: accent }}>
-                {formatRange(item.low, item.high)}
+                {item.low === item.high ? formatCurrencyFull(item.low) : formatRange(item.low, item.high)}
               </span>
             </div>
           </div>
@@ -248,7 +250,7 @@ function ActionButtons({
         Start Over
       </button>
       <button
-        onClick={() => window.print()}
+        onClick={() => { toast.info("Opening print dialog…", { description: "Use your browser's Print function (Ctrl+P / Cmd+P) to save as PDF." }); setTimeout(() => window.print(), 150); }}
         className="ml-auto flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors"
         style={{ borderColor: `${accent}66`, color: accent }}
       >
@@ -508,7 +510,7 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
               <div className="flex items-center gap-3">
                 <span className="text-slate-500 hidden sm:block text-right max-w-[180px] truncate">{item.note}</span>
                 <span className="font-mono font-medium text-emerald-400">
-                  {formatRange(item.low, item.high)}
+                  {item.low === item.high ? formatCurrencyFull(item.low) : formatRange(item.low, item.high)}
                 </span>
               </div>
             </div>
@@ -1383,12 +1385,15 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             <tbody>
               {MATERIAL_TIERS.map((tier) => {
                 const isSelected = tier.id === result.tier.id;
-                const matMid = ((tier.materialPerSqFtMin + tier.materialPerSqFtMax) / 2) * result.size.sqFt;
-                const laborMid = (result.laborLow + result.laborHigh) / 2;
-                const rawCost = matMid + laborMid;
-                const bidMid = Math.round(rawCost * (1 + c.markupTier.materialMarkup) + rawCost * c.markupTier.overheadPct);
-                const bidLow = Math.round(bidMid * 0.92);
-                const bidHigh = Math.round(bidMid * 1.08);
+                // Bug 4 fix: use INSTALLED_COST_TABLE (all-in installed) instead of materials-only per-sqft
+                const tableEntry = INSTALLED_COST_TABLE[result.size.id]?.[tier.id];
+                if (!tableEntry) return null;
+                const rawLow = Math.round(tableEntry.low * result.region.laborMultiplier * result.complexity.laborMultiplier);
+                const rawHigh = Math.round(tableEntry.high * result.region.laborMultiplier * result.complexity.laborMultiplier);
+                const rawMid = Math.round((rawLow + rawHigh) / 2);
+                const bidMid = Math.round(rawMid * (1 + c.markupTier.materialMarkup) * (1 + c.markupTier.laborMarkup) + rawMid * c.markupTier.overheadPct);
+                const bidLow = Math.round(rawLow * (1 + c.markupTier.materialMarkup) * (1 + c.markupTier.laborMarkup) + rawLow * c.markupTier.overheadPct);
+                const bidHigh = Math.round(rawHigh * (1 + c.markupTier.materialMarkup) * (1 + c.markupTier.laborMarkup) + rawHigh * c.markupTier.overheadPct);
                 const perSqFt = Math.round(bidMid / result.size.sqFt);
                 const maintenanceCost = tier.id === "pt" ? "$200–$500" : tier.id === "composite" ? "$50–$150" : "~$50";
                 const dotColor = tier.id === "pt" ? "#F59E0B" : tier.id === "composite" ? "#34D399" : "#60A5FA";
@@ -1942,9 +1947,12 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
           {/* Customer Proposal — prints the clean customer-facing view */}
           <button
             onClick={() => {
-              document.body.classList.add("print-customer-mode");
-              window.print();
-              setTimeout(() => document.body.classList.remove("print-customer-mode"), 1000);
+              toast.info("Opening Customer Proposal…", { description: "Use Ctrl+P / Cmd+P to save as PDF." });
+              setTimeout(() => {
+                document.body.classList.add("print-customer-mode");
+                window.print();
+                setTimeout(() => document.body.classList.remove("print-customer-mode"), 1000);
+              }, 150);
             }}
             className="flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors border-emerald-500/40 text-emerald-400 hover:border-emerald-400/70"
           >
@@ -1959,7 +1967,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
           </button>
           {/* Internal Bid Estimate — prints the full contractor view */}
           <button
-            onClick={() => window.print()}
+            onClick={() => { toast.info("Opening Bid Estimate…", { description: "Use Ctrl+P / Cmd+P to save as PDF." }); setTimeout(() => window.print(), 150); }}
             className="flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors border-blue-400/40 text-blue-400 hover:border-blue-400/70"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -108,7 +108,9 @@ export function updateEstimateNotes(id: string, notes: string): void {
 
 export function encodeEstimateToUrl(snap: EstimateSnapshot): string {
   const payload = JSON.stringify(snap);
-  const b64 = btoa(unescape(encodeURIComponent(payload)))
+  // Modern encoding: TextEncoder handles all Unicode correctly (replaces deprecated unescape)
+  const bytes = new TextEncoder().encode(payload);
+  const b64 = btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
@@ -124,7 +126,9 @@ export function decodeEstimateFromUrl(): EstimateSnapshot | null {
     const b64 = params.get("e");
     if (!b64) return null;
     const padded = b64.replace(/-/g, "+").replace(/_/g, "/");
-    const json = decodeURIComponent(escape(atob(padded)));
+    // Modern decoding: TextDecoder handles all Unicode correctly (replaces deprecated escape)
+    const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
     return JSON.parse(json) as EstimateSnapshot;
   } catch {
     return null;
