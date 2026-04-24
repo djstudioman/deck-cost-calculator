@@ -58,6 +58,11 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const [taxRate, setTaxRate] = useState<number>(0.06);
   const [boardsOverride, setBoardsOverride] = useState<number | null>(null);
   const [unitPriceOverride, setUnitPriceOverride] = useState<number | null>(null);
+  // Which product-line accordion is open in Phase 1
+  const [expandedBoardBrand, setExpandedBoardBrand] = useState<string | null>(() => {
+    const def = getDefaultSku(defaultBrandId, preferGrooved) ?? DECK_BOARD_SKUS[0];
+    return def.productLine;
+  });
 
   // ── Phase 2 state ──
   const [fastenerSkuId, setFastenerSkuId] = useState<string>(() => {
@@ -191,46 +196,80 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
         <div className="p-5 space-y-5">
 
-          {/* SKU Selector */}
+          {/* SKU Selector — product-line accordion */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Board SKU / Product
+              Brand &amp; Product
             </label>
-            <div className="grid grid-cols-1 gap-2">
-              {Object.entries(skusByBrand).map(([productLine, skus]) => (
-                <div key={productLine}>
-                  <div className="text-xs text-slate-500 font-medium mb-1 px-1">{productLine}</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {skus.map(sku => (
-                      <button
-                        key={sku.id}
-                        onClick={() => setSelectedSkuId(sku.id)}
-                        className={`text-left px-3 py-2.5 rounded-lg border transition-all ${
-                          selectedSkuId === sku.id
-                            ? "border-amber-500 bg-amber-500/10 text-white"
-                            : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
-                        }`}
-                      >
-                        <div className="text-sm font-medium">{sku.name}</div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-slate-400">
-                            {formatTakeoffCurrency(sku.contractorPricePerBoard[16])}/16' board
-                          </span>
-                          {sku.grooved && (
-                            <span className="text-[10px] font-semibold text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded">GROOVED</span>
-                          )}
-                          {sku.solidOnly && (
-                            <span className="text-[10px] font-semibold text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded">SOLID ONLY</span>
-                          )}
-                        </div>
-                        {sku.notes && (
-                          <div className="text-[11px] text-slate-500 mt-0.5">{sku.notes}</div>
+            <div className="space-y-2">
+              {Object.entries(skusByBrand).map(([productLine, skus]) => {
+                const isOpen = expandedBoardBrand === productLine;
+                const hasSelected = skus.some(s => s.id === selectedSkuId);
+                return (
+                  <div key={productLine} className={`rounded-xl border transition-all ${
+                    hasSelected ? "border-amber-500/60" : "border-slate-600"
+                  }`}>
+                    {/* Accordion header */}
+                    <button
+                      onClick={() => setExpandedBoardBrand(isOpen ? null : productLine)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-sm font-semibold ${
+                          hasSelected ? "text-amber-300" : "text-slate-200"
+                        }`}>{productLine}</span>
+                        {hasSelected && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
                         )}
-                      </button>
-                    ))}
+                        <span className="text-xs text-slate-500">{skus.length} option{skus.length !== 1 ? "s" : ""}</span>
+                      </div>
+                      <svg
+                        className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Accordion body */}
+                    {isOpen && (
+                      <div className="px-3 pb-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {skus.map(sku => (
+                            <button
+                              key={sku.id}
+                              onClick={() => setSelectedSkuId(sku.id)}
+                              className={`text-left px-3 py-2.5 rounded-lg border transition-all ${
+                                selectedSkuId === sku.id
+                                  ? "border-amber-500 bg-amber-500/10 text-white"
+                                  : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+                              }`}
+                            >
+                              <div className="text-sm font-medium">{sku.name}</div>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="text-xs text-slate-400">
+                                  {formatTakeoffCurrency(sku.contractorPricePerBoard[16])}/16' board
+                                </span>
+                                {sku.grooved && (
+                                  <span className="text-[10px] font-semibold text-sky-400 bg-sky-400/10 px-1.5 py-0.5 rounded">GROOVED</span>
+                                )}
+                                {sku.solidOnly && (
+                                  <span className="text-[10px] font-semibold text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded">SOLID ONLY</span>
+                                )}
+                              </div>
+                              {sku.notes && (
+                                <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
