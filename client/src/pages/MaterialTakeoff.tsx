@@ -65,6 +65,11 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   });
   const [fastenerQtyOverride, setFastenerQtyOverride] = useState<number | null>(null);
   const [fastenerPriceOverride, setFastenerPriceOverride] = useState<number | null>(null);
+  // Which brand accordion is open (null = all collapsed)
+  const [expandedFastenerBrand, setExpandedFastenerBrand] = useState<string | null>(() => {
+    const defaultSku = getDefaultFastenerSku(fastenerSystemId, deckAreaSqFt);
+    return defaultSku.brand;
+  });
 
   // ── Phase 1: Selected SKU ──
   const selectedSku: BoardSku = useMemo(
@@ -426,7 +431,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
             )}
           </div>
 
-          {/* SKU Selector — grouped by brand */}
+          {/* SKU Selector — brand accordion */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Brand &amp; Pack Size
@@ -434,44 +439,74 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
             {fastenerSkusForSystem.length === 0 ? (
               <div className="text-sm text-slate-500 italic">No fastener SKUs available for this system.</div>
             ) : (
-              <div className="space-y-3">
-                {Array.from(new Set(fastenerSkusForSystem.map(s => s.brand))).map(brand => (
-                  <div key={brand}>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 px-1">{brand}</div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {fastenerSkusForSystem.filter(s => s.brand === brand).map(sku => (
-                        <button
-                          key={sku.id}
-                          onClick={() => setFastenerSkuId(sku.id)}
-                          className={`text-left px-3 py-2.5 rounded-lg border transition-all ${
-                            fastenerSkuId === sku.id
-                              ? "border-amber-500 bg-amber-500/10 text-white"
-                              : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+              <div className="space-y-2">
+                {Array.from(new Set(fastenerSkusForSystem.map(s => s.brand))).map(brand => {
+                  const brandSkus = fastenerSkusForSystem.filter(s => s.brand === brand);
+                  const isOpen = expandedFastenerBrand === brand;
+                  const hasSelected = brandSkus.some(s => s.id === fastenerSkuId);
+                  return (
+                    <div key={brand} className={`rounded-xl border transition-all ${
+                      hasSelected ? "border-amber-500/60" : "border-slate-600"
+                    }`}>
+                      {/* Accordion header */}
+                      <button
+                        onClick={() => setExpandedFastenerBrand(isOpen ? null : brand)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`text-sm font-semibold ${
+                            hasSelected ? "text-amber-300" : "text-slate-200"
+                          }`}>{brand}</span>
+                          {hasSelected && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
+                          )}
+                          <span className="text-xs text-slate-500">{brandSkus.length} option{brandSkus.length !== 1 ? "s" : ""}</span>
+                        </div>
+                        <svg
+                          className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                            isOpen ? "rotate-180" : ""
                           }`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">{sku.brand}</span>
-                                <span className="text-sm font-medium text-white">{sku.name}</span>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {/* Accordion body */}
+                      {isOpen && (
+                        <div className="px-3 pb-3 space-y-2">
+                          {brandSkus.map(sku => (
+                            <button
+                              key={sku.id}
+                              onClick={() => setFastenerSkuId(sku.id)}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                                fastenerSkuId === sku.id
+                                  ? "border-amber-500 bg-amber-500/10 text-white"
+                                  : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-white">{sku.name}</div>
+                                  <div className="text-xs text-slate-400 mt-1">{sku.description}</div>
+                                  {sku.notes && (
+                                    <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0 ml-2">
+                                  <div className="text-sm font-bold text-amber-300">{formatTakeoffCurrency(sku.contractorPricePerUnit)}</div>
+                                  <div className="text-xs text-slate-500">per {sku.unit}</div>
+                                  <div className="text-xs text-slate-500">{sku.qtyPerUnit.toLocaleString()} {sku.systemId === "none" ? "screws" : sku.systemId === "clip" ? "clips" : "plugs"}</div>
+                                  <div className="text-[11px] text-emerald-500 font-medium mt-0.5">~{sku.coverageSqFtPerUnit} sq ft</div>
+                                </div>
                               </div>
-                              <div className="text-xs text-slate-400 mt-1">{sku.description}</div>
-                              {sku.notes && (
-                                <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>
-                              )}
-                            </div>
-                            <div className="text-right shrink-0 ml-2">
-                              <div className="text-sm font-bold text-amber-300">{formatTakeoffCurrency(sku.contractorPricePerUnit)}</div>
-                              <div className="text-xs text-slate-500">per {sku.unit}</div>
-                              <div className="text-xs text-slate-500">{sku.qtyPerUnit.toLocaleString()} {sku.systemId === "none" ? "screws" : sku.systemId === "clip" ? "clips" : "plugs"}</div>
-                              <div className="text-[11px] text-emerald-500 font-medium mt-0.5">~{sku.coverageSqFtPerUnit} sq ft</div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
