@@ -1132,11 +1132,11 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                       </div>
                     ))}
                     {/* Section subtotal */}
-                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 py-1.5 mt-0.5">
-                      <div className="text-[10px] text-slate-600 italic pl-4">Subtotal</div>
-                      <div className="w-16 text-right font-mono text-green-400/60 text-[10px]">{fmt(sec.rows.reduce((s, r) => s + r.low, 0))}</div>
-                      <div className="w-16 text-right font-mono text-blue-300/80 text-[10px] font-semibold">{fmt(sec.rows.reduce((s, r) => s + r.mid, 0))}</div>
-                      <div className="w-16 text-right font-mono text-amber-400/60 text-[10px]">{fmt(sec.rows.reduce((s, r) => s + r.high, 0))}</div>
+                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center px-3 py-2 mt-2 rounded-lg bg-amber-400/[0.07] border border-amber-400/25">
+                      <div className="text-xs font-bold text-amber-300 tracking-widest uppercase">Subtotal</div>
+                      <div className="w-16 text-right font-mono text-green-400 text-xs font-semibold">{fmt(sec.rows.reduce((s, r) => s + r.low, 0))}</div>
+                      <div className="w-16 text-right font-mono text-blue-300 text-xs font-bold">{fmt(sec.rows.reduce((s, r) => s + r.mid, 0))}</div>
+                      <div className="w-16 text-right font-mono text-amber-400 text-xs font-semibold">{fmt(sec.rows.reduce((s, r) => s + r.high, 0))}</div>
                     </div>
                   </div>
                 ))}
