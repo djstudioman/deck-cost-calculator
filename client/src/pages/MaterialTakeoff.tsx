@@ -58,6 +58,7 @@ import {
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
 import { exportTakeoffCSV } from "@/lib/exportTakeoffCSV";
+import { STATE_TAX_RATES, NO_TAX_STATE, type StateTaxEntry } from "@/lib/stateTaxData";
 
 interface Props {
   result: CalculatorResult;
@@ -92,7 +93,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   });
   const [boardLengthFt, setBoardLengthFt] = useState<number>(16);
   const [wasteFactor, setWasteFactor] = useState<number>(0.10);
-  const [taxRate, setTaxRate] = useState<number>(0.06);
+  const [selectedStateCode, setSelectedStateCode] = useState<string>("");
+  const taxRate = selectedStateCode
+    ? (STATE_TAX_RATES.find(s => s.code === selectedStateCode)?.rate ?? 0)
+    : 0;
   const [boardsOverride, setBoardsOverride] = useState<number | null>(null);
   const [unitPriceOverride, setUnitPriceOverride] = useState<number | null>(null);
   // Which manufacturer accordion is open in Phase 1
@@ -595,8 +599,8 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
             </div>
           </div>
 
-          {/* Board Length + Waste Factor + Tax Rate */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Board Length + Waste Factor */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Board Length */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
@@ -639,26 +643,6 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <div className="text-xs text-slate-500 mt-1">
                 Net: {deckAreaSqFt} sq ft → Gross: {takeoff.grossAreaSqFt} sq ft
               </div>
-            </div>
-
-            {/* Tax Rate */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                Sales Tax Rate
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={15}
-                  step={0.25}
-                  value={(taxRate * 100).toFixed(2)}
-                  onChange={e => setTaxRate(Math.max(0, Math.min(0.15, Number(e.target.value) / 100)))}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500"
-                />
-                <span className="text-slate-400 text-sm font-medium">%</span>
-              </div>
-              <div className="text-xs text-slate-500 mt-1">Applied to all material phases</div>
             </div>
           </div>
 
@@ -2112,17 +2096,51 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
+      {/* ── STATE TAX SELECTOR ── */}
+      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <label className="block text-xs font-bold tracking-widest uppercase text-slate-300 mb-1">
+              Project State
+            </label>
+            <p className="text-xs text-slate-500">Select the state where the deck will be built to apply the correct combined sales tax rate to all 7 phases.</p>
+          </div>
+          <div className="sm:w-72">
+            <select
+              value={selectedStateCode}
+              onChange={e => setSelectedStateCode(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-amber-500"
+            >
+              <option value="">No tax / select state…</option>
+              {STATE_TAX_RATES.map(s => (
+                <option key={s.code} value={s.code}>
+                  {s.name} — {(s.rate * 100).toFixed(2)}%{s.rate === 0 ? " (no sales tax)" : ""}
+                </option>
+              ))}
+            </select>
+            {selectedStateCode && (
+              <div className="text-xs text-amber-400 mt-1 font-medium">
+                {STATE_TAX_RATES.find(s => s.code === selectedStateCode)?.name} combined rate: {(taxRate * 100).toFixed(2)}%
+              </div>
+            )}
+            {!selectedStateCode && (
+              <div className="text-xs text-slate-500 mt-1">Tax not included in totals until a state is selected</div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* ── FINAL GRAND TOTAL ── */}
       <div className="bg-gradient-to-r from-emerald-900/40 to-slate-800/80 border border-emerald-500/50 rounded-xl p-6">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-bold tracking-widest uppercase text-emerald-400 mb-1">Complete Material Takeoff</div>
-            <div className="text-base font-semibold text-white">All 7 Phases · Tax Included</div>
+            <div className="text-base font-semibold text-white">All 7 Phases · {selectedStateCode ? `${(taxRate * 100).toFixed(2)}% ${STATE_TAX_RATES.find(s => s.code === selectedStateCode)?.name} Tax` : "Tax Not Applied"}</div>
             <div className="text-xs text-slate-400 mt-1">Boards · Fasteners · Framing · Footings · Railing · Stairs · Hardware</div>
           </div>
           <div className="text-right">
             <div className="text-4xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
-            <div className="text-xs text-slate-400 mt-1">Materials only · excludes labor</div>
+            <div className="text-xs text-slate-400 mt-1">{selectedStateCode ? "Materials + tax · excludes labor" : "Materials only · select state for tax"}</div>
           </div>
         </div>
         {/* Phase breakdown */}
