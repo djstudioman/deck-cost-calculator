@@ -90,7 +90,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
       {/* ── Header ── */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold tracking-widest uppercase text-amber-400">Step 11 · Contractor</span>
+          <span className="text-xs font-bold tracking-widest uppercase text-amber-400">Contractor · Material Takeoff</span>
         </div>
         <h2 className="text-2xl font-bold text-white">Material Takeoff</h2>
         <p className="text-sm text-slate-400 mt-1">
@@ -366,13 +366,13 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           onClick={onBack}
           className="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm font-medium hover:border-slate-500 hover:text-white transition-all"
         >
-          ← Back to Extras
+          ← Back to Estimate
         </button>
         <button
           onClick={onFinish}
           className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
         >
-          See Full Estimate →
+          Done ✓
         </button>
       </div>
     </div>

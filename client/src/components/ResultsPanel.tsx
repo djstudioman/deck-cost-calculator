@@ -33,6 +33,7 @@ interface ResultsPanelProps {
   onBack: () => void;
   onRestart: () => void;
   onChangeOrderUpdate?: (low: number, high: number) => void;
+  onShowTakeoff?: () => void;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -588,7 +589,7 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
 }
 
 // ─── CONTRACTOR PANEL ─────────────────────────────────────────────────────────
-function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: ResultsPanelProps) {
+function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onShowTakeoff }: ResultsPanelProps) {
   const c = result.contractor!;
 
   // Change Order Estimator state
@@ -1923,6 +1924,20 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate }: Res
         >
           Start Over
         </button>
+        {onShowTakeoff && (
+          <button
+            onClick={onShowTakeoff}
+            className="flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors border-amber-500/40 text-amber-400 hover:border-amber-400/70 hover:bg-amber-400/5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+              <line x1="9" y1="16" x2="13" y2="16" />
+            </svg>
+            Material Takeoff
+          </button>
+        )}
         <div className="ml-auto flex gap-2">
           {/* Customer Proposal — prints the clean customer-facing view */}
           <button

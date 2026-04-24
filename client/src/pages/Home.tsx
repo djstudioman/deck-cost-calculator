@@ -70,7 +70,7 @@ function getStepLabels(audience: AudienceType): string[] {
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
     return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit", "Extras", "Material Takeoff"];
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit", "Extras"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
   return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit"];
 }
@@ -177,12 +177,6 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step, showResults, showTakeoff]);
 
-  // Auto-show Material Takeoff when contractor wizard reaches step 10 (the takeoff step label)
-  useEffect(() => {
-    if (audience === "contractor" && step === 10 && !showTakeoff && !showResults) {
-      setShowTakeoff(true);
-    }
-  }, [step, audience, showTakeoff, showResults]);
 
   const inputs: CalculatorInputs = useMemo(
     () => ({
@@ -245,9 +239,8 @@ export default function Home() {
   const goNext = useCallback(() => {
     setConfirmedStep(null); // reset confirmation for the next step
     if (step < totalSteps - 1) setStep((s) => s + 1);
-    else if (audience === "contractor") setShowTakeoff(true);
     else setShowResults(true);
-  }, [step, totalSteps, audience]);
+  }, [step, totalSteps]);
 
   // Call this from every single-select card handler.
   // First call: marks the step as confirmed (highlights the card).
@@ -832,7 +825,7 @@ export default function Home() {
               <MaterialTakeoff
                 result={result}
                 onBack={() => setShowTakeoff(false)}
-                onFinish={() => { setShowTakeoff(false); setShowResults(true); }}
+                onFinish={() => setShowTakeoff(false)}
               />
             </motion.div>
           ) : showResults ? (
@@ -848,6 +841,7 @@ export default function Home() {
                 onBack={() => { setChangeOrderDelta({ low: 0, high: 0 }); goBack(); }}
                 onRestart={() => { setChangeOrderDelta({ low: 0, high: 0 }); restart(); }}
                 onChangeOrderUpdate={(low, high) => setChangeOrderDelta({ low, high })}
+                onShowTakeoff={audience === "contractor" ? () => setShowTakeoff(true) : undefined}
               />
 
               {/* ── SAVE ESTIMATE PROMPT ── */}
@@ -2644,7 +2638,7 @@ export default function Home() {
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
-                  nextLabel="Material Takeoff →"
+                  nextLabel="See My Estimate →"
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-4">
