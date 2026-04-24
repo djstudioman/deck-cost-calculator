@@ -1142,14 +1142,14 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                 ))}
 
                 {/* Grand total row */}
-                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pt-3 mt-2 border-t border-white/[0.08]">
-                  <div className="font-bold text-white text-xs">Total Bid</div>
-                  <div className="w-16 text-right font-mono text-green-400 font-bold text-xs">{fmt(bidLow)}</div>
-                  <div className="w-16 text-right font-mono text-blue-300 font-bold text-xs">{fmt(bidMid)}</div>
-                  <div className="w-16 text-right font-mono text-amber-400 font-bold text-xs">{fmt(bidHigh)}</div>
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 border-t border-white/[0.08]" style={{paddingTop: '15px', marginTop: '13px', marginBottom: '10px'}}>
+                  <div className="font-bold text-white" style={{fontSize: '19px'}}>Total Bid</div>
+                  <div className="w-16 text-right font-mono text-green-400 font-bold" style={{fontSize: '14px'}}>{fmt(bidLow)}</div>
+                  <div className="w-16 text-right font-mono text-blue-300 font-bold" style={{fontSize: '14px'}}>{fmt(bidMid)}</div>
+                  <div className="w-16 text-right font-mono text-amber-400 font-bold" style={{fontSize: '14px'}}>{fmt(bidHigh)}</div>
                 </div>
                 <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 mt-1">
-                  <div className="text-[10px] text-slate-600">Per sq ft</div>
+                  <div className="text-slate-600" style={{fontSize: '12px'}}>Per sq ft</div>
                   <div className="w-16 text-right font-mono text-green-400/60 text-[10px]">${Math.round(bidLow / sqFt)}</div>
                   <div className="w-16 text-right font-mono text-blue-300/70 text-[10px]">${Math.round(bidMid / sqFt)}</div>
                   <div className="w-16 text-right font-mono text-amber-400/60 text-[10px]">${Math.round(bidHigh / sqFt)}</div>
