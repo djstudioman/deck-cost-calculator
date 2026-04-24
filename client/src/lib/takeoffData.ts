@@ -2594,3 +2594,430 @@ export function estimateDeckHeightIn(deckHeightCategory: "ground" | "mid" | "ele
   const map: Record<string, number> = { ground: 24, mid: 48, elevated: 84 };
   return map[deckHeightCategory] ?? 48;
 }
+
+// ─── PHASE 7: HARDWARE & MISC SKUs ───────────────────────────────────────────
+// Categories:
+//   Joist Hangers: Simpson LUS, LUC, HUS series (face-mount, concealed-flange)
+//   Post Caps / Bases: Simpson ABA, ABU, BC, CBS series
+//   Ledger Flashing: TimberTek, DeckWise, Trex Protect
+//   Structural Screws: LedgerLOK, SDWH, Titen HD
+//   Misc: Joist tape, seam tape, post wraps
+//
+// 2026 contractor pricing:
+//   Simpson LUS210 joist hanger: ~$1.50–$2.50 each
+//   Simpson LUC26 concealed hanger: ~$3.00–$5.00 each
+//   Simpson ABA44 post base: ~$8–$14 each
+//   LedgerLOK structural screw (box 50): ~$28–$38
+//   DeckWise ledger flashing (50 LF roll): ~$38–$58
+
+export type HardwareComponentType =
+  | "joist-hanger"
+  | "post-cap"
+  | "ledger-flashing"
+  | "structural-screw"
+  | "joist-tape";
+
+export interface HardwareSku {
+  id: string;
+  manufacturer: string;
+  productLine: string;
+  name: string;
+  description: string;
+  componentType: HardwareComponentType;
+  unit: string;
+  contractorPricePerUnit: number;
+  notes?: string;
+}
+
+export interface HardwareTakeoffInputs {
+  joistCount: number;
+  postCount: number;
+  ledgerLF: number;
+  joistHangerSku: HardwareSku;
+  postCapSku: HardwareSku;
+  ledgerFlashingSku: HardwareSku;
+  structuralScrewSku: HardwareSku;
+  joistTapeSku: HardwareSku;
+  // overrides
+  joistHangerQtyOverride?: number;
+  postCapQtyOverride?: number;
+  ledgerFlashingQtyOverride?: number;
+  structuralScrewQtyOverride?: number;
+  joistTapeQtyOverride?: number;
+  taxRate: number;
+}
+
+export interface HardwareTakeoffResult {
+  // Joist hangers
+  joistHangerQtyCalc: number;
+  joistHangerQtyEdited: number;
+  joistHangerUnitPrice: number;
+  joistHangerSubtotal: number;
+  // Post caps
+  postCapQtyCalc: number;
+  postCapQtyEdited: number;
+  postCapUnitPrice: number;
+  postCapSubtotal: number;
+  // Ledger flashing
+  ledgerFlashingQtyCalc: number;
+  ledgerFlashingQtyEdited: number;
+  ledgerFlashingUnitPrice: number;
+  ledgerFlashingSubtotal: number;
+  // Structural screws
+  structuralScrewQtyCalc: number;
+  structuralScrewQtyEdited: number;
+  structuralScrewUnitPrice: number;
+  structuralScrewSubtotal: number;
+  // Joist tape
+  joistTapeQtyCalc: number;
+  joistTapeQtyEdited: number;
+  joistTapeUnitPrice: number;
+  joistTapeSubtotal: number;
+  // Totals
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+}
+
+export function calculateHardwareTakeoff(inputs: HardwareTakeoffInputs): HardwareTakeoffResult {
+  const {
+    joistCount, postCount, ledgerLF,
+    joistHangerSku, postCapSku, ledgerFlashingSku, structuralScrewSku, joistTapeSku,
+    joistHangerQtyOverride, postCapQtyOverride, ledgerFlashingQtyOverride,
+    structuralScrewQtyOverride, joistTapeQtyOverride,
+    taxRate,
+  } = inputs;
+
+  // Joist hangers: 2 per joist (both ends) + 10% waste
+  const joistHangerQtyCalc = Math.ceil(joistCount * 2 * 1.1);
+  const joistHangerQtyEdited = joistHangerQtyOverride ?? joistHangerQtyCalc;
+  const joistHangerUnitPrice = joistHangerSku.contractorPricePerUnit;
+  const joistHangerSubtotal = Math.round(joistHangerQtyEdited * joistHangerUnitPrice * 100) / 100;
+
+  // Post caps: 1 per post
+  const postCapQtyCalc = postCount;
+  const postCapQtyEdited = postCapQtyOverride ?? postCapQtyCalc;
+  const postCapUnitPrice = postCapSku.contractorPricePerUnit;
+  const postCapSubtotal = Math.round(postCapQtyEdited * postCapUnitPrice * 100) / 100;
+
+  // Ledger flashing: 1 LF per LF of ledger + 10% overlap
+  const ledgerFlashingQtyCalc = Math.ceil(ledgerLF * 1.1);
+  const ledgerFlashingQtyEdited = ledgerFlashingQtyOverride ?? ledgerFlashingQtyCalc;
+  const ledgerFlashingUnitPrice = ledgerFlashingSku.contractorPricePerUnit;
+  const ledgerFlashingSubtotal = Math.round(ledgerFlashingQtyEdited * ledgerFlashingUnitPrice * 100) / 100;
+
+  // Structural screws: 2 per joist hanger (LedgerLOK box = 50 screws, SDWH box = 50)
+  // Estimate: 1 box per 25 joists
+  const structuralScrewQtyCalc = Math.ceil(joistCount / 25);
+  const structuralScrewQtyEdited = structuralScrewQtyOverride ?? structuralScrewQtyCalc;
+  const structuralScrewUnitPrice = structuralScrewSku.contractorPricePerUnit;
+  const structuralScrewSubtotal = Math.round(structuralScrewQtyEdited * structuralScrewUnitPrice * 100) / 100;
+
+  // Joist tape: 1 roll per 50 LF of joists (each roll = 50 LF)
+  const totalJoistLF = joistCount * 12; // rough estimate: avg 12 ft joists
+  const joistTapeQtyCalc = Math.ceil(totalJoistLF / 50);
+  const joistTapeQtyEdited = joistTapeQtyOverride ?? joistTapeQtyCalc;
+  const joistTapeUnitPrice = joistTapeSku.contractorPricePerUnit;
+  const joistTapeSubtotal = Math.round(joistTapeQtyEdited * joistTapeUnitPrice * 100) / 100;
+
+  const subtotal = Math.round((joistHangerSubtotal + postCapSubtotal + ledgerFlashingSubtotal + structuralScrewSubtotal + joistTapeSubtotal) * 100) / 100;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const total = Math.round((subtotal + taxAmount) * 100) / 100;
+
+  return {
+    joistHangerQtyCalc, joistHangerQtyEdited, joistHangerUnitPrice, joistHangerSubtotal,
+    postCapQtyCalc, postCapQtyEdited, postCapUnitPrice, postCapSubtotal,
+    ledgerFlashingQtyCalc, ledgerFlashingQtyEdited, ledgerFlashingUnitPrice, ledgerFlashingSubtotal,
+    structuralScrewQtyCalc, structuralScrewQtyEdited, structuralScrewUnitPrice, structuralScrewSubtotal,
+    joistTapeQtyCalc, joistTapeQtyEdited, joistTapeUnitPrice, joistTapeSubtotal,
+    subtotal, taxRate, taxAmount, total,
+  };
+}
+
+// ─── HARDWARE SKU CATALOG ─────────────────────────────────────────────────────
+
+export const HARDWARE_SKUS: HardwareSku[] = [
+
+  // ════════════════════════════════════════════════════════════════
+  // SIMPSON STRONG-TIE — Joist Hangers
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "simpson-lus210",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "LUS Joist Hangers",
+    name: "Simpson LUS210 Face-Mount Joist Hanger",
+    description: "Face-mount hanger for 2×10 lumber. 18-gauge galvanized. 1,435 lb load capacity.",
+    componentType: "joist-hanger",
+    unit: "each",
+    contractorPricePerUnit: 2.18,
+    notes: "Most common hanger for 2×10 deck joists. Nails included.",
+  },
+  {
+    id: "simpson-lus26",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "LUS Joist Hangers",
+    name: "Simpson LUS26 Face-Mount Joist Hanger",
+    description: "Face-mount hanger for 2×6 lumber. 18-gauge galvanized. 865 lb load capacity.",
+    componentType: "joist-hanger",
+    unit: "each",
+    contractorPricePerUnit: 1.68,
+    notes: "Use for 2×6 blocking and shorter span joists.",
+  },
+  {
+    id: "simpson-lus28",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "LUS Joist Hangers",
+    name: "Simpson LUS28 Face-Mount Joist Hanger",
+    description: "Face-mount hanger for 2×8 lumber. 18-gauge galvanized. 1,155 lb load capacity.",
+    componentType: "joist-hanger",
+    unit: "each",
+    contractorPricePerUnit: 1.88,
+  },
+  {
+    id: "simpson-luc26",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "LUC Concealed Hangers",
+    name: "Simpson LUC26 Concealed-Flange Hanger",
+    description: "Concealed-flange hanger for 2×6. Low-profile design — flange hidden inside joist bay. 16-gauge.",
+    componentType: "joist-hanger",
+    unit: "each",
+    contractorPricePerUnit: 3.48,
+    notes: "Premium look — no visible flange from below. Popular on exposed beam decks.",
+  },
+  {
+    id: "simpson-luc210",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "LUC Concealed Hangers",
+    name: "Simpson LUC210 Concealed-Flange Hanger",
+    description: "Concealed-flange hanger for 2×10. Low-profile design. 16-gauge galvanized.",
+    componentType: "joist-hanger",
+    unit: "each",
+    contractorPricePerUnit: 4.28,
+    notes: "Best choice for exposed-beam construction where aesthetics matter.",
+  },
+  {
+    id: "simpson-hus26",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "HUS Heavy Hangers",
+    name: "Simpson HUS26 Heavy-Duty Joist Hanger",
+    description: "Heavy-duty hanger for 2×6. 14-gauge. 2,190 lb load capacity. For high-load applications.",
+    componentType: "joist-hanger",
+    unit: "each",
+    contractorPricePerUnit: 4.98,
+    notes: "Use at beam-to-ledger connections or high-load cantilever points.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // SIMPSON STRONG-TIE — Post Caps
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "simpson-bc4",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "BC Post Caps",
+    name: "Simpson BC4 Post Cap — 4×4",
+    description: "Post-to-beam cap for 4×4 post. 18-gauge galvanized. 2,025 lb uplift capacity.",
+    componentType: "post-cap",
+    unit: "each",
+    contractorPricePerUnit: 7.48,
+    notes: "Standard cap for 4×4 posts. Fits beam widths 3.5\" to 7.5\".",
+  },
+  {
+    id: "simpson-bc6",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "BC Post Caps",
+    name: "Simpson BC6 Post Cap — 6×6",
+    description: "Post-to-beam cap for 6×6 post. 18-gauge galvanized. 2,025 lb uplift capacity.",
+    componentType: "post-cap",
+    unit: "each",
+    contractorPricePerUnit: 9.48,
+    notes: "Use with 6×6 posts for elevated or high-load decks.",
+  },
+  {
+    id: "simpson-e46",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "E Series Caps",
+    name: "Simpson E46 Adjustable Post Cap — 4×6",
+    description: "Adjustable post-to-beam cap. Fits 4× post to 6× beam. 18-gauge. Adjustable width.",
+    componentType: "post-cap",
+    unit: "each",
+    contractorPricePerUnit: 11.98,
+    notes: "Adjustable width — accommodates beam width variation. Popular for built-up beams.",
+  },
+  {
+    id: "simpson-cbs44",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "CBS Column Bases",
+    name: "Simpson CBS44 Column Base — 4×4",
+    description: "Standoff column base for 4×4 post. Elevates post 1\" off concrete to prevent rot. Hot-dip galvanized.",
+    componentType: "post-cap",
+    unit: "each",
+    contractorPricePerUnit: 12.98,
+    notes: "Standoff design keeps post dry. Required by many codes for ground-contact applications.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // LEDGER FLASHING
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "trex-protect-flashing",
+    manufacturer: "Trex",
+    productLine: "Trex Protect",
+    name: "Trex Protect Butyl Ledger Tape — 4\" × 75 ft Roll",
+    description: "Self-adhesive butyl tape for ledger board waterproofing. 4\" wide, 75 ft roll. UV resistant.",
+    componentType: "ledger-flashing",
+    unit: "roll (75 LF)",
+    contractorPricePerUnit: 42.98,
+    notes: "Apply to top of ledger before installing deck boards. Prevents water intrusion at ledger-to-house connection.",
+  },
+  {
+    id: "deckwise-flashing-tape",
+    manufacturer: "DeckWise",
+    productLine: "Ipe Clip Flashing Tape",
+    name: "DeckWise Ledger Flashing Tape — 4\" × 50 ft Roll",
+    description: "Self-adhesive flashing tape for ledger waterproofing. 4\" wide, 50 ft roll. Rubberized asphalt.",
+    componentType: "ledger-flashing",
+    unit: "roll (50 LF)",
+    contractorPricePerUnit: 34.98,
+    notes: "Rubberized asphalt — excellent adhesion to OSB, plywood, and concrete block.",
+  },
+  {
+    id: "timbertek-flashing",
+    manufacturer: "TimberTech",
+    productLine: "TimberTek Flashing",
+    name: "TimberTech Ledger Flashing — 4\" × 100 ft Roll",
+    description: "Self-adhesive butyl flashing tape. 4\" wide, 100 ft roll. Designed for composite deck ledger connections.",
+    componentType: "ledger-flashing",
+    unit: "roll (100 LF)",
+    contractorPricePerUnit: 68.98,
+    notes: "Best value per LF for larger jobs. 100 ft roll covers most standard deck ledgers.",
+  },
+  {
+    id: "grace-vycor-flashing",
+    manufacturer: "Grace",
+    productLine: "Vycor Plus",
+    name: "Grace Vycor Plus Flashing Tape — 4\" × 75 ft Roll",
+    description: "Premium self-adhesive flashing tape. 4\" wide, 75 ft roll. Rubberized asphalt with polyethylene film.",
+    componentType: "ledger-flashing",
+    unit: "roll (75 LF)",
+    contractorPricePerUnit: 52.98,
+    notes: "Industry gold standard for ledger flashing. Excellent adhesion in cold weather.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // STRUCTURAL SCREWS
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "fastenmaster-ledgerlok",
+    manufacturer: "FastenMaster",
+    productLine: "LedgerLOK",
+    name: "FastenMaster LedgerLOK Structural Screw — Box of 50",
+    description: "3/8\" × 3\" structural screw for ledger-to-rim-joist connections. No pre-drilling required. Box of 50.",
+    componentType: "structural-screw",
+    unit: "box (50 screws)",
+    contractorPricePerUnit: 32.98,
+    notes: "ICC-approved ledger connection. Replaces 2 through-bolts per code. No pre-drill needed.",
+  },
+  {
+    id: "simpson-sdwh-screw",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "SDWH Structural Screws",
+    name: "Simpson SDWH27600DB Structural Screw — Box of 50",
+    description: "1/4\" × 6\" structural wood screw. Double-barrier coating. For beam-to-post and ledger connections. Box of 50.",
+    componentType: "structural-screw",
+    unit: "box (50 screws)",
+    contractorPricePerUnit: 28.98,
+    notes: "Versatile structural screw — use for beam laps, blocking, and ledger attachment.",
+  },
+  {
+    id: "grk-rss-structural",
+    manufacturer: "GRK",
+    productLine: "RSS Structural Screws",
+    name: "GRK RSS 5/16\" × 4\" Structural Screw — Box of 50",
+    description: "5/16\" × 4\" structural screw. Ceramic-coated for ACQ compatibility. Box of 50.",
+    componentType: "structural-screw",
+    unit: "box (50 screws)",
+    contractorPricePerUnit: 34.98,
+    notes: "Premium RSS thread — superior pull-out in PT lumber. ACQ-rated coating.",
+  },
+  {
+    id: "titen-hd-anchor",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "Titen HD Anchors",
+    name: "Simpson Titen HD 1/2\" × 3.5\" Concrete Anchor — Box of 25",
+    description: "Heavy-duty screw anchor for ledger-to-concrete or ledger-to-masonry connections. Box of 25.",
+    componentType: "structural-screw",
+    unit: "box (25 anchors)",
+    contractorPricePerUnit: 38.98,
+    notes: "Use when ledger attaches to concrete foundation or masonry. Pre-drill required.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // JOIST TAPE / SEAM TAPE
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "trex-protect-joist-tape",
+    manufacturer: "Trex",
+    productLine: "Trex Protect",
+    name: "Trex Protect Joist & Beam Tape — 1.5\" × 75 ft Roll",
+    description: "Self-adhesive butyl tape applied to top of joists and beams before decking. Prevents moisture intrusion. 75 ft roll.",
+    componentType: "joist-tape",
+    unit: "roll (75 LF)",
+    contractorPricePerUnit: 24.98,
+    notes: "Apply to top of every joist before installing deck boards. Extends joist life significantly.",
+  },
+  {
+    id: "deckwise-joist-tape",
+    manufacturer: "DeckWise",
+    productLine: "Ipe Clip Joist Tape",
+    name: "DeckWise Joist & Beam Tape — 1.5\" × 50 ft Roll",
+    description: "Self-adhesive rubberized asphalt tape for joist tops. 50 ft roll. Compatible with all PT lumber treatments.",
+    componentType: "joist-tape",
+    unit: "roll (50 LF)",
+    contractorPricePerUnit: 18.98,
+    notes: "Rubberized asphalt — better adhesion on rough-sawn PT lumber.",
+  },
+  {
+    id: "grace-vycor-joist-tape",
+    manufacturer: "Grace",
+    productLine: "Vycor Deck Protector",
+    name: "Grace Vycor Deck Protector Joist Tape — 1.5\" × 75 ft Roll",
+    description: "Premium self-adhesive joist protection tape. 1.5\" wide, 75 ft roll. Polyethylene-backed butyl.",
+    componentType: "joist-tape",
+    unit: "roll (75 LF)",
+    contractorPricePerUnit: 29.98,
+    notes: "Premium option. Excellent cold-weather adhesion. Recommended for coastal/high-humidity climates.",
+  },
+];
+
+/** Group hardware SKUs by manufacturer */
+export function getHardwareSkusByManufacturer(): Record<string, HardwareSku[]> {
+  const groups: Record<string, HardwareSku[]> = {};
+  HARDWARE_SKUS.forEach(sku => {
+    if (!groups[sku.manufacturer]) groups[sku.manufacturer] = [];
+    groups[sku.manufacturer].push(sku);
+  });
+  return groups;
+}
+
+/** Get hardware SKUs filtered by component type */
+export function getHardwareSkusByComponent(componentType: HardwareComponentType): HardwareSku[] {
+  return HARDWARE_SKUS.filter(s => s.componentType === componentType);
+}
+
+/** Default hardware SKUs */
+export function getDefaultHardwareSkus(): {
+  joistHangerSku: HardwareSku;
+  postCapSku: HardwareSku;
+  ledgerFlashingSku: HardwareSku;
+  structuralScrewSku: HardwareSku;
+  joistTapeSku: HardwareSku;
+} {
+  return {
+    joistHangerSku: HARDWARE_SKUS.find(s => s.id === "simpson-lus210")!,
+    postCapSku: HARDWARE_SKUS.find(s => s.id === "simpson-bc4")!,
+    ledgerFlashingSku: HARDWARE_SKUS.find(s => s.id === "trex-protect-flashing")!,
+    structuralScrewSku: HARDWARE_SKUS.find(s => s.id === "fastenmaster-ledgerlok")!,
+    joistTapeSku: HARDWARE_SKUS.find(s => s.id === "trex-protect-joist-tape")!,
+  };
+}

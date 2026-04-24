@@ -49,6 +49,12 @@ import {
   getDefaultStairSkus,
   type StairSku,
   type StairComponentType,
+  HARDWARE_SKUS,
+  calculateHardwareTakeoff,
+  getHardwareSkusByComponent,
+  getDefaultHardwareSkus,
+  type HardwareSku,
+  type HardwareComponentType,
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
 
@@ -362,8 +368,48 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
   const isPhase6Edited = stairStepOverride !== null || stairStringerOverride !== null || stairTreadQtyOverride !== null || stairBracketQtyOverride !== null || stairHardwareQtyOverride !== null;
 
+  // ── Phase 7 state ──
+  const defaultHardware = useMemo(() => getDefaultHardwareSkus(), []);
+  const [joistHangerSkuId, setJoistHangerSkuId] = useState<string>(defaultHardware.joistHangerSku.id);
+  const [hwPostCapSkuId, setHwPostCapSkuId] = useState<string>(defaultHardware.postCapSku.id);
+  const [ledgerFlashingSkuId, setLedgerFlashingSkuId] = useState<string>(defaultHardware.ledgerFlashingSku.id);
+  const [structuralScrewSkuId, setStructuralScrewSkuId] = useState<string>(defaultHardware.structuralScrewSku.id);
+  const [joistTapeSkuId, setJoistTapeSkuId] = useState<string>(defaultHardware.joistTapeSku.id);
+  const [hwJoistHangerQtyOverride, setHwJoistHangerQtyOverride] = useState<number | null>(null);
+  const [hwPostCapQtyOverride, setHwPostCapQtyOverride] = useState<number | null>(null);
+  const [hwLedgerFlashingQtyOverride, setHwLedgerFlashingQtyOverride] = useState<number | null>(null);
+  const [hwStructuralScrewQtyOverride, setHwStructuralScrewQtyOverride] = useState<number | null>(null);
+  const [hwJoistTapeQtyOverride, setHwJoistTapeQtyOverride] = useState<number | null>(null);
+  const [expandedHwComponent, setExpandedHwComponent] = useState<HardwareComponentType | null>("joist-hanger");
+  const [ledgerLF, setLedgerLF] = useState<number>(() => Math.max(deckWidthFt, deckLengthFt));
+
+  const joistHangerSku: HardwareSku = useMemo(() => HARDWARE_SKUS.find(s => s.id === joistHangerSkuId) ?? defaultHardware.joistHangerSku, [joistHangerSkuId, defaultHardware]);
+  const hwPostCapSku: HardwareSku = useMemo(() => HARDWARE_SKUS.find(s => s.id === hwPostCapSkuId) ?? defaultHardware.postCapSku, [hwPostCapSkuId, defaultHardware]);
+  const ledgerFlashingSku: HardwareSku = useMemo(() => HARDWARE_SKUS.find(s => s.id === ledgerFlashingSkuId) ?? defaultHardware.ledgerFlashingSku, [ledgerFlashingSkuId, defaultHardware]);
+  const structuralScrewSku: HardwareSku = useMemo(() => HARDWARE_SKUS.find(s => s.id === structuralScrewSkuId) ?? defaultHardware.structuralScrewSku, [structuralScrewSkuId, defaultHardware]);
+  const joistTapeSku: HardwareSku = useMemo(() => HARDWARE_SKUS.find(s => s.id === joistTapeSkuId) ?? defaultHardware.joistTapeSku, [joistTapeSkuId, defaultHardware]);
+
+  const hardwareTakeoff = useMemo(() => calculateHardwareTakeoff({
+    joistCount: lumberTakeoff.joistCount,
+    postCount,
+    ledgerLF,
+    joistHangerSku,
+    postCapSku: hwPostCapSku,
+    ledgerFlashingSku,
+    structuralScrewSku,
+    joistTapeSku,
+    joistHangerQtyOverride: hwJoistHangerQtyOverride ?? undefined,
+    postCapQtyOverride: hwPostCapQtyOverride ?? undefined,
+    ledgerFlashingQtyOverride: hwLedgerFlashingQtyOverride ?? undefined,
+    structuralScrewQtyOverride: hwStructuralScrewQtyOverride ?? undefined,
+    joistTapeQtyOverride: hwJoistTapeQtyOverride ?? undefined,
+    taxRate,
+  }), [lumberTakeoff.joistCount, postCount, ledgerLF, joistHangerSku, hwPostCapSku, ledgerFlashingSku, structuralScrewSku, joistTapeSku, hwJoistHangerQtyOverride, hwPostCapQtyOverride, hwLedgerFlashingQtyOverride, hwStructuralScrewQtyOverride, hwJoistTapeQtyOverride, taxRate]);
+
+  const isPhase7Edited = hwJoistHangerQtyOverride !== null || hwPostCapQtyOverride !== null || hwLedgerFlashingQtyOverride !== null || hwStructuralScrewQtyOverride !== null || hwJoistTapeQtyOverride !== null;
+
   // ── Grand total ──
-  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total + stairTakeoff.total;
+  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total + stairTakeoff.total + hardwareTakeoff.total;
 
   return (
     <div className="space-y-6">
@@ -1821,26 +1867,225 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
-      {/* ── Running Grand Total ── */}
-      <div className="bg-slate-800/80 border border-emerald-500/30 rounded-xl p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–6)</div>
-            <div className="text-sm text-slate-500">Boards + fasteners + framing + footings + railing + stairs · tax included</div>
+      {/* ══════════════════════════════════════════════════════════════
+          PHASE 7: HARDWARE & MISC
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+        <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 7</span>
+            <span className="text-white font-semibold">Hardware &amp; Misc</span>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
-            <div className="text-xs text-slate-500 mt-0.5">1 more category remaining</div>
+          <span className="text-xs text-amber-400 font-semibold">Final Category</span>
+        </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* Ledger LF input */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Ledger Board Length (ft)</label>
+              <input type="number" min={1} step={1}
+                value={ledgerLF}
+                onChange={e => setLedgerLF(Math.max(1, parseInt(e.target.value) || ledgerLF))}
+                className="w-full bg-slate-700 border border-slate-500 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-400" />
+              <div className="text-[11px] text-slate-500 mt-1">Est. from deck dimensions: {Math.max(deckWidthFt, deckLengthFt)} ft</div>
+            </div>
+            <div className="bg-slate-900/40 border border-slate-700 rounded-lg px-4 py-3 flex flex-col justify-center gap-1">
+              <div className="text-[11px] text-slate-500 uppercase tracking-wider">Auto-calculated from Phase 3</div>
+              <div className="text-sm text-slate-300">Joist count: <span className="text-amber-300 font-bold">{lumberTakeoff.joistCount}</span></div>
+              <div className="text-sm text-slate-300">Post count: <span className="text-amber-300 font-bold">{postCount}</span></div>
+            </div>
           </div>
+
+          {/* Component accordions */}
+          {([
+            { type: "joist-hanger" as HardwareComponentType, label: "Joist Hangers", skuId: joistHangerSkuId, setSkuId: setJoistHangerSkuId },
+            { type: "post-cap" as HardwareComponentType, label: "Post Caps & Bases", skuId: hwPostCapSkuId, setSkuId: setHwPostCapSkuId },
+            { type: "ledger-flashing" as HardwareComponentType, label: "Ledger Flashing", skuId: ledgerFlashingSkuId, setSkuId: setLedgerFlashingSkuId },
+            { type: "structural-screw" as HardwareComponentType, label: "Structural Screws & Anchors", skuId: structuralScrewSkuId, setSkuId: setStructuralScrewSkuId },
+            { type: "joist-tape" as HardwareComponentType, label: "Joist & Beam Tape", skuId: joistTapeSkuId, setSkuId: setJoistTapeSkuId },
+          ]).map(({ type, label, skuId, setSkuId }) => {
+            const skus = getHardwareSkusByComponent(type);
+            const isOpen = expandedHwComponent === type;
+            const hasSelected = skus.some(s => s.id === skuId);
+            return (
+              <div key={type} className={`rounded-xl border transition-all ${
+                hasSelected ? "border-amber-500/60" : "border-slate-600"
+              }`}>
+                <button
+                  onClick={() => setExpandedHwComponent(isOpen ? null : type)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-semibold ${hasSelected ? "text-amber-300" : "text-slate-200"}`}>{label}</span>
+                    {hasSelected && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
+                    )}
+                    <span className="text-xs text-slate-500">{skus.length} option{skus.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {isOpen && (
+                  <div className="px-3 pb-3 space-y-2">
+                    {skus.map(sku => (
+                      <button key={sku.id} onClick={() => setSkuId(sku.id)}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                          skuId === sku.id
+                            ? "border-amber-500 bg-amber-500/10 text-white"
+                            : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+                        }`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-600/60 text-slate-400">{sku.manufacturer}</span>
+                              <span className="text-sm font-medium text-white">{sku.name.replace(sku.manufacturer + " ", "")}</span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">{sku.description}</div>
+                            {sku.notes && <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>}
+                          </div>
+                          <div className="text-right shrink-0 ml-2">
+                            <div className="text-sm font-bold text-amber-300">${sku.contractorPricePerUnit.toFixed(2)}/{sku.unit}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Takeoff table */}
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">Hardware Takeoff</div>
+            <div className="grid grid-cols-3 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-700">
+              <span>Item</span><span className="text-center">Qty</span><span className="text-right">Amount</span>
+            </div>
+            {/* Joist hangers */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Joist hangers</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={hwJoistHangerQtyOverride ?? hardwareTakeoff.joistHangerQtyEdited}
+                  onChange={e => setHwJoistHangerQtyOverride(Math.max(1, parseInt(e.target.value) || hardwareTakeoff.joistHangerQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.joistHangerSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{joistHangerSku.name}</span>
+              <span /><span className="text-right">${hardwareTakeoff.joistHangerUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Post caps */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Post caps / bases</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={hwPostCapQtyOverride ?? hardwareTakeoff.postCapQtyEdited}
+                  onChange={e => setHwPostCapQtyOverride(Math.max(1, parseInt(e.target.value) || hardwareTakeoff.postCapQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.postCapSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{hwPostCapSku.name}</span>
+              <span /><span className="text-right">${hardwareTakeoff.postCapUnitPrice.toFixed(2)}/ea</span>
+            </div>
+            {/* Ledger flashing */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Ledger flashing</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={hwLedgerFlashingQtyOverride ?? hardwareTakeoff.ledgerFlashingQtyEdited}
+                  onChange={e => setHwLedgerFlashingQtyOverride(Math.max(1, parseInt(e.target.value) || hardwareTakeoff.ledgerFlashingQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.ledgerFlashingSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{ledgerFlashingSku.name}</span>
+              <span /><span className="text-right">${hardwareTakeoff.ledgerFlashingUnitPrice.toFixed(2)}/{ledgerFlashingSku.unit}</span>
+            </div>
+            {/* Structural screws */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Structural screws</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={hwStructuralScrewQtyOverride ?? hardwareTakeoff.structuralScrewQtyEdited}
+                  onChange={e => setHwStructuralScrewQtyOverride(Math.max(1, parseInt(e.target.value) || hardwareTakeoff.structuralScrewQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.structuralScrewSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{structuralScrewSku.name}</span>
+              <span /><span className="text-right">${hardwareTakeoff.structuralScrewUnitPrice.toFixed(2)}/{structuralScrewSku.unit}</span>
+            </div>
+            {/* Joist tape */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Joist &amp; beam tape</span>
+              <span className="text-center">
+                <input type="number" min={1}
+                  value={hwJoistTapeQtyOverride ?? hardwareTakeoff.joistTapeQtyEdited}
+                  onChange={e => setHwJoistTapeQtyOverride(Math.max(1, parseInt(e.target.value) || hardwareTakeoff.joistTapeQtyCalc))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400" />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.joistTapeSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{joistTapeSku.name}</span>
+              <span /><span className="text-right">${hardwareTakeoff.joistTapeUnitPrice.toFixed(2)}/{joistTapeSku.unit}</span>
+            </div>
+            {/* Subtotals */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Subtotal (materials)</span><span />
+              <span className="text-right text-slate-200 font-semibold">{formatTakeoffCurrency(hardwareTakeoff.subtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Sales tax ({(taxRate * 100).toFixed(2)}%)</span><span />
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.taxAmount)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-3 bg-slate-700/30">
+              <span className="text-white font-bold text-base">Total — Hardware</span><span />
+              <span className="text-right text-emerald-400 font-bold text-xl">{formatTakeoffCurrency(hardwareTakeoff.total)}</span>
+            </div>
+          </div>
+
+          {isPhase7Edited && (
+            <button
+              onClick={() => { setHwJoistHangerQtyOverride(null); setHwPostCapQtyOverride(null); setHwLedgerFlashingQtyOverride(null); setHwStructuralScrewQtyOverride(null); setHwJoistTapeQtyOverride(null); }}
+              className="text-xs text-amber-400 hover:text-amber-300 underline"
+            >Reset to calculated values</button>
+          )}
         </div>
       </div>
 
-      {/* ── Coming Next ── */}
-      <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Coming Next in Material Takeoff</div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">7</span>
-          Hardware &amp; misc (joist hangers, flashing, post caps)
+      {/* ── FINAL GRAND TOTAL ── */}
+      <div className="bg-gradient-to-r from-emerald-900/40 to-slate-800/80 border border-emerald-500/50 rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold tracking-widest uppercase text-emerald-400 mb-1">Complete Material Takeoff</div>
+            <div className="text-base font-semibold text-white">All 7 Phases · Tax Included</div>
+            <div className="text-xs text-slate-400 mt-1">Boards · Fasteners · Framing · Footings · Railing · Stairs · Hardware</div>
+          </div>
+          <div className="text-right">
+            <div className="text-4xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
+            <div className="text-xs text-slate-400 mt-1">Materials only · excludes labor</div>
+          </div>
+        </div>
+        {/* Phase breakdown */}
+        <div className="mt-4 pt-4 border-t border-emerald-800/40 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div className="text-slate-500">Ph 1 Boards: <span className="text-slate-300">{formatTakeoffCurrency(takeoff.total)}</span></div>
+          <div className="text-slate-500">Ph 2 Fasteners: <span className="text-slate-300">{formatTakeoffCurrency(fastenerTakeoff.total)}</span></div>
+          <div className="text-slate-500">Ph 3 Framing: <span className="text-slate-300">{formatTakeoffCurrency(lumberTakeoff.total)}</span></div>
+          <div className="text-slate-500">Ph 4 Footings: <span className="text-slate-300">{formatTakeoffCurrency(footingTakeoff.total)}</span></div>
+          <div className="text-slate-500">Ph 5 Railing: <span className="text-slate-300">{formatTakeoffCurrency(railingTakeoff.total)}</span></div>
+          <div className="text-slate-500">Ph 6 Stairs: <span className="text-slate-300">{formatTakeoffCurrency(stairTakeoff.total)}</span></div>
+          <div className="text-slate-500">Ph 7 Hardware: <span className="text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.total)}</span></div>
         </div>
       </div>
 
