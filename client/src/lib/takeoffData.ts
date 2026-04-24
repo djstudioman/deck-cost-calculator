@@ -1223,3 +1223,412 @@ export function estimateDeckDimensions(sqFt: number): { widthFt: number; lengthF
   const side = Math.sqrt(sqFt);
   return { widthFt: Math.round(side), lengthFt: Math.round(sqFt / Math.round(side)) };
 }
+
+// ─── PHASE 4: CONCRETE & FOOTINGS SKUs ───────────────────────────────────────
+// Footing types: tube form (Sonotube / Quik-Tube) poured in place
+// Concrete mix: 60 lb bag (~0.45 cu ft), 80 lb bag (~0.60 cu ft)
+// Fast-setting: 50 lb bag (~0.375 cu ft) — no mixing required
+//
+// Tube form diameters: 8", 10", 12", 16"
+// Typical footing depths: 12"–48" depending on frost line
+//
+// Bag count formula per footing:
+//   cylinderVolumeCuFt = π × (diameterIn/2/12)² × depthFt
+//   bagsNeeded = ceil(cylinderVolumeCuFt / bagYieldCuFt) + 10% waste
+//
+// Post base hardware: Simpson Strong-Tie ABA, ABU, CB, PBS series
+//
+// 2026 contractor/distributor pricing (before tax):
+//   Quikrete 60 lb: ~$5.50–$6.50/bag
+//   Quikrete 80 lb: ~$7.00–$8.50/bag
+//   Quikrete Fast-Setting 50 lb: ~$8.00–$9.50/bag
+//   Sakrete 60 lb: ~$5.25–$6.25/bag
+//   Sakrete 80 lb: ~$6.75–$8.25/bag
+//   Sakrete Fast-Setting 50 lb: ~$7.75–$9.25/bag
+
+export interface ConcreteSku {
+  id: string;
+  manufacturer: string;      // "Quikrete" | "Sakrete"
+  productLine: string;       // e.g. "Standard Concrete Mix", "Fast-Setting Concrete"
+  name: string;
+  description: string;
+  bagWeightLb: number;       // 50, 60, 80
+  yieldCuFt: number;         // cubic feet per bag
+  isFastSetting: boolean;    // true = no mixing, pour dry into hole
+  contractorPricePerBag: number; // USD, 2026 contractor pricing
+  notes?: string;
+}
+
+export interface PostBaseSku {
+  id: string;
+  manufacturer: string;      // "Simpson Strong-Tie"
+  productLine: string;       // e.g. "ABA Series", "ABU Series"
+  name: string;
+  description: string;
+  postSize: string;           // "4×4" | "6×6" | "4×4 & 6×6"
+  adjustable: boolean;
+  contractorPriceEach: number;
+  notes?: string;
+}
+
+export interface FootingTakeoffInputs {
+  postCount: number;
+  tubeDiameterIn: number;    // 8, 10, 12, 16
+  footingDepthFt: number;    // frost-line depth
+  concreteSku: ConcreteSku;
+  postBaseSku: PostBaseSku;
+  concreteQtyOverride?: number;  // bags
+  concretePriceOverride?: number;
+  postBaseQtyOverride?: number;
+  postBasePriceOverride?: number;
+  taxRate: number;
+}
+
+export interface FootingTakeoffResult {
+  postCount: number;
+  tubeDiameterIn: number;
+  footingDepthFt: number;
+  volumePerFootingCuFt: number;
+  bagsPerFooting: number;
+  totalBagsCalc: number;
+  totalBagsEdited: number;
+  concretePricePerBag: number;
+  concreteSubtotal: number;
+  postBaseCount: number;
+  postBasePriceEach: number;
+  postBaseSubtotal: number;
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+}
+
+export function calculateFootingTakeoff(inputs: FootingTakeoffInputs): FootingTakeoffResult {
+  const {
+    postCount, tubeDiameterIn, footingDepthFt,
+    concreteSku, postBaseSku,
+    concreteQtyOverride, concretePriceOverride,
+    postBaseQtyOverride, postBasePriceOverride,
+    taxRate,
+  } = inputs;
+
+  const radiusFt = (tubeDiameterIn / 2) / 12;
+  const volumePerFootingCuFt = Math.round(Math.PI * radiusFt * radiusFt * footingDepthFt * 100) / 100;
+  const bagsPerFooting = Math.ceil(volumePerFootingCuFt / concreteSku.yieldCuFt);
+  const totalBagsCalc = Math.ceil(bagsPerFooting * postCount * 1.10); // 10% waste
+  const totalBagsEdited = concreteQtyOverride ?? totalBagsCalc;
+  const concretePricePerBag = concretePriceOverride ?? concreteSku.contractorPricePerBag;
+  const concreteSubtotal = Math.round(totalBagsEdited * concretePricePerBag * 100) / 100;
+
+  const postBaseCount = postBaseQtyOverride ?? postCount;
+  const postBasePriceEach = postBasePriceOverride ?? postBaseSku.contractorPriceEach;
+  const postBaseSubtotal = Math.round(postBaseCount * postBasePriceEach * 100) / 100;
+
+  const subtotal = Math.round((concreteSubtotal + postBaseSubtotal) * 100) / 100;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const total = Math.round((subtotal + taxAmount) * 100) / 100;
+
+  return {
+    postCount,
+    tubeDiameterIn,
+    footingDepthFt,
+    volumePerFootingCuFt,
+    bagsPerFooting,
+    totalBagsCalc,
+    totalBagsEdited,
+    concretePricePerBag,
+    concreteSubtotal,
+    postBaseCount,
+    postBasePriceEach,
+    postBaseSubtotal,
+    subtotal,
+    taxRate,
+    taxAmount,
+    total,
+  };
+}
+
+// ─── CONCRETE SKU CATALOG ─────────────────────────────────────────────────────
+
+export const CONCRETE_SKUS: ConcreteSku[] = [
+
+  // ════════════════════════════════════════════════════════════════
+  // QUIKRETE
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "quikrete-concrete-60",
+    manufacturer: "Quikrete",
+    productLine: "Standard Concrete Mix",
+    name: "Quikrete Concrete Mix 60 lb",
+    description: "All-purpose 4000 PSI concrete mix. Mix with water in a wheelbarrow or mixer.",
+    bagWeightLb: 60,
+    yieldCuFt: 0.45,
+    isFastSetting: false,
+    contractorPricePerBag: 5.98,
+    notes: "Most common bag size. Good for standard footings with mixing.",
+  },
+  {
+    id: "quikrete-concrete-80",
+    manufacturer: "Quikrete",
+    productLine: "Standard Concrete Mix",
+    name: "Quikrete Concrete Mix 80 lb",
+    description: "All-purpose 4000 PSI concrete mix. Higher yield per bag, fewer bags needed.",
+    bagWeightLb: 80,
+    yieldCuFt: 0.60,
+    isFastSetting: false,
+    contractorPricePerBag: 7.48,
+    notes: "Best value per cubic foot. Requires mixer for large pours.",
+  },
+  {
+    id: "quikrete-fast-setting-50",
+    manufacturer: "Quikrete",
+    productLine: "Fast-Setting Concrete",
+    name: "Quikrete Fast-Setting Concrete 50 lb",
+    description: "No mixing required. Pour dry mix into hole, add water on top. Sets in 20–40 min.",
+    bagWeightLb: 50,
+    yieldCuFt: 0.375,
+    isFastSetting: true,
+    contractorPricePerBag: 8.98,
+    notes: "Ideal for post bases and tube forms. No mixing — pour dry, add water.",
+  },
+  {
+    id: "quikrete-fast-setting-80",
+    manufacturer: "Quikrete",
+    productLine: "Fast-Setting Concrete",
+    name: "Quikrete Fast-Setting Concrete 80 lb",
+    description: "No mixing required. Larger bag for deeper footings. Sets in 20–40 min.",
+    bagWeightLb: 80,
+    yieldCuFt: 0.60,
+    isFastSetting: true,
+    contractorPricePerBag: 12.48,
+    notes: "Best fast-set value per cubic foot. Saves significant labor time.",
+  },
+  {
+    id: "quikrete-5000-60",
+    manufacturer: "Quikrete",
+    productLine: "High-Strength 5000 Mix",
+    name: "Quikrete 5000 High-Early Strength 60 lb",
+    description: "5000 PSI at 28 days. Achieves working strength in 24 hours. Ideal for cold weather.",
+    bagWeightLb: 60,
+    yieldCuFt: 0.45,
+    isFastSetting: false,
+    contractorPricePerBag: 7.28,
+    notes: "Premium mix for high-load footings or cold-weather pours.",
+  },
+  {
+    id: "quikrete-5000-80",
+    manufacturer: "Quikrete",
+    productLine: "High-Strength 5000 Mix",
+    name: "Quikrete 5000 High-Early Strength 80 lb",
+    description: "5000 PSI at 28 days. Higher yield, fewer bags. Best for large-diameter footings.",
+    bagWeightLb: 80,
+    yieldCuFt: 0.60,
+    isFastSetting: false,
+    contractorPricePerBag: 9.48,
+    notes: "Best performance per cubic foot. Recommended for 12\"+ diameter footings.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // SAKRETE
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "sakrete-concrete-60",
+    manufacturer: "Sakrete",
+    productLine: "Standard Concrete Mix",
+    name: "Sakrete Concrete Mix 60 lb",
+    description: "4000 PSI all-purpose concrete mix. Consistent blend of sand, gravel, and cement.",
+    bagWeightLb: 60,
+    yieldCuFt: 0.45,
+    isFastSetting: false,
+    contractorPricePerBag: 5.78,
+    notes: "Slightly lower price than Quikrete. Available at Lowe's and independent yards.",
+  },
+  {
+    id: "sakrete-concrete-80",
+    manufacturer: "Sakrete",
+    productLine: "Standard Concrete Mix",
+    name: "Sakrete Concrete Mix 80 lb",
+    description: "4000 PSI all-purpose concrete mix. Best value per cubic foot in the Sakrete line.",
+    bagWeightLb: 80,
+    yieldCuFt: 0.60,
+    isFastSetting: false,
+    contractorPricePerBag: 7.18,
+    notes: "Best Sakrete value per cubic foot.",
+  },
+  {
+    id: "sakrete-fast-setting-50",
+    manufacturer: "Sakrete",
+    productLine: "Fast-Setting Concrete",
+    name: "Sakrete Fast-Setting Concrete 50 lb",
+    description: "No mixing required. Pour dry into hole, add water. Sets in 20–40 min.",
+    bagWeightLb: 50,
+    yieldCuFt: 0.375,
+    isFastSetting: true,
+    contractorPricePerBag: 8.68,
+    notes: "Competitive alternative to Quikrete Fast-Setting.",
+  },
+  {
+    id: "sakrete-fast-setting-80",
+    manufacturer: "Sakrete",
+    productLine: "Fast-Setting Concrete",
+    name: "Sakrete Fast-Setting Concrete 80 lb",
+    description: "No mixing required. Larger bag for deeper footings. Sets in 20–40 min.",
+    bagWeightLb: 80,
+    yieldCuFt: 0.60,
+    isFastSetting: true,
+    contractorPricePerBag: 11.98,
+    notes: "Good fast-set value for larger footings.",
+  },
+  {
+    id: "sakrete-5000-plus-60",
+    manufacturer: "Sakrete",
+    productLine: "5000 Plus Concrete",
+    name: "Sakrete 5000 Plus Concrete 60 lb",
+    description: "5000 PSI high-strength mix. Achieves 3500 PSI in 24 hours.",
+    bagWeightLb: 60,
+    yieldCuFt: 0.45,
+    isFastSetting: false,
+    contractorPricePerBag: 7.08,
+    notes: "Sakrete's premium mix. Good for frost-heave-prone regions.",
+  },
+  {
+    id: "sakrete-5000-plus-80",
+    manufacturer: "Sakrete",
+    productLine: "5000 Plus Concrete",
+    name: "Sakrete 5000 Plus Concrete 80 lb",
+    description: "5000 PSI high-strength mix. Best yield in the Sakrete premium line.",
+    bagWeightLb: 80,
+    yieldCuFt: 0.60,
+    isFastSetting: false,
+    contractorPricePerBag: 9.18,
+    notes: "Best Sakrete premium value per cubic foot.",
+  },
+];
+
+// ─── POST BASE SKU CATALOG ────────────────────────────────────────────────────
+
+export const POST_BASE_SKUS: PostBaseSku[] = [
+  {
+    id: "simpson-aba44",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "ABA Series — Adjustable",
+    name: "Simpson ABA44 Adjustable Post Base 4×4",
+    description: "Standoff post base with 1\" standoff to prevent end-grain moisture contact. Adjustable ±1.5\" for alignment.",
+    postSize: "4×4",
+    adjustable: true,
+    contractorPriceEach: 14.98,
+    notes: "Most popular post base for deck posts. Allows post alignment after concrete sets.",
+  },
+  {
+    id: "simpson-aba66",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "ABA Series — Adjustable",
+    name: "Simpson ABA66 Adjustable Post Base 6×6",
+    description: "Heavy-duty standoff post base for 6×6 posts. ±1.5\" adjustment for alignment.",
+    postSize: "6×6",
+    adjustable: true,
+    contractorPriceEach: 21.48,
+    notes: "Required for elevated decks and heavy beam loads.",
+  },
+  {
+    id: "simpson-abu44",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "ABU Series — Standoff",
+    name: "Simpson ABU44 Standoff Post Base 4×4",
+    description: "Fixed standoff post base. 1\" standoff, concealed fasteners on two sides.",
+    postSize: "4×4",
+    adjustable: false,
+    contractorPriceEach: 11.28,
+    notes: "Lower profile than ABA. Good when post location is precisely known.",
+  },
+  {
+    id: "simpson-abu66",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "ABU Series — Standoff",
+    name: "Simpson ABU66 Standoff Post Base 6×6",
+    description: "Fixed standoff post base for 6×6 posts. Concealed fasteners on two sides.",
+    postSize: "6×6",
+    adjustable: false,
+    contractorPriceEach: 16.78,
+    notes: "Fixed position — set anchor bolt precisely before pour.",
+  },
+  {
+    id: "simpson-cb44",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "CB Series — Column Base",
+    name: "Simpson CB44 Column Base 4×4",
+    description: "Flush column base. Post sits flush with concrete surface. No standoff.",
+    postSize: "4×4",
+    adjustable: false,
+    contractorPriceEach: 8.98,
+    notes: "Budget option. Not recommended for ground-contact — use with sealed post end.",
+  },
+  {
+    id: "simpson-cb66",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "CB Series — Column Base",
+    name: "Simpson CB66 Column Base 6×6",
+    description: "Flush column base for 6×6 posts. Post sits flush with concrete surface.",
+    postSize: "6×6",
+    adjustable: false,
+    contractorPriceEach: 13.48,
+    notes: "Budget option for 6×6. Use with sealed post end to prevent moisture wicking.",
+  },
+  {
+    id: "simpson-pbs44",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "PBS Series — Post Base Standoff",
+    name: "Simpson PBS44 Post Base Standoff 4×4",
+    description: "Elevated standoff post base. 3\" standoff keeps post well above concrete and water.",
+    postSize: "4×4",
+    adjustable: false,
+    contractorPriceEach: 16.48,
+    notes: "Best moisture protection. Ideal for coastal or high-humidity regions.",
+  },
+  {
+    id: "simpson-pbs66",
+    manufacturer: "Simpson Strong-Tie",
+    productLine: "PBS Series — Post Base Standoff",
+    name: "Simpson PBS66 Post Base Standoff 6×6",
+    description: "Elevated standoff post base for 6×6. 3\" standoff for maximum moisture protection.",
+    postSize: "6×6",
+    adjustable: false,
+    contractorPriceEach: 23.98,
+    notes: "Premium moisture protection for 6×6 posts in wet climates.",
+  },
+];
+
+/** Group concrete SKUs by manufacturer */
+export function getConcreteSkusByManufacturer(): Record<string, ConcreteSku[]> {
+  const groups: Record<string, ConcreteSku[]> = {};
+  CONCRETE_SKUS.forEach(sku => {
+    if (!groups[sku.manufacturer]) groups[sku.manufacturer] = [];
+    groups[sku.manufacturer].push(sku);
+  });
+  return groups;
+}
+
+/** Group post base SKUs by product line */
+export function getPostBaseSkusByProductLine(): Record<string, PostBaseSku[]> {
+  const groups: Record<string, PostBaseSku[]> = {};
+  POST_BASE_SKUS.forEach(sku => {
+    if (!groups[sku.productLine]) groups[sku.productLine] = [];
+    groups[sku.productLine].push(sku);
+  });
+  return groups;
+}
+
+/** Default concrete SKU — Quikrete Fast-Setting 50 lb */
+export function getDefaultConcreteSku(): ConcreteSku {
+  return CONCRETE_SKUS.find(s => s.id === "quikrete-fast-setting-50") ?? CONCRETE_SKUS[0];
+}
+
+/** Default post base SKU — Simpson ABA44 */
+export function getDefaultPostBaseSku(): PostBaseSku {
+  return POST_BASE_SKUS.find(s => s.id === "simpson-aba44") ?? POST_BASE_SKUS[0];
+}
+
+/** Estimate post count from deck area (1 post per ~64 sq ft, min 4) */
+export function estimatePostCount(deckAreaSqFt: number): number {
+  return Math.max(4, Math.ceil(deckAreaSqFt / 64));
+}
