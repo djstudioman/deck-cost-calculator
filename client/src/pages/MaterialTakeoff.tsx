@@ -19,6 +19,12 @@ import {
   getDefaultFastenerSku,
   fastenerSystemLabel,
   type FastenerSystemId,
+  LUMBER_SKUS,
+  calculateLumberTakeoff,
+  getLumberSkusByManufacturer,
+  getDefaultLumberSku,
+  estimateDeckDimensions,
+  type LumberSku,
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
 
@@ -134,8 +140,56 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const isPhase1Edited = boardsOverride !== null || unitPriceOverride !== null;
   const isFastenerEdited = fastenerQtyOverride !== null || fastenerPriceOverride !== null;
 
+  // ── Phase 3 state ──
+  const { widthFt: defaultWidthFt, lengthFt: defaultLengthFt } = estimateDeckDimensions(deckAreaSqFt);
+  const defaultJoistSpacingIn: number =
+    result.joistSpacingIn === 12 || result.joistSpacingIn === 16 || result.joistSpacingIn === 24
+      ? result.joistSpacingIn
+      : 16;
+  const [joistSpacingIn, setJoistSpacingIn] = useState<number>(defaultJoistSpacingIn);
+  const [deckWidthFt, setDeckWidthFt] = useState<number>(defaultWidthFt);
+  const [deckLengthFt, setDeckLengthFt] = useState<number>(defaultLengthFt);
+  const [joistSkuId, setJoistSkuId] = useState<string>(getDefaultLumberSku().id);
+  const [joistLengthFt, setJoistLengthFt] = useState<number>(16);
+  const [joistQtyOverride, setJoistQtyOverride] = useState<number | null>(null);
+  const [joistPriceOverride, setJoistPriceOverride] = useState<number | null>(null);
+  const [rimQtyOverride, setRimQtyOverride] = useState<number | null>(null);
+  const [rimPriceOverride, setRimPriceOverride] = useState<number | null>(null);
+  // Accordion state for Phase 3
+  const [expandedLumberBrand, setExpandedLumberBrand] = useState<string | null>(() => getDefaultLumberSku().manufacturer);
+
+  const joistSku: LumberSku = useMemo(
+    () => LUMBER_SKUS.find(s => s.id === joistSkuId) ?? getDefaultLumberSku(),
+    [joistSkuId]
+  );
+
+  const lumberTakeoff = useMemo(() => calculateLumberTakeoff({
+    deckAreaSqFt,
+    deckWidthFt,
+    deckLengthFt,
+    joistSpacingIn,
+    joistSku,
+    joistLengthFt,
+    rimSku: joistSku, // same size for rim
+    joistQtyOverride: joistQtyOverride ?? undefined,
+    joistPriceOverride: joistPriceOverride ?? undefined,
+    rimQtyOverride: rimQtyOverride ?? undefined,
+    rimPriceOverride: rimPriceOverride ?? undefined,
+    taxRate,
+  }), [deckAreaSqFt, deckWidthFt, deckLengthFt, joistSpacingIn, joistSku, joistLengthFt, joistQtyOverride, joistPriceOverride, rimQtyOverride, rimPriceOverride, taxRate]);
+
+  useEffect(() => {
+    setJoistQtyOverride(null);
+    setJoistPriceOverride(null);
+    setRimQtyOverride(null);
+    setRimPriceOverride(null);
+  }, [joistSkuId, joistLengthFt, joistSpacingIn]);
+
+  const lumberSkusByManufacturer = useMemo(() => getLumberSkusByManufacturer(), []);
+  const isPhase3Edited = joistQtyOverride !== null || joistPriceOverride !== null || rimQtyOverride !== null || rimPriceOverride !== null;
+
   // ── Grand total ──
-  const grandTotal = takeoff.total + fastenerTakeoff.total;
+  const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total;
 
   return (
     <div className="space-y-6">
@@ -638,16 +692,231 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
+      {/* ══════════════════════════════════════════════════════════════
+          PHASE 3: FRAMING LUMBER
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+        <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 3</span>
+            <span className="text-white font-semibold">Framing Lumber</span>
+          </div>
+          <span className="text-xs text-slate-400">Category 3 of 7</span>
+        </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* Deck Dimensions + Joist Spacing */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Deck Width (ft)</label>
+              <input
+                type="number" min={4} max={100} step={1}
+                value={deckWidthFt}
+                onChange={e => setDeckWidthFt(Math.max(4, parseInt(e.target.value) || defaultWidthFt))}
+                className="w-full bg-slate-700 border border-slate-500 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-400"
+              />
+              <div className="text-[11px] text-slate-500 mt-1">Joist span direction</div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Deck Length (ft)</label>
+              <input
+                type="number" min={4} max={200} step={1}
+                value={deckLengthFt}
+                onChange={e => setDeckLengthFt(Math.max(4, parseInt(e.target.value) || defaultLengthFt))}
+                className="w-full bg-slate-700 border border-slate-500 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-amber-400"
+              />
+              <div className="text-[11px] text-slate-500 mt-1">Joist run direction</div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Joist Spacing</label>
+              <div className="flex gap-2">
+                {[12, 16, 24].map(sp => (
+                  <button
+                    key={sp}
+                    onClick={() => setJoistSpacingIn(sp)}
+                    className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                      joistSpacingIn === sp
+                        ? "border-amber-500 bg-amber-500/10 text-amber-300"
+                        : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                    }`}
+                  >
+                    {sp}"
+                  </button>
+                ))}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">On center (inches)</div>
+            </div>
+          </div>
+
+          {/* Joist Length */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Joist Length</label>
+            <div className="flex gap-2">
+              {[8, 10, 12, 16, 20].map(len => (
+                <button
+                  key={len}
+                  onClick={() => setJoistLengthFt(len)}
+                  className={`flex-1 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                    joistLengthFt === len
+                      ? "border-amber-500 bg-amber-500/10 text-amber-300"
+                      : "border-slate-600 bg-slate-800/40 text-slate-400 hover:border-slate-500"
+                  }`}
+                >
+                  {len}'
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Brand Accordion — Lumber SKU selector */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Brand &amp; Size
+            </label>
+            <div className="space-y-2">
+              {Object.entries(lumberSkusByManufacturer).map(([mfr, skus]) => {
+                const isOpen = expandedLumberBrand === mfr;
+                const hasSelected = skus.some(s => s.id === joistSkuId);
+                return (
+                  <div key={mfr} className={`rounded-xl border transition-all ${
+                    hasSelected ? "border-amber-500/60" : "border-slate-600"
+                  }`}>
+                    <button
+                      onClick={() => setExpandedLumberBrand(isOpen ? null : mfr)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-700/30 transition-colors rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-sm font-semibold ${
+                          hasSelected ? "text-amber-300" : "text-slate-200"
+                        }`}>{mfr}</span>
+                        {hasSelected && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Selected</span>
+                        )}
+                        <span className="text-xs text-slate-500">{skus.length} size{skus.length !== 1 ? "s" : ""}</span>
+                      </div>
+                      <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div className="px-3 pb-3 space-y-2">
+                        {skus.map(sku => (
+                          <button
+                            key={sku.id}
+                            onClick={() => setJoistSkuId(sku.id)}
+                            className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                              joistSkuId === sku.id
+                                ? "border-amber-500 bg-amber-500/10 text-white"
+                                : "border-slate-600 bg-slate-800/40 text-slate-300 hover:border-slate-500"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-white">{sku.nominalSize} — {sku.productLine}</div>
+                                <div className="text-xs text-slate-400 mt-0.5">{sku.species} · {sku.treatment} · {sku.grade}</div>
+                                {sku.notes && <div className="text-[11px] text-slate-500 mt-0.5 italic">{sku.notes}</div>}
+                              </div>
+                              <div className="text-right shrink-0 ml-2">
+                                <div className="text-sm font-bold text-amber-300">${sku.contractorPricePerLF.toFixed(2)}/LF</div>
+                                <div className="text-xs text-slate-500">{sku.boardFeetPerLF.toFixed(2)} BF/LF</div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Takeoff Table */}
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
+              Framing Takeoff
+            </div>
+            {/* Header */}
+            <div className="grid grid-cols-3 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-700">
+              <span>Item</span><span className="text-center">Qty</span><span className="text-right">Amount</span>
+            </div>
+            {/* Field Joists */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Field joists ({joistSpacingIn}" OC)</span>
+              <span className="text-center">
+                <input
+                  type="number" min={1}
+                  value={joistQtyOverride ?? lumberTakeoff.joistCount}
+                  onChange={e => setJoistQtyOverride(Math.max(1, parseInt(e.target.value) || lumberTakeoff.joistCount))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400"
+                />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(lumberTakeoff.joistSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{joistSku.nominalSize} × {joistLengthFt}' @ ${joistSku.contractorPricePerLF.toFixed(2)}/LF</span>
+              <span className="text-center">{lumberTakeoff.joistBoardFeet} BF</span>
+              <span className="text-right">{formatTakeoffCurrency(lumberTakeoff.joistUnitPrice)}/pc</span>
+            </div>
+            {/* Rim Joists */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm border-b border-slate-700/50">
+              <span className="text-slate-400">Rim joists (2 pcs × {deckLengthFt}')</span>
+              <span className="text-center">
+                <input
+                  type="number" min={1}
+                  value={rimQtyOverride ?? lumberTakeoff.rimCount}
+                  onChange={e => setRimQtyOverride(Math.max(1, parseInt(e.target.value) || lumberTakeoff.rimCount))}
+                  className="w-20 text-center bg-slate-700 border border-slate-500 text-amber-300 font-bold text-sm rounded px-2 py-0.5 focus:outline-none focus:border-amber-400"
+                />
+              </span>
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(lumberTakeoff.rimSubtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
+              <span className="pl-2 text-slate-600">{joistSku.nominalSize} × {deckLengthFt}' @ ${joistSku.contractorPricePerLF.toFixed(2)}/LF</span>
+              <span className="text-center">{lumberTakeoff.rimBoardFeet} BF</span>
+              <span className="text-right">{formatTakeoffCurrency(lumberTakeoff.rimUnitPrice)}/pc</span>
+            </div>
+            {/* Subtotal */}
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Subtotal (materials)</span>
+              <span className="text-center text-xs text-slate-500">{lumberTakeoff.totalBoardFeet} BF total</span>
+              <span className="text-right text-slate-200 font-semibold">{formatTakeoffCurrency(lumberTakeoff.subtotal)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
+              <span className="text-slate-400">Sales tax ({(taxRate * 100).toFixed(2)}%)</span>
+              <span />
+              <span className="text-right text-slate-300">{formatTakeoffCurrency(lumberTakeoff.taxAmount)}</span>
+            </div>
+            <div className="grid grid-cols-3 px-4 py-3 bg-slate-700/30">
+              <span className="text-white font-bold text-base">Total — Framing Lumber</span>
+              <span />
+              <span className="text-right text-emerald-400 font-bold text-xl">{formatTakeoffCurrency(lumberTakeoff.total)}</span>
+            </div>
+          </div>
+
+          {isPhase3Edited && (
+            <button
+              onClick={() => { setJoistQtyOverride(null); setJoistPriceOverride(null); setRimQtyOverride(null); setRimPriceOverride(null); }}
+              className="text-xs text-amber-400 hover:text-amber-300 underline"
+            >
+              Reset to calculated values
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Running Grand Total ── */}
       <div className="bg-slate-800/80 border border-emerald-500/30 rounded-xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–2)</div>
-            <div className="text-sm text-slate-500">Deck boards + fasteners · tax included</div>
+            <div className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-1">Material Subtotal (Phases 1–3)</div>
+            <div className="text-sm text-slate-500">Deck boards + fasteners + framing · tax included</div>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
-            <div className="text-xs text-slate-500 mt-0.5">5 more categories remaining</div>
+            <div className="text-xs text-slate-500 mt-0.5">4 more categories remaining</div>
           </div>
         </div>
       </div>
@@ -655,16 +924,15 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
       {/* ── Coming Next ── */}
       <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-4">
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Coming Next in Material Takeoff</div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
           {[
-            "Framing lumber (joists, beams, posts)",
             "Concrete & footings",
             "Railing (posts, balusters, rail)",
             "Stairs (stringers, treads, risers)",
             "Hardware & misc (hangers, flashing)",
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">{i + 3}</span>
+              <span className="w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-600 shrink-0">{i + 4}</span>
               {item}
             </div>
           ))}

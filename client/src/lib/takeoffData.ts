@@ -743,3 +743,483 @@ export function fastenerSystemLabel(systemId: FastenerSystemId): string {
   if (systemId === "cortex") return "Cortex by FastenMaster";
   return "Face Screws";
 }
+
+// ─── PHASE 3: FRAMING LUMBER SKUs ────────────────────────────────────────────
+// Framing lumber for deck joists, beams, and rim boards.
+// Species: SYP (Southern Yellow Pine) — dominant in SE/Mid-Atlantic/Midwest
+//          HF/DF (Hem-Fir / Douglas Fir) — dominant in West/PNW
+// Treatment: ACQ (Alkaline Copper Quaternary) or CA (Copper Azole), AWPA UC4A/B
+// Sizes: 2×6, 2×8, 2×10, 2×12 — joists; 4×6, 4×8 — beams
+// Lengths: 8', 10', 12', 16', 20'
+//
+// Joist spacing: 12" OC, 16" OC, 24" OC
+// Joist count formula: ceil(deckWidthFt / spacingFt) + 1 (for rim joists × 2)
+// Board feet: (thickness × width × lengthFt) / 12
+//
+// 2026 contractor/distributor pricing (before tax):
+//   SYP #2 PT 2×6: ~$0.85–$1.10/LF
+//   SYP #2 PT 2×8: ~$1.20–$1.55/LF
+//   SYP #2 PT 2×10: ~$1.65–$2.10/LF
+//   SYP #2 PT 2×12: ~$2.20–$2.80/LF
+//   DF/HF PT 2×6: ~$1.05–$1.35/LF
+//   DF/HF PT 2×8: ~$1.45–$1.85/LF
+//   DF/HF PT 2×10: ~$1.90–$2.45/LF
+//   DF/HF PT 2×12: ~$2.55–$3.25/LF
+
+export interface LumberSku {
+  id: string;
+  manufacturer: string;    // e.g. "Severe Weather", "WeatherShield", "ProWood", "Generic SYP", "Generic DF"
+  productLine: string;     // e.g. "ACQ Treated SYP", "CA-C Treated DF"
+  name: string;            // display name
+  species: string;         // "SYP" | "Hem-Fir" | "Douglas Fir"
+  treatment: string;       // "ACQ" | "CA-C" | "CA-B"
+  grade: string;           // "#2 & Better" | "Select Structural"
+  nominalSize: string;     // e.g. "2×6", "2×8", "2×10", "2×12"
+  nominalThicknessIn: number; // 2
+  nominalWidthIn: number;     // 6, 8, 10, 12
+  actualThicknessIn: number;  // 1.5
+  actualWidthIn: number;      // 5.5, 7.25, 9.25, 11.25
+  availableLengths: number[]; // feet
+  contractorPricePerLF: number; // USD per linear foot, 2026 contractor pricing
+  boardFeetPerLF: number;     // (nominalThickness × nominalWidth) / 12
+  use: "joist" | "beam" | "rim" | "ledger" | "post"; // primary structural use
+  notes?: string;
+}
+
+export interface LumberTakeoffInputs {
+  deckAreaSqFt: number;
+  deckWidthFt: number;      // shorter dimension (joist span direction)
+  deckLengthFt: number;     // longer dimension (joist run direction)
+  joistSpacingIn: number;   // 12, 16, or 24
+  joistSku: LumberSku;
+  joistLengthFt: number;    // selected joist length
+  rimSku: LumberSku;        // rim joist (same size as joist, typically)
+  joistQtyOverride?: number;
+  joistPriceOverride?: number;
+  rimQtyOverride?: number;
+  rimPriceOverride?: number;
+  taxRate: number;
+}
+
+export interface LumberTakeoffResult {
+  // Joists
+  joistSpacingIn: number;
+  joistCount: number;         // field joists only
+  joistLengthFt: number;
+  joistBoardFeet: number;
+  joistUnitPrice: number;     // per piece (LF × pricePerLF)
+  joistQtyEdited: number;
+  joistSubtotal: number;
+  // Rim joists (2 pieces, full deck length)
+  rimCount: number;           // always 2
+  rimLengthFt: number;        // deckLengthFt
+  rimBoardFeet: number;
+  rimUnitPrice: number;
+  rimQtyEdited: number;
+  rimSubtotal: number;
+  // Totals
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  total: number;
+  totalBoardFeet: number;
+}
+
+export function calculateLumberTakeoff(inputs: LumberTakeoffInputs): LumberTakeoffResult {
+  const {
+    deckWidthFt, deckLengthFt, joistSpacingIn,
+    joistSku, joistLengthFt, rimSku,
+    joistQtyOverride, joistPriceOverride,
+    rimQtyOverride, rimPriceOverride,
+    taxRate,
+  } = inputs;
+
+  const spacingFt = joistSpacingIn / 12;
+  // Field joists: span the width, spaced along the length
+  const joistCountCalc = Math.ceil(deckLengthFt / spacingFt) + 1;
+  const joistCount = joistQtyOverride ?? joistCountCalc;
+  const joistUnitPrice = joistPriceOverride ?? (joistSku.contractorPricePerLF * joistLengthFt);
+  const joistSubtotal = joistCount * joistUnitPrice;
+  const joistBoardFeet = joistCount * joistSku.boardFeetPerLF * joistLengthFt;
+
+  // Rim joists: 2 pieces, each the full deck length
+  const rimLengthFt = deckLengthFt;
+  const rimCountCalc = 2;
+  const rimCount = rimQtyOverride ?? rimCountCalc;
+  const rimUnitPrice = rimPriceOverride ?? (rimSku.contractorPricePerLF * rimLengthFt);
+  const rimSubtotal = rimCount * rimUnitPrice;
+  const rimBoardFeet = rimCount * rimSku.boardFeetPerLF * rimLengthFt;
+
+  const subtotal = Math.round((joistSubtotal + rimSubtotal) * 100) / 100;
+  const taxAmount = Math.round(subtotal * taxRate * 100) / 100;
+  const total = subtotal + taxAmount;
+  const totalBoardFeet = Math.round((joistBoardFeet + rimBoardFeet) * 10) / 10;
+
+  return {
+    joistSpacingIn,
+    joistCount,
+    joistLengthFt,
+    joistBoardFeet: Math.round(joistBoardFeet * 10) / 10,
+    joistUnitPrice: Math.round(joistUnitPrice * 100) / 100,
+    joistQtyEdited: joistCount,
+    joistSubtotal: Math.round(joistSubtotal * 100) / 100,
+    rimCount,
+    rimLengthFt,
+    rimBoardFeet: Math.round(rimBoardFeet * 10) / 10,
+    rimUnitPrice: Math.round(rimUnitPrice * 100) / 100,
+    rimQtyEdited: rimCount,
+    rimSubtotal: Math.round(rimSubtotal * 100) / 100,
+    subtotal,
+    taxRate,
+    taxAmount,
+    total: Math.round(total * 100) / 100,
+    totalBoardFeet,
+  };
+}
+
+// ─── LUMBER SKU CATALOG ───────────────────────────────────────────────────────
+
+export const LUMBER_SKUS: LumberSku[] = [
+
+  // ════════════════════════════════════════════════════════════════
+  // SEVERE WEATHER (Lowe's exclusive, SYP, ACQ/CA treated)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "severe-weather-syp-2x6",
+    manufacturer: "Severe Weather",
+    productLine: "ACQ Treated SYP",
+    name: "Severe Weather 2×6 #2 PT SYP",
+    species: "SYP",
+    treatment: "ACQ",
+    grade: "#2 & Better",
+    nominalSize: "2×6",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 6,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 5.5,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 0.98,
+    boardFeetPerLF: (2 * 6) / 12,
+    use: "joist",
+    notes: "Lowe's exclusive brand. ACQ treated, AWPA UC4A. Kiln-dried after treatment (KDAT).",
+  },
+  {
+    id: "severe-weather-syp-2x8",
+    manufacturer: "Severe Weather",
+    productLine: "ACQ Treated SYP",
+    name: "Severe Weather 2×8 #2 PT SYP",
+    species: "SYP",
+    treatment: "ACQ",
+    grade: "#2 & Better",
+    nominalSize: "2×8",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 8,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 7.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.38,
+    boardFeetPerLF: (2 * 8) / 12,
+    use: "joist",
+    notes: "Most common joist size for 8–12 ft spans at 16\" OC.",
+  },
+  {
+    id: "severe-weather-syp-2x10",
+    manufacturer: "Severe Weather",
+    productLine: "ACQ Treated SYP",
+    name: "Severe Weather 2×10 #2 PT SYP",
+    species: "SYP",
+    treatment: "ACQ",
+    grade: "#2 & Better",
+    nominalSize: "2×10",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 10,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 9.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.88,
+    boardFeetPerLF: (2 * 10) / 12,
+    use: "joist",
+    notes: "Spans 10–14 ft at 16\" OC. Common for mid-size decks.",
+  },
+  {
+    id: "severe-weather-syp-2x12",
+    manufacturer: "Severe Weather",
+    productLine: "ACQ Treated SYP",
+    name: "Severe Weather 2×12 #2 PT SYP",
+    species: "SYP",
+    treatment: "ACQ",
+    grade: "#2 & Better",
+    nominalSize: "2×12",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 12,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 11.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 2.48,
+    boardFeetPerLF: (2 * 12) / 12,
+    use: "joist",
+    notes: "Spans 14–18 ft at 16\" OC. Large decks and elevated structures.",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // WEATHERSHIELD (Home Depot exclusive, SYP, CA-C treated)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "weathershield-syp-2x6",
+    manufacturer: "WeatherShield",
+    productLine: "CA-C Treated SYP",
+    name: "WeatherShield 2×6 #2 PT SYP",
+    species: "SYP",
+    treatment: "CA-C",
+    grade: "#2 & Better",
+    nominalSize: "2×6",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 6,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 5.5,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 0.95,
+    boardFeetPerLF: (2 * 6) / 12,
+    use: "joist",
+    notes: "Home Depot exclusive. CA-C treatment, low odor, paintable.",
+  },
+  {
+    id: "weathershield-syp-2x8",
+    manufacturer: "WeatherShield",
+    productLine: "CA-C Treated SYP",
+    name: "WeatherShield 2×8 #2 PT SYP",
+    species: "SYP",
+    treatment: "CA-C",
+    grade: "#2 & Better",
+    nominalSize: "2×8",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 8,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 7.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.32,
+    boardFeetPerLF: (2 * 8) / 12,
+    use: "joist",
+  },
+  {
+    id: "weathershield-syp-2x10",
+    manufacturer: "WeatherShield",
+    productLine: "CA-C Treated SYP",
+    name: "WeatherShield 2×10 #2 PT SYP",
+    species: "SYP",
+    treatment: "CA-C",
+    grade: "#2 & Better",
+    nominalSize: "2×10",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 10,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 9.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.82,
+    boardFeetPerLF: (2 * 10) / 12,
+    use: "joist",
+  },
+  {
+    id: "weathershield-syp-2x12",
+    manufacturer: "WeatherShield",
+    productLine: "CA-C Treated SYP",
+    name: "WeatherShield 2×12 #2 PT SYP",
+    species: "SYP",
+    treatment: "CA-C",
+    grade: "#2 & Better",
+    nominalSize: "2×12",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 12,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 11.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 2.42,
+    boardFeetPerLF: (2 * 12) / 12,
+    use: "joist",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // PROWOOD (national distributor brand, SYP, MCA treated)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "prowood-syp-2x6",
+    manufacturer: "ProWood",
+    productLine: "MCA Treated SYP",
+    name: "ProWood 2×6 #2 PT SYP",
+    species: "SYP",
+    treatment: "MCA",
+    grade: "#2 & Better",
+    nominalSize: "2×6",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 6,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 5.5,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 0.92,
+    boardFeetPerLF: (2 * 6) / 12,
+    use: "joist",
+    notes: "MCA (Micronized Copper Azole). Clean, light-colored, low-corrosion. Available at independent lumber yards.",
+  },
+  {
+    id: "prowood-syp-2x8",
+    manufacturer: "ProWood",
+    productLine: "MCA Treated SYP",
+    name: "ProWood 2×8 #2 PT SYP",
+    species: "SYP",
+    treatment: "MCA",
+    grade: "#2 & Better",
+    nominalSize: "2×8",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 8,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 7.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.28,
+    boardFeetPerLF: (2 * 8) / 12,
+    use: "joist",
+  },
+  {
+    id: "prowood-syp-2x10",
+    manufacturer: "ProWood",
+    productLine: "MCA Treated SYP",
+    name: "ProWood 2×10 #2 PT SYP",
+    species: "SYP",
+    treatment: "MCA",
+    grade: "#2 & Better",
+    nominalSize: "2×10",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 10,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 9.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.78,
+    boardFeetPerLF: (2 * 10) / 12,
+    use: "joist",
+  },
+  {
+    id: "prowood-syp-2x12",
+    manufacturer: "ProWood",
+    productLine: "MCA Treated SYP",
+    name: "ProWood 2×12 #2 PT SYP",
+    species: "SYP",
+    treatment: "MCA",
+    grade: "#2 & Better",
+    nominalSize: "2×12",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 12,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 11.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 2.38,
+    boardFeetPerLF: (2 * 12) / 12,
+    use: "joist",
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // WESTERN WOOD (Hem-Fir / Douglas Fir — West Coast / PNW)
+  // ════════════════════════════════════════════════════════════════
+  {
+    id: "western-wood-hf-2x6",
+    manufacturer: "Western Wood",
+    productLine: "CA-B Treated Hem-Fir",
+    name: "Western Wood 2×6 #2 PT Hem-Fir",
+    species: "Hem-Fir",
+    treatment: "CA-B",
+    grade: "#2 & Better",
+    nominalSize: "2×6",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 6,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 5.5,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.12,
+    boardFeetPerLF: (2 * 6) / 12,
+    use: "joist",
+    notes: "Dominant species in Pacific NW and West. Lighter weight than SYP. CA-B treatment.",
+  },
+  {
+    id: "western-wood-hf-2x8",
+    manufacturer: "Western Wood",
+    productLine: "CA-B Treated Hem-Fir",
+    name: "Western Wood 2×8 #2 PT Hem-Fir",
+    species: "Hem-Fir",
+    treatment: "CA-B",
+    grade: "#2 & Better",
+    nominalSize: "2×8",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 8,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 7.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 1.58,
+    boardFeetPerLF: (2 * 8) / 12,
+    use: "joist",
+  },
+  {
+    id: "western-wood-hf-2x10",
+    manufacturer: "Western Wood",
+    productLine: "CA-B Treated Hem-Fir",
+    name: "Western Wood 2×10 #2 PT Hem-Fir",
+    species: "Hem-Fir",
+    treatment: "CA-B",
+    grade: "#2 & Better",
+    nominalSize: "2×10",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 10,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 9.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 2.12,
+    boardFeetPerLF: (2 * 10) / 12,
+    use: "joist",
+  },
+  {
+    id: "western-wood-hf-2x12",
+    manufacturer: "Western Wood",
+    productLine: "CA-B Treated Hem-Fir",
+    name: "Western Wood 2×12 #2 PT Hem-Fir",
+    species: "Hem-Fir",
+    treatment: "CA-B",
+    grade: "#2 & Better",
+    nominalSize: "2×12",
+    nominalThicknessIn: 2,
+    nominalWidthIn: 12,
+    actualThicknessIn: 1.5,
+    actualWidthIn: 11.25,
+    availableLengths: [8, 10, 12, 16, 20],
+    contractorPricePerLF: 2.82,
+    boardFeetPerLF: (2 * 12) / 12,
+    use: "joist",
+    notes: "Spans 14–18 ft at 16\" OC. Select Structural grade recommended for long spans.",
+  },
+];
+
+/** Return lumber SKUs grouped by manufacturer */
+export function getLumberSkusByManufacturer(): Record<string, LumberSku[]> {
+  const groups: Record<string, LumberSku[]> = {};
+  LUMBER_SKUS.forEach(sku => {
+    if (!groups[sku.manufacturer]) groups[sku.manufacturer] = [];
+    groups[sku.manufacturer].push(sku);
+  });
+  return groups;
+}
+
+/** Return the default joist SKU for a given deck area (picks 2×8 SYP as the standard) */
+export function getDefaultLumberSku(): LumberSku {
+  return LUMBER_SKUS.find(s => s.id === "severe-weather-syp-2x8") ?? LUMBER_SKUS[0];
+}
+
+/** Derive deck width and length from sqFt (assume square-ish, width = shorter side) */
+export function estimateDeckDimensions(sqFt: number): { widthFt: number; lengthFt: number } {
+  // Use the SIZE_OPTIONS dimensions if possible; otherwise approximate
+  const knownSizes: Record<number, { w: number; l: number }> = {
+    100:  { w: 10, l: 10 },
+    192:  { w: 12, l: 16 },
+    320:  { w: 16, l: 20 },
+    480:  { w: 20, l: 24 },
+    600:  { w: 20, l: 30 },
+  };
+  if (knownSizes[sqFt]) return { widthFt: knownSizes[sqFt].w, lengthFt: knownSizes[sqFt].l };
+  const side = Math.sqrt(sqFt);
+  return { widthFt: Math.round(side), lengthFt: Math.round(sqFt / Math.round(side)) };
+}
