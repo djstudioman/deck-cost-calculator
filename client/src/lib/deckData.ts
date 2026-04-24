@@ -752,6 +752,8 @@ export interface CalculatorInputs {
   level2CustomSqFt?: number;
   // Deck height above grade (used by Material Takeoff for stair step calculation)
   deckHeightIn?: number; // inches above grade; defaults to 24
+  // Homeowner markup overlay — optional contractor markup applied to homeowner totalLow/High
+  homeownerMarkupTierId?: string; // if set, applies this markup tier to homeowner totals
 }
 
 export interface CalculatorResult {
@@ -1297,8 +1299,23 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
   // Totals
-  const totalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow + footingSpecCostLow;
-  const totalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh + footingSpecCostHigh;
+  const baseTotalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow + footingSpecCostLow;
+  const baseTotalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh + footingSpecCostHigh;
+
+  // Homeowner markup overlay: apply contractor markup tier to totalLow/High when enabled
+  const homeownerMarkupTier = inputs.audience === "homeowner" && inputs.homeownerMarkupTierId
+    ? CONTRACTOR_MARKUP_TIERS.find((m) => m.id === inputs.homeownerMarkupTierId)
+    : null;
+  const homeownerMarkupMultiplierLow = homeownerMarkupTier
+    ? (1 + homeownerMarkupTier.materialMarkup * 0.45 + homeownerMarkupTier.laborMarkup * 0.55) * (1 + homeownerMarkupTier.overheadPct)
+    : 1;
+  // High end uses a slightly wider markup to reflect premium contractor variance
+  const homeownerMarkupMultiplierHigh = homeownerMarkupTier
+    ? (1 + (homeownerMarkupTier.materialMarkup + 0.05) * 0.45 + (homeownerMarkupTier.laborMarkup + 0.08) * 0.55) * (1 + homeownerMarkupTier.overheadPct + 0.03)
+    : 1;
+
+  const totalLow = Math.round(baseTotalLow * homeownerMarkupMultiplierLow);
+  const totalHigh = Math.round(baseTotalHigh * homeownerMarkupMultiplierHigh);
   const totalMid = Math.round((totalLow + totalHigh) / 2);
 
   // Labor breakdown

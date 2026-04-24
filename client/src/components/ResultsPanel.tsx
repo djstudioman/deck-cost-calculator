@@ -43,6 +43,11 @@ interface ResultsPanelProps {
   onRestart: () => void;
   onChangeOrderUpdate?: (low: number, high: number) => void;
   onShowTakeoff?: () => void;
+  // Homeowner markup overlay
+  homeownerShowMarkup?: boolean;
+  homeownerMarkupTierId?: string;
+  onHomeownerMarkupToggle?: (show: boolean) => void;
+  onHomeownerMarkupTierChange?: (tierId: string) => void;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -273,8 +278,22 @@ function ActionButtons({
 }
 
 // ─── HOMEOWNER PANEL ──────────────────────────────────────────────────────────
-function HomeownerPanel({ result, onBack, onRestart }: ResultsPanelProps) {
+function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false, homeownerMarkupTierId = "standard", onHomeownerMarkupToggle, onHomeownerMarkupTierChange }: ResultsPanelProps) {
   const tierColor = TIER_COLORS[result.tier.id] ?? "#F59E0B";
+  // Compute markup-adjusted display totals
+  const activeTier = homeownerShowMarkup
+    ? CONTRACTOR_MARKUP_TIERS.find((t) => t.id === homeownerMarkupTierId) ?? null
+    : null;
+  const markupMultiplierLow = activeTier
+    ? (1 + activeTier.materialMarkup * 0.45 + activeTier.laborMarkup * 0.55) * (1 + activeTier.overheadPct)
+    : 1;
+  const markupMultiplierHigh = activeTier
+    ? (1 + activeTier.materialMarkup * 0.45 + activeTier.laborMarkup * 0.55) * (1 + activeTier.overheadPct) * 1.08
+    : 1;
+  const displayLow = homeownerShowMarkup ? Math.round(result.totalLow * markupMultiplierLow) : result.totalLow;
+  const displayHigh = homeownerShowMarkup ? Math.round(result.totalHigh * markupMultiplierHigh) : result.totalHigh;
+  const displayPerSqFtLow = Math.round(displayLow / result.size.sqFt);
+  const displayPerSqFtHigh = Math.round(displayHigh / result.size.sqFt);
   return (
     <div className="max-w-3xl mx-auto space-y-5">
       <motion.div
@@ -286,13 +305,18 @@ function HomeownerPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="text-xs font-semibold tracking-widest text-slate-500 uppercase mb-1">
-              Contractor Quote Range
+              {homeownerShowMarkup && activeTier ? `With ${activeTier.label} Markup` : "Contractor Quote Range"}
             </div>
             <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
-              {formatRange(result.totalLow, result.totalHigh)}
+              {formatRange(displayLow, displayHigh)}
             </div>
+            {homeownerShowMarkup && (
+              <div className="text-xs text-slate-500 mt-0.5">
+                Base: {formatRange(result.totalLow, result.totalHigh)}
+              </div>
+            )}
             <div className="text-sm text-slate-400 mt-1">
-              {formatCurrency(result.perSqFtLow)}–{formatCurrency(result.perSqFtHigh)}/sq ft
+              {formatCurrency(displayPerSqFtLow)}–{formatCurrency(displayPerSqFtHigh)}/sq ft
               &nbsp;·&nbsp;{result.size.sqFt} sq ft
             </div>
           </div>
@@ -328,50 +352,111 @@ function HomeownerPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         </motion.div>
       )}
 
-      {/* Contractor markup breakdown card — homeowner education */}
+      {/* Contractor markup breakdown card — homeowner education + toggle */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.18 }}
-        className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-4"
+        className={`border rounded-xl p-4 transition-colors duration-300 ${
+          homeownerShowMarkup
+            ? "bg-amber-500/[0.06] border-amber-500/30"
+            : "bg-[#1E293B]/60 border-white/[0.08]"
+        }`}
       >
         <TooltipProvider>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase">What Contractors Charge</div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-[10px] font-bold flex items-center justify-center hover:bg-slate-600 hover:text-white transition-colors" aria-label="Learn about contractor markup">
-                  ?
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                <p className="font-semibold mb-1">How contractor pricing works</p>
-                <p>Contractors add markup to cover their business costs: materials are marked up 15–30%, labor 20–45%, plus 10–15% overhead for insurance, licensing, and warranty. A quote significantly above the high end of your range may indicate a premium contractor — or an overcharge. Use this table to understand what&apos;s reasonable.</p>
-              </TooltipContent>
-            </Tooltip>
+          {/* Header row with title, tooltip, and toggle */}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase">What Contractors Charge</div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-[10px] font-bold flex items-center justify-center hover:bg-slate-600 hover:text-white transition-colors" aria-label="Learn about contractor markup">
+                    ?
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                  <p className="font-semibold mb-1">How contractor pricing works</p>
+                  <p>Contractors add markup to cover their business costs: materials are marked up 15–30%, labor 20–45%, plus 10–15% overhead for insurance, licensing, and warranty. A quote significantly above the high end of your range may indicate a premium contractor — or an overcharge. Toggle on to see the markup applied to your estimate.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            {/* Toggle switch */}
+            <button
+              onClick={() => onHomeownerMarkupToggle?.(!homeownerShowMarkup)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                homeownerShowMarkup ? "bg-amber-500" : "bg-slate-600"
+              }`}
+              aria-label="Toggle contractor markup on estimate"
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                  homeownerShowMarkup ? "translate-x-4" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
+
+          {/* Tier selector — only visible when toggle is on */}
+          {homeownerShowMarkup && (
+            <div className="flex gap-2 mb-3">
+              {CONTRACTOR_MARKUP_TIERS.map((tier) => {
+                const tColor = tier.id === "low" ? "#34D399" : tier.id === "standard" ? "#F59E0B" : "#F87171";
+                const isActive = homeownerMarkupTierId === tier.id;
+                return (
+                  <button
+                    key={tier.id}
+                    onClick={() => onHomeownerMarkupTierChange?.(tier.id)}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors duration-150"
+                    style={{
+                      background: isActive ? `${tColor}22` : "transparent",
+                      borderColor: isActive ? `${tColor}66` : "rgba(255,255,255,0.08)",
+                      color: isActive ? tColor : "#94A3B8",
+                    }}
+                  >
+                    {tier.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Markup rows */}
           <div className="space-y-2">
             {CONTRACTOR_MARKUP_TIERS.map((tier) => {
               const base = result.totalLow;
               const withMarkup = Math.round(base * (1 + (tier.materialMarkup * 0.45 + tier.laborMarkup * 0.55)) * (1 + tier.overheadPct));
               const pctAbove = Math.round(((withMarkup - base) / base) * 100);
-              const tierColor = tier.id === "low" ? "#34D399" : tier.id === "standard" ? "#F59E0B" : "#F87171";
+              const tColor = tier.id === "low" ? "#34D399" : tier.id === "standard" ? "#F59E0B" : "#F87171";
+              const isActive = homeownerShowMarkup && homeownerMarkupTierId === tier.id;
               return (
-                <div key={tier.id} className="flex items-center justify-between text-xs gap-2">
+                <div
+                  key={tier.id}
+                  className={`flex items-center justify-between text-xs gap-2 rounded-lg px-2 py-1 transition-colors ${
+                    isActive ? "bg-white/[0.04]" : ""
+                  }`}
+                >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: tierColor }} />
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: tColor }} />
                     <span className="text-slate-300 truncate">{tier.label}</span>
                     <span className="text-slate-500 shrink-0">+{pctAbove}% above base</span>
                   </div>
-                  <span className="font-mono font-semibold shrink-0" style={{ color: tierColor }}>
-                    ~{formatCurrency(withMarkup)}+
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono font-semibold" style={{ color: tColor }}>
+                      ~{formatCurrency(withMarkup)}+
+                    </span>
+                    {isActive && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">APPLIED</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
           <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-white/[0.06]">
-            Quotes above the <span className="text-amber-400 font-semibold">Premium</span> row may reflect specialty work, high-demand markets, or inflated pricing. Always get 3 quotes.
+            {homeownerShowMarkup
+              ? <span>Markup is now reflected in your estimate above. Toggle off to return to base installed cost.</span>
+              : <span>Quotes above the <span className="text-amber-400 font-semibold">Premium</span> row may reflect specialty work, high-demand markets, or inflated pricing. Always get 3 quotes.</span>
+            }
           </div>
         </TooltipProvider>
       </motion.div>

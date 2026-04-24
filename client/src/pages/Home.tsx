@@ -126,6 +126,9 @@ export default function Home() {
   const [includePermit, setIncludePermit] = useState(true);
   const [permitCost, setPermitCost] = useState(350);
 
+  // Homeowner-specific: optional contractor markup overlay
+  const [homeownerShowMarkup, setHomeownerShowMarkup] = useState(false);
+  const [homeownerMarkupTierId, setHomeownerMarkupTierId] = useState("standard");
   // Contractor-specific inputs
   const [markupTierId, setMarkupTierId] = useState("standard");
   const [includeCrew, setIncludeCrew] = useState(true);
@@ -206,6 +209,7 @@ export default function Home() {
       permitCost,
       markupTierId,
       includeMarkup,
+      homeownerMarkupTierId: homeownerShowMarkup ? homeownerMarkupTierId : undefined,
       crewSizeId,
       includeCrew,
       subFootings,
@@ -235,7 +239,7 @@ export default function Home() {
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
-      permitCost, markupTierId, includeMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
+      permitCost, markupTierId, includeMarkup, homeownerMarkupTierId, homeownerShowMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
       includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, joistSpacingIn, marketTierId,
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
       brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
@@ -567,7 +571,22 @@ export default function Home() {
   };
 
   // Live estimate label changes by audience
-  const liveLabel = audience === "contractor" ? "Bid estimate" : "Live estimate";
+  // For homeowner path, apply markup multiplier to live ticker if toggle is on
+  const homeownerActiveTier = homeownerShowMarkup
+    ? CONTRACTOR_MARKUP_TIERS.find((t) => t.id === homeownerMarkupTierId) ?? null
+    : null;
+  const homeownerTickerLow = homeownerActiveTier
+    ? Math.round(result.totalLow * (1 + homeownerActiveTier.materialMarkup * 0.45 + homeownerActiveTier.laborMarkup * 0.55) * (1 + homeownerActiveTier.overheadPct))
+    : result.totalLow;
+  const homeownerTickerHigh = homeownerActiveTier
+    ? Math.round(result.totalHigh * (1 + homeownerActiveTier.materialMarkup * 0.45 + homeownerActiveTier.laborMarkup * 0.55) * (1 + homeownerActiveTier.overheadPct) * 1.08)
+    : result.totalHigh;
+
+  const liveLabel = audience === "contractor"
+    ? "Bid estimate"
+    : audience === "homeowner" && homeownerShowMarkup && homeownerActiveTier
+    ? `With ${homeownerActiveTier.label} markup`
+    : "Live estimate";
   const liveRange = audience === "contractor" && result.contractor
     ? formatRange(
         result.contractor.totalBidLow + changeOrderDelta.low,
@@ -575,6 +594,8 @@ export default function Home() {
       )
     : audience === "diy" && result.diy
     ? formatRange(result.diy.totalWithExtrasLow, result.diy.totalWithExtrasHigh)
+    : audience === "homeowner"
+    ? formatRange(homeownerTickerLow, homeownerTickerHigh)
     : formatRange(result.totalLow, result.totalHigh);
 
   return (
@@ -854,6 +875,10 @@ export default function Home() {
                 onRestart={() => { setChangeOrderDelta({ low: 0, high: 0 }); restart(); }}
                 onChangeOrderUpdate={(low, high) => setChangeOrderDelta({ low, high })}
                 onShowTakeoff={audience === "contractor" ? () => setShowTakeoff(true) : undefined}
+                homeownerShowMarkup={homeownerShowMarkup}
+                homeownerMarkupTierId={homeownerMarkupTierId}
+                onHomeownerMarkupToggle={setHomeownerShowMarkup}
+                onHomeownerMarkupTierChange={setHomeownerMarkupTierId}
               />
 
               {/* ── SAVE ESTIMATE PROMPT ── */}
