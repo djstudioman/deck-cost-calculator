@@ -171,16 +171,23 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
     setUnitPriceOverride(null);
   }, [selectedSkuId, boardLengthFt]);
 
+  // ledgerLF and defaultJoistCount are hoisted here so they are available
+  // to the Phase 2 fastenerTakeoff useMemo before Phase 3 state is declared.
+  const { widthFt: _p2w, lengthFt: _p2l } = estimateDeckDimensions(deckAreaSqFt);
+  const [ledgerLF, setLedgerLF] = useState<number>(() => Math.max(_p2w, _p2l));
+  // Estimate joist count for Phase 2 ledger/structural qty basis.
+  // This is recalculated once lumberTakeoff is available (see useMemo deps below).
+  const defaultJoistCount = Math.ceil(Math.max(_p2w, _p2l) / (16 / 12)) + 1;
+
   // ── Phase 2: Multi-line fastener takeoff ──
   const fastenerTakeoff: MultiFastenerTakeoffResult = useMemo(() => calculateMultiFastenerTakeoff({
     deckAreaSqFt,
     systemId: fastenerSystemId,
     lines: fastenerLines,
-    ledgerLF: ledgerLF ?? 12, // Phase 3 ledger LF from state
-    joistCount: lumberTakeoff.joistCount ?? 20,
+    ledgerLF,
+    joistCount: defaultJoistCount,
     taxRate,
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [deckAreaSqFt, fastenerSystemId, fastenerLines, taxRate]);
+  }), [deckAreaSqFt, fastenerSystemId, fastenerLines, ledgerLF, defaultJoistCount, taxRate]);
 
   // ── Phase 1: Group SKUs by brand for the selector ──
   const skusByBrand = useMemo(() => {
@@ -204,10 +211,9 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   const isFastenerEdited = Object.values(fastenerLines).some(l => l.qtyOverride !== undefined || l.unitPriceOverride !== undefined);
 
   // ── Phase 3 state ──
-  // ledgerLF is declared here (Phase 3 scope) so it is available to the
-  // Phase 2 fastenerTakeoff useMemo above without a TDZ error.
-  const { widthFt: defaultWidthFt, lengthFt: defaultLengthFt } = estimateDeckDimensions(deckAreaSqFt);
-  const [ledgerLF, setLedgerLF] = useState<number>(() => Math.max(defaultWidthFt, defaultLengthFt));
+  // defaultWidthFt/defaultLengthFt reuse the _p2w/_p2l values computed above.
+  const defaultWidthFt = _p2w;
+  const defaultLengthFt = _p2l;
   const defaultJoistSpacingIn: number =
     result.joistSpacingIn === 12 || result.joistSpacingIn === 16 || result.joistSpacingIn === 24
       ? result.joistSpacingIn
