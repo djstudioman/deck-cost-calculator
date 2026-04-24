@@ -14,7 +14,7 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Cell,
 } from "recharts";
@@ -25,8 +25,15 @@ import {
   formatCurrency,
   MATERIAL_TIERS,
   INSTALLED_COST_TABLE,
+  CONTRACTOR_MARKUP_TIERS,
 } from "@/lib/deckData";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import PrintEstimate from "@/components/PrintEstimate";
 import CustomerEstimate from "@/components/CustomerEstimate";
 
@@ -160,7 +167,7 @@ function BreakdownChart({
           <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
             <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} tick={{ fill: "#64748B", fontSize: 10 }} axisLine={false} tickLine={false} />
             <YAxis type="category" dataKey="category" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={110} />
-            <Tooltip content={<CustomTooltip accent={accent} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+            <RechartsTooltip content={<CustomTooltip accent={accent} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
             <Bar dataKey="mid" radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
                 <Cell key={index} fill={entry.color} />
@@ -317,9 +324,57 @@ function HomeownerPanel({ result, onBack, onRestart }: ResultsPanelProps) {
             </div>
             <span className="font-mono font-semibold text-amber-400">{formatCurrencyFull(result.permitCost)}</span>
           </div>
-          <div className="text-xs text-slate-500 mt-2">Permit fees are typically passed through to the client. Confirm this is included in your contractor&apos;s quote.</div>
+           <div className="text-xs text-slate-500 mt-2">Permit fees are typically passed through to the client. Confirm this is included in your contractor&apos;s quote.</div>
         </motion.div>
       )}
+
+      {/* Contractor markup breakdown card — homeowner education */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.18 }}
+        className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-4"
+      >
+        <TooltipProvider>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase">What Contractors Charge</div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-[10px] font-bold flex items-center justify-center hover:bg-slate-600 hover:text-white transition-colors" aria-label="Learn about contractor markup">
+                  ?
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                <p className="font-semibold mb-1">How contractor pricing works</p>
+                <p>Contractors add markup to cover their business costs: materials are marked up 15–30%, labor 20–45%, plus 10–15% overhead for insurance, licensing, and warranty. A quote significantly above the high end of your range may indicate a premium contractor — or an overcharge. Use this table to understand what&apos;s reasonable.</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <div className="space-y-2">
+            {CONTRACTOR_MARKUP_TIERS.map((tier) => {
+              const base = result.totalLow;
+              const withMarkup = Math.round(base * (1 + (tier.materialMarkup * 0.45 + tier.laborMarkup * 0.55)) * (1 + tier.overheadPct));
+              const pctAbove = Math.round(((withMarkup - base) / base) * 100);
+              const tierColor = tier.id === "low" ? "#34D399" : tier.id === "standard" ? "#F59E0B" : "#F87171";
+              return (
+                <div key={tier.id} className="flex items-center justify-between text-xs gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: tierColor }} />
+                    <span className="text-slate-300 truncate">{tier.label}</span>
+                    <span className="text-slate-500 shrink-0">+{pctAbove}% above base</span>
+                  </div>
+                  <span className="font-mono font-semibold shrink-0" style={{ color: tierColor }}>
+                    ~{formatCurrency(withMarkup)}+
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-white/[0.06]">
+            Quotes above the <span className="text-amber-400 font-semibold">Premium</span> row may reflect specialty work, high-demand markets, or inflated pricing. Always get 3 quotes.
+          </div>
+        </TooltipProvider>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

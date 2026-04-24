@@ -130,7 +130,7 @@ export default function Home() {
   const [markupTierId, setMarkupTierId] = useState("standard");
   const [includeCrew, setIncludeCrew] = useState(true);
   const [crewSizeId, setCrewSizeId] = useState("two");
-  const [includeMarkup, setIncludeMarkup] = useState(true);
+  const [includeMarkup, setIncludeMarkup] = useState(false); // default off — contractor adds markup explicitly
   const [subFootings, setSubFootings] = useState(false);
   // Custom size (contractor only)
   const [customWidth, setCustomWidth] = useState<number>(20);
@@ -328,7 +328,7 @@ export default function Home() {
     setShowTakeoff(false);
     setConfirmedStep(null);
     setConfirmedRailing(false);
-    setIncludeMarkup(true);
+    setIncludeMarkup(false); // default off
     setIncludeCrew(true);
   }, []);
 
