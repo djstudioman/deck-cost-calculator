@@ -600,30 +600,6 @@ export default function Home() {
               </motion.div>
             </AnimatePresence>
 
-            {/* DEV SHORTCUT: jump to contractor results instantly */}
-            <button
-              onClick={() => {
-                setAudience("contractor");
-                setRegionId("mid-atlantic");
-                setSizeId("320");
-                setTierId("composite");
-                setComplexityId("standard");
-                setRailingId("composite");
-                setIncludeRailing(true);
-                setIncludeStairs(true);
-                setMarkupTierId("standard");
-                setIncludeCrew(true);
-                setIncludePermit(true);
-                setStep(0);
-                setShowTakeoff(false);
-                setShowResults(true);
-              }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 transition-colors text-xs text-amber-400 hover:text-amber-300"
-              title="Dev shortcut: jump to contractor estimate"
-            >
-              <span>⚡ Dev</span>
-            </button>
-
             {/* Saved estimates button */}
             <button
               onClick={() => setShowSavedPanel((v) => !v)}
@@ -939,6 +915,7 @@ export default function Home() {
 
               {/* ── STEP 0: AUDIENCE ── */}
               {step === 0 && (
+                <>
                 <StepCard
                   title="Who are you?"
                   subtitle="We'll tailor the estimate — and the questions — to your situation."
@@ -1005,6 +982,32 @@ export default function Home() {
                     ))}
                   </div>
                 </StepCard>
+
+                {/* DEV SHORTCUT — only visible on step 0 */}
+                <div className="max-w-2xl mx-auto mt-3 text-center">
+                  <button
+                    onClick={() => {
+                      setAudience("contractor");
+                      setRegionId("mid-atlantic");
+                      setSizeId("320");
+                      setTierId("composite");
+                      setComplexityId("standard");
+                      setRailingId("composite");
+                      setIncludeRailing(true);
+                      setIncludeStairs(true);
+                      setMarkupTierId("standard");
+                      setIncludeCrew(true);
+                      setIncludePermit(true);
+                      setStep(0);
+                      setShowTakeoff(false);
+                      setShowResults(true);
+                    }}
+                    className="text-xs text-amber-500/60 hover:text-amber-400 border border-dashed border-amber-500/20 hover:border-amber-500/40 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    ⚡ Dev: jump to contractor estimate
+                  </button>
+                </div>
+                </>
               )}
 
               {/* ── STEP 1: REGION ── */}
