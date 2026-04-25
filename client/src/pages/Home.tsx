@@ -2560,7 +2560,7 @@ export default function Home() {
                           {ENGINEER_FEE_PRESETS.map((preset) => (
                             <button
                               key={preset.id}
-                              onClick={() => { setEngineerCost(preset.fee); }}
+                              onClick={() => selectOrAdvance(engineerCost === preset.fee, () => setEngineerCost(preset.fee))}
                               className={cn(
                                 "p-3 rounded-lg border text-left transition-all",
                                 engineerCost === preset.fee ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
@@ -2579,7 +2579,7 @@ export default function Home() {
                             </button>
                           ))}
                           <div className="text-xs text-slate-500 mt-1">
-                            If your jurisdiction requires stamped plans, you’ll need to hire a structural engineer before your permit is approved.
+                            If your jurisdiction requires stamped plans, you'll need to hire a structural engineer before your permit is approved.
                           </div>
                         </div>
                       )}
@@ -2661,7 +2661,7 @@ export default function Home() {
                           {ENGINEER_FEE_PRESETS.map((preset) => (
                             <button
                               key={preset.id}
-                              onClick={() => { setEngineerCost(preset.fee); }}
+                              onClick={() => selectOrAdvance(engineerCost === preset.fee, () => setEngineerCost(preset.fee))}
                               className={cn(
                                 "p-3 rounded-lg border text-left transition-all",
                                 engineerCost === preset.fee ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
@@ -3266,7 +3266,7 @@ export default function Home() {
                               {ENGINEER_FEE_PRESETS.map((preset) => (
                                 <button
                                   key={preset.id}
-                                  onClick={() => { setEngineerCost(preset.fee); }}
+                                  onClick={() => selectOrAdvance(engineerCost === preset.fee, () => setEngineerCost(preset.fee))}
                                   className={cn(
                                     "p-3 rounded-lg border text-left transition-all",
                                     engineerCost === preset.fee ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
