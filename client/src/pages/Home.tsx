@@ -69,11 +69,11 @@ function getStepLabels(audience: AudienceType): string[] {
   // the progress bar filters it out for display.
   if (audience === "diy")
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
-    return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit"];
+    return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit & Fees"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit", "Extras"];
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit & Fees", "Extras"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
-  return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit"];
+  return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit & Fees"];
 }
 
 function getTotalSteps(audience: AudienceType): number {
@@ -2467,7 +2467,7 @@ export default function Home() {
               {/* ── DIY STEP 9: PERMIT ── */}
               {step === 9 && audience === "diy" && (
                 <StepCard
-                  title="Permit & inspection"
+                  title="Permit & Fees"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
@@ -2591,7 +2591,7 @@ export default function Home() {
               {/* ── HOMEOWNER STEP 8: PERMIT ── */}
               {step === 8 && audience === "homeowner" && (
                 <StepCard
-                  title="Permit & inspection"
+                  title="Permit & Fees"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
@@ -3172,7 +3172,7 @@ export default function Home() {
               {/* ── CONTRACTOR STEP 8: PERMIT ── */}
               {step === 8 && audience === "contractor" && (
                 <StepCard
-                  title="Permit & inspection"
+                  title="Permit & Fees"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
