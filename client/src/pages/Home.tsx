@@ -24,6 +24,7 @@ import {
   FRAMING_OPTIONS,
   MARKET_TIERS,
   DECKING_BRANDS,
+  ENGINEER_FEE_PRESETS,
   calculate,
   formatCurrency,
   formatRange,
@@ -125,6 +126,11 @@ export default function Home() {
   ]);
   const [includePermit, setIncludePermit] = useState(true);
   const [permitCost, setPermitCost] = useState(350);
+  // Engineer fee (all paths)
+  const [includeEngineer, setIncludeEngineer] = useState(false);
+  const [engineerCost, setEngineerCost] = useState(650); // default to Plan Review & Stamp
+  const [engineerCostMode, setEngineerCostMode] = useState<"preset" | "custom">("preset"); // contractor-only
+  const [engineerCustomInput, setEngineerCustomInput] = useState(""); // raw text for custom input
 
   // Homeowner-specific: optional contractor markup overlay
   const [homeownerShowMarkup, setHomeownerShowMarkup] = useState(false);
@@ -235,6 +241,9 @@ export default function Home() {
       footingDiameterIn,
       useHelicalPiers,
       deckHeightIn,
+      includeEngineer,
+      engineerCost,
+      engineerCostMode,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -245,6 +254,7 @@ export default function Home() {
       brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
       postMountId, postSpacingFt, railingHeightIn,
       footingDiameterIn, useHelicalPiers, deckHeightIn,
+      includeEngineer, engineerCost, engineerCostMode,
     ]
   );
 
@@ -389,6 +399,9 @@ export default function Home() {
     setRailingHeightIn((snap.railingHeightIn as 36 | 42) ?? 36);
     setFootingDiameterIn((snap.footingDiameterIn as 8 | 10 | 12 | 16) ?? 10);
     setUseHelicalPiers(snap.useHelicalPiers ?? false);
+    setIncludeEngineer(snap.includeEngineer ?? false);
+    setEngineerCost(snap.engineerCost ?? 650);
+    setEngineerCostMode((snap.engineerCostMode as "preset" | "custom") ?? "preset");
     // Jump straight to results
     setShowResults(true);
   });
@@ -435,6 +448,9 @@ export default function Home() {
     setRailingHeightIn((snap.railingHeightIn as 36 | 42) ?? 36);
     setFootingDiameterIn((snap.footingDiameterIn as 8 | 10 | 12 | 16) ?? 10);
     setUseHelicalPiers(snap.useHelicalPiers ?? false);
+    setIncludeEngineer(snap.includeEngineer ?? false);
+    setEngineerCost(snap.engineerCost ?? 650);
+    setEngineerCostMode((snap.engineerCostMode as "preset" | "custom") ?? "preset");
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -468,6 +484,9 @@ export default function Home() {
       railingHeightIn,
       footingDiameterIn,
       useHelicalPiers,
+      includeEngineer,
+      engineerCost,
+      engineerCostMode,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -487,7 +506,8 @@ export default function Home() {
     isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
     brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
     postMountId, postSpacingFt, railingHeightIn,
-    footingDiameterIn, useHelicalPiers, result,
+    footingDiameterIn, useHelicalPiers,
+    includeEngineer, engineerCost, engineerCostMode, result,
   ]);
 
   const handleCopyLink = useCallback((snap: EstimateSnapshot) => {
@@ -2517,6 +2537,53 @@ export default function Home() {
                         ⚠️ Pulling your own permit as a homeowner is legal in most states. Skipping a required permit can void homeowner's insurance and create issues at resale.
                       </div>
                     )}
+
+                    {/* ── ENGINEER FEE (DIY) ── */}
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Structural Engineer Fee</div>
+                          <div className="text-xs text-slate-500 mt-0.5">Required in many jurisdictions for custom or elevated decks</div>
+                        </div>
+                        <button
+                          onClick={() => setIncludeEngineer((v) => !v)}
+                          className={cn("relative w-10 h-5 rounded-full transition-colors shrink-0", includeEngineer ? ac.bgSolid : "bg-white/20")}
+                          aria-label="Toggle engineer fee"
+                        >
+                          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                            style={{ transform: includeEngineer ? 'translateX(20px)' : 'translateX(2px)' }}
+                          />
+                        </button>
+                      </div>
+                      {includeEngineer && (
+                        <div className="grid grid-cols-1 gap-2">
+                          {ENGINEER_FEE_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              onClick={() => { setEngineerCost(preset.fee); }}
+                              className={cn(
+                                "p-3 rounded-lg border text-left transition-all",
+                                engineerCost === preset.fee ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-semibold text-white">{preset.label}</div>
+                                  <div className="text-xs text-slate-400 mt-0.5">{preset.typical}</div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className={`text-sm font-mono font-semibold ${ac.text}`}>{preset.range}</div>
+                                  {engineerCost === preset.fee && <div className={`text-xs ${ac.textSelected}`}>✓ Selected</div>}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                          <div className="text-xs text-slate-500 mt-1">
+                            If your jurisdiction requires stamped plans, you’ll need to hire a structural engineer before your permit is approved.
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </StepCard>
               )}
@@ -2571,11 +2638,58 @@ export default function Home() {
                     {includePermit && (
                       <div className="text-xs text-slate-500 pt-1">⚠️ Your contractor typically handles permit pulling. Confirm this is included in their quote — some contractors charge separately for permit fees.</div>
                     )}
+
+                    {/* ── ENGINEER FEE (HOMEOWNER) ── */}
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Structural Engineer Fee</div>
+                          <div className="text-xs text-slate-500 mt-0.5">Required in many jurisdictions for custom or elevated decks</div>
+                        </div>
+                        <button
+                          onClick={() => setIncludeEngineer((v) => !v)}
+                          className={cn("relative w-10 h-5 rounded-full transition-colors shrink-0", includeEngineer ? ac.bgSolid : "bg-white/20")}
+                          aria-label="Toggle engineer fee"
+                        >
+                          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                            style={{ transform: includeEngineer ? 'translateX(20px)' : 'translateX(2px)' }}
+                          />
+                        </button>
+                      </div>
+                      {includeEngineer && (
+                        <div className="grid grid-cols-1 gap-2">
+                          {ENGINEER_FEE_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              onClick={() => { setEngineerCost(preset.fee); }}
+                              className={cn(
+                                "p-3 rounded-lg border text-left transition-all",
+                                engineerCost === preset.fee ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-semibold text-white">{preset.label}</div>
+                                  <div className="text-xs text-slate-400 mt-0.5">{preset.typical}</div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className={`text-sm font-mono font-semibold ${ac.text}`}>{preset.range}</div>
+                                  {engineerCost === preset.fee && <div className={`text-xs ${ac.textSelected}`}>✓ Selected</div>}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                          <div className="text-xs text-slate-500 mt-1">
+                            Your contractor typically arranges engineering. Confirm whether this is included in their quote or billed separately.
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </StepCard>
               )}
 
-                  {/* ════════════════════════════════════════════════════════════
+                  {/* ════════════════════════════════════════════════════════
                   CONTRACTOR-SPECIFIC STEPS 7–9
               ════════════════════════════════════════════════════════════ */}
 
@@ -3105,6 +3219,97 @@ export default function Home() {
                     {includePermit && (
                       <div className="text-xs text-slate-500 pt-1">⚠️ Permit fees are typically passed through to the client at cost. Confirm whether your quote includes permit pulling as a line item or as a separate charge.</div>
                     )}
+
+                    {/* ── ENGINEER FEE (CONTRACTOR) ── */}
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Structural Engineer Fee</div>
+                          <div className="text-xs text-slate-500 mt-0.5">Pass-through line item — not marked up</div>
+                        </div>
+                        <button
+                          onClick={() => setIncludeEngineer((v) => !v)}
+                          className={cn("relative w-10 h-5 rounded-full transition-colors shrink-0", includeEngineer ? ac.bgSolid : "bg-white/20")}
+                          aria-label="Toggle engineer fee"
+                        >
+                          <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
+                            style={{ transform: includeEngineer ? 'translateX(20px)' : 'translateX(2px)' }}
+                          />
+                        </button>
+                      </div>
+                      {includeEngineer && (
+                        <div className="space-y-3">
+                          {/* Mode switcher: Use average vs My engineer */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEngineerCostMode("preset")}
+                              className={cn(
+                                "flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors",
+                                engineerCostMode === "preset" ? `${sel.border} ${sel.bg} text-white` : "border-white/20 text-slate-400 hover:border-white/30"
+                              )}
+                            >
+                              Use average
+                            </button>
+                            <button
+                              onClick={() => setEngineerCostMode("custom")}
+                              className={cn(
+                                "flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors",
+                                engineerCostMode === "custom" ? `${sel.border} ${sel.bg} text-white` : "border-white/20 text-slate-400 hover:border-white/30"
+                              )}
+                            >
+                              My engineer
+                            </button>
+                          </div>
+
+                          {engineerCostMode === "preset" ? (
+                            <div className="grid grid-cols-1 gap-2">
+                              {ENGINEER_FEE_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => { setEngineerCost(preset.fee); }}
+                                  className={cn(
+                                    "p-3 rounded-lg border text-left transition-all",
+                                    engineerCost === preset.fee ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-xs font-semibold text-white">{preset.label}</div>
+                                      <div className="text-xs text-slate-400 mt-0.5">{preset.typical}</div>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <div className={`text-sm font-mono font-semibold ${ac.text}`}>{preset.range}</div>
+                                      {engineerCost === preset.fee && <div className={`text-xs ${ac.textSelected}`}>✓ Selected</div>}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="text-xs text-slate-400">Enter the exact fee your engineer charges:</div>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-mono">$</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="50"
+                                  placeholder="650"
+                                  value={engineerCustomInput}
+                                  onChange={(e) => {
+                                    setEngineerCustomInput(e.target.value);
+                                    const val = parseInt(e.target.value, 10);
+                                    if (!isNaN(val) && val >= 0) setEngineerCost(val);
+                                  }}
+                                  className="w-full pl-7 pr-3 py-2 rounded-lg bg-white/[0.05] border border-white/20 text-white text-sm font-mono focus:outline-none focus:border-amber-500/60 placeholder:text-slate-600"
+                                />
+                              </div>
+                              <div className="text-xs text-slate-500">This will appear as a pass-through line item in your bid.</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </StepCard>
               )}

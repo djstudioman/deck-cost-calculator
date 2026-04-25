@@ -332,23 +332,36 @@ function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false
 
       <BreakdownChart result={result} colors={CATEGORY_COLORS} accent="#F59E0B" />
 
-      {/* Permit line item */}
-      {result.permitCost > 0 && (
+      {/* Permit & Engineer fees card */}
+      {(result.permitCost > 0 || result.engineerCost > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
           className="bg-[#1E293B]/60 border border-white/[0.08] rounded-xl p-4"
         >
-          <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase mb-3">Permit &amp; Inspection</div>
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full shrink-0 bg-amber-400" />
-              <span className="text-slate-300">Building permit fee</span>
-            </div>
-            <span className="font-mono font-semibold text-amber-400">{formatCurrencyFull(result.permitCost)}</span>
+          <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase mb-3">Permit &amp; Fees</div>
+          <div className="space-y-2">
+            {result.permitCost > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0 bg-amber-400" />
+                  <span className="text-slate-300">Building permit fee</span>
+                </div>
+                <span className="font-mono font-semibold text-amber-400">{formatCurrencyFull(result.permitCost)}</span>
+              </div>
+            )}
+            {result.engineerCost > 0 && (
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0 bg-sky-400" />
+                  <span className="text-slate-300">Structural engineer fee</span>
+                </div>
+                <span className="font-mono font-semibold text-sky-400">{formatCurrencyFull(result.engineerCost)}</span>
+              </div>
+            )}
           </div>
-           <div className="text-xs text-slate-500 mt-2">Permit fees are typically passed through to the client. Confirm this is included in your contractor&apos;s quote.</div>
+          <div className="text-xs text-slate-500 mt-2">These fees are typically passed through to the client. Confirm they are included in your contractor&apos;s quote.</div>
         </motion.div>
       )}
 
@@ -639,6 +652,15 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
                   high: d.permitCost,
                   note: "Homeowner-pulled permit",
                   color: "#FB923C",
+                }]
+              : []),
+            ...(result.engineerCost > 0
+              ? [{
+                  label: "Structural engineer fee",
+                  low: result.engineerCost,
+                  high: result.engineerCost,
+                  note: "Stamped plans / structural review",
+                  color: "#38BDF8",
                 }]
               : []),
           ].map((item) => (
@@ -1046,6 +1068,15 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                   color: "#FB923C",
                 }]
               : []),
+            ...(result.engineerCost > 0
+              ? [{
+                  label: "Structural engineer fee",
+                  basis: result.engineerCost,
+                  marked: result.engineerCost,
+                  note: "Passed through at cost",
+                  color: "#38BDF8",
+                }]
+              : []),
           ].map((row) => (
             <div key={row.label} className="grid grid-cols-3 gap-2 py-2.5 border-b border-white/[0.04] text-xs">
               <div className="flex items-center gap-2">
@@ -1198,6 +1229,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
               { label: "Footings",           note: `${result.footingCount} footings · ${result.region.frostDepthLabel} frost depth · based on deck size`, ...col(footLow, footMid, footHigh) },
               ...(stairMid > 0 ? [{ label: "Stairs", note: "Stringers, treads, risers", ...col(stairLow, stairMid, stairHigh) }] : []),
               ...(permitVal > 0 ? [{ label: "Permit & inspection", note: "Pass-through at cost", ...col(permitVal, permitVal, permitVal) }] : []),
+              ...(result.engineerCost > 0 ? [{ label: "Structural engineer fee", note: "Pass-through at cost", ...col(result.engineerCost, result.engineerCost, result.engineerCost) }] : []),
               ...(demoMid > 0 ? [
                 { label: "Demo labor",       note: `Tear-out · ${result.tier.id === "composite" ? "composite" : result.tier.id === "pvc" ? "PVC/other" : "PT wood"} deck`, ...col(demoLaborLow, demoLaborMid, demoLaborHigh) },
                 ...(demoDisposalMid > 0 ? [{ label: "Disposal / haul-away", note: "Dumpster rental + landfill fees",           ...col(demoDisposalLow, demoDisposalMid, demoDisposalHigh) }] : []),

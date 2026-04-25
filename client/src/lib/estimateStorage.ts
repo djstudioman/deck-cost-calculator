@@ -57,6 +57,10 @@ export interface EstimateSnapshot {
   // Footing spec (contractor only)
   footingDiameterIn?: 8 | 10 | 12 | 16;
   useHelicalPiers?: boolean;
+  // Engineer fee (all paths)
+  includeEngineer?: boolean;
+  engineerCost?: number;
+  engineerCostMode?: "preset" | "custom";
   notes?: string;           // optional free-text context
   // result snapshot (for display in the saved list)
   totalLow: number;

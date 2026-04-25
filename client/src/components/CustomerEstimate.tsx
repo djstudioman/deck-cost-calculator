@@ -89,6 +89,10 @@ export default function CustomerEstimate({ result }: Props) {
     scopeItems.push({ label: "Permit & inspection", value: "Building permit pulled and inspections scheduled" });
   }
 
+  if (result.engineerCost > 0) {
+    scopeItems.push({ label: "Structural engineering", value: `Engineer review and stamped plans (${formatCurrency(result.engineerCost)})` });
+  }
+
   if (result.demolitionLow > 0) {
     scopeItems.push({ label: "Demolition", value: "Removal and disposal of existing deck structure" });
   }
@@ -196,7 +200,7 @@ export default function CustomerEstimate({ result }: Props) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold text-gray-700">Total Project Investment</div>
-              <div className="text-xs text-gray-400 mt-0.5">{result.size.sqFt} sq ft · all labor, materials, and permit included</div>
+              <div className="text-xs text-gray-400 mt-0.5">{result.size.sqFt} sq ft · all labor, materials{result.permitCost > 0 ? ", permit" : ""}{result.engineerCost > 0 ? ", engineering" : ""} included</div>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold font-mono text-gray-900">{formatRange(c.totalBidLow, c.totalBidHigh)}</div>

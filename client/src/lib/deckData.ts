@@ -573,6 +573,38 @@ export const CONTRACTOR_MARKUP_TIERS = [
   },
 ];
 
+// ─── ENGINEER FEE PRESETS ────────────────────────────────────────────────────
+// Sources: Angi 2026 ($200–$1,500), Thumbtack 2026 ($566–$965 avg), HomeAdvisor 2025 ($350–$800)
+// Three tiers covering the most common deck engineering scenarios.
+export const ENGINEER_FEE_PRESETS = [
+  {
+    id: "stamp",
+    label: "Stamped Letter",
+    description: "Engineer reviews standard plans and provides a signed/stamped letter. Common for simple ground-level or low-elevation decks.",
+    fee: 350,
+    range: "$250–$450",
+    typical: "Simple decks, ground-level, standard span",
+  },
+  {
+    id: "review",
+    label: "Plan Review & Stamp",
+    description: "Engineer reviews and stamps custom plans. The most common requirement for permit-required decks.",
+    fee: 650,
+    range: "$500–$800",
+    typical: "Most residential decks requiring a permit",
+  },
+  {
+    id: "design",
+    label: "Full Structural Design",
+    description: "Engineer designs and stamps full structural drawings. Required for elevated, multi-level, cantilevered, or unusual load decks.",
+    fee: 1100,
+    range: "$900–$1,500",
+    typical: "Elevated, multi-level, cantilever, or complex loads",
+  },
+] as const;
+
+export type EngineerFeePresetId = typeof ENGINEER_FEE_PRESETS[number]["id"];
+
 // ─── FRAMING OPTIONS (contractor-only) ───────────────────────────────────────
 // Sources: Advantage Lumber 2026, BuildingAdvisor, HomeGuide, contractor field data
 // materialCostPerSqFt: framing lumber/steel cost at the lumberyard (materials only)
@@ -754,6 +786,10 @@ export interface CalculatorInputs {
   deckHeightIn?: number; // inches above grade; defaults to 24
   // Homeowner markup overlay — optional contractor markup applied to homeowner totalLow/High
   homeownerMarkupTierId?: string; // if set, applies this markup tier to homeowner totals
+  // Engineer fee (all paths)
+  includeEngineer?: boolean;       // toggle: include structural engineer fee
+  engineerCost?: number;           // dollar amount (from preset or custom entry)
+  engineerCostMode?: "preset" | "custom"; // contractor-only: which input mode
 }
 
 export interface CalculatorResult {
@@ -839,6 +875,7 @@ export interface CalculatorResult {
   isDIY: boolean;
   isContractor: boolean;
   permitCost: number;
+  engineerCost: number; // 0 if not included
   // Inputs echoed back for downstream use (e.g. Material Takeoff)
   railingLF: number;
   includeStairs: boolean;
@@ -1298,9 +1335,12 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Contractor: baseBidMid uses contractorPermitCost separately (not from totalLow)
   const permitCostBase = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
 
+  // Engineer fee — pass-through on all paths (not marked up)
+  const engineerCostBase = inputs.includeEngineer ? (inputs.engineerCost ?? 650) : 0;
+
   // Totals
-  const baseTotalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow + footingSpecCostLow;
-  const baseTotalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh + footingSpecCostHigh;
+  const baseTotalLow = adjustedLow + railingLow + footingLow + stairsLow + stairRailingLow + climatePremium + permitCostBase + engineerCostBase + demolitionLow + framingCostLow + multiLevelPremiumLow + brandDeltaLow + hiddenFastenerCostLow + edgeBoardUpgradeLow + rendering3dCostLow + joistSpacingCostDeltaLow + railingDetailCostLow + footingSpecCostLow;
+  const baseTotalHigh = adjustedHigh + railingHigh + footingHigh + stairsHigh + stairRailingHigh + climatePremium + permitCostBase + engineerCostBase + demolitionHigh + framingCostHigh + multiLevelPremiumHigh + brandDeltaHigh + hiddenFastenerCostHigh + edgeBoardUpgradeHigh + rendering3dCostHigh + joistSpacingCostDeltaHigh + railingDetailCostHigh + footingSpecCostHigh;
 
   // Homeowner markup overlay: apply contractor markup tier to totalLow/High when enabled
   const homeownerMarkupTier = inputs.audience === "homeowner" && inputs.homeownerMarkupTierId
@@ -1564,6 +1604,8 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const subFootingsCost = inputs.subFootings ? Math.round((footingLow + footingHigh) / 2 * 1.15) : 0;
     // Permit is a pass-through cost on contractor bids (not marked up)
     const contractorPermitCost = inputs.includePermit ? (inputs.permitCost ?? 350) : 0;
+    // Engineer fee is a pass-through cost on contractor bids (not marked up)
+    const contractorEngineerCost = inputs.includeEngineer ? (inputs.engineerCost ?? 650) : 0;
 
     // Demo is a pass-through cost (not marked up, added at cost)
     const demolitionMid = Math.round((demolitionLow + demolitionHigh) / 2);
@@ -1580,7 +1622,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     const fastenerWithMarkup = fastenerMid > 0 ? Math.round(fastenerMid * (1 + markupTier.materialMarkup)) : 0;
     const edgeBoardMid = Math.round((edgeBoardUpgradeLow + edgeBoardUpgradeHigh) / 2);
     const edgeBoardWithMarkup = edgeBoardMid > 0 ? Math.round(edgeBoardMid * (1 + markupTier.materialMarkup)) : 0;
-    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + demolitionMid + framingWithMarkup + multiLevelWithMarkup + brandWithMarkup + fastenerWithMarkup + edgeBoardWithMarkup;
+    const baseBidMid = materialWithMarkup + laborWithMarkup + overhead + extrasWithMarkup + subFootingsCost + contractorPermitCost + contractorEngineerCost + demolitionMid + framingWithMarkup + multiLevelWithMarkup + brandWithMarkup + fastenerWithMarkup + edgeBoardWithMarkup;
     const bidVariance = 0.08; // ±8% range
     const totalBidLow = Math.round(baseBidMid * (1 - bidVariance));
     const totalBidHigh = Math.round(baseBidMid * (1 + bidVariance));
@@ -1588,7 +1630,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     // Gross margin: revenue minus ALL actual costs (materials, labor, extras, pass-throughs).
     // extrasMid = railing + footings + stairs + stairRailing + climatePremium (actual cost before markup).
     // Pass-throughs (permit, demo, subFootings) are included at cost with no markup.
-    const totalActualCost = materialCostRaw + laborCostRaw + extrasMid + subFootingsCost + contractorPermitCost + demolitionMid + framingMid + multiLevelMid + brandDeltaMid + fastenerMid + edgeBoardMid;
+    const totalActualCost = materialCostRaw + laborCostRaw + extrasMid + subFootingsCost + contractorPermitCost + contractorEngineerCost + demolitionMid + framingMid + multiLevelMid + brandDeltaMid + fastenerMid + edgeBoardMid;
     const grossMarginPct = Math.round(
       ((baseBidMid - totalActualCost) / baseBidMid) * 100
     );
@@ -1689,6 +1731,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     isDIY,
     isContractor,
     permitCost: inputs.includePermit ? (inputs.permitCost ?? 350) : 0,
+    engineerCost: engineerCostBase,
     // Echo inputs for downstream use
     railingLF: inputs.railingLF,
     includeStairs: inputs.includeStairs,
