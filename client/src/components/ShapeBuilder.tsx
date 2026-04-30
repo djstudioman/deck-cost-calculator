@@ -488,25 +488,35 @@ export default function ShapeBuilder({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="fill-slate-400 pointer-events-none"
-                style={{ fontSize: "1.6px", fontFamily: "monospace" }}
+                style={{ fontSize: "1.2px", fontFamily: "monospace" }}
               >
                 {edge.len}'
               </text>
             );
           })}
 
-          {/* Area badge at centroid */}
+          {/* Area badge at centroid — rendered last so it sits on top */}
           {closed && area > 0 && (
-            <text
-              x={centroid.x}
-              y={centroid.y}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="fill-amber-300/80 pointer-events-none"
-              style={{ fontSize: "2.5px", fontFamily: "monospace", fontWeight: 700 }}
-            >
-              {Math.round(area)} ft²
-            </text>
+            <>
+              <rect
+                x={centroid.x - 5}
+                y={centroid.y - 1.5}
+                width={10}
+                height={3}
+                rx={0.5}
+                className="fill-slate-900/80"
+              />
+              <text
+                x={centroid.x}
+                y={centroid.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-amber-300 pointer-events-none"
+                style={{ fontSize: "2px", fontFamily: "monospace", fontWeight: 700 }}
+              >
+                {Math.round(area)} ft²
+              </text>
+            </>
           )}
 
           {/* Drag handles at edge midpoints */}
