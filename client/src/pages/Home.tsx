@@ -1347,7 +1347,7 @@ export default function Home() {
                     {audience === "contractor" && (
                       <div
                         className={cn(
-                          "col-span-1 sm:col-span-2 p-3 rounded-lg border transition-all",
+                          "col-span-2 p-3 rounded-lg border transition-all",
                           sizeId === "shape"
                             ? `${sel.border} ${sel.bg}`
                             : "border-white/20 bg-white/[0.03] hover:border-white/30"
