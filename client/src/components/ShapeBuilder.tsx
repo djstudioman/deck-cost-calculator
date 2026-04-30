@@ -1,0 +1,615 @@
+/**
+ * ShapeBuilder.tsx — orthogonal polygon drawing tool for irregular deck footprints.
+ * Contractor-only feature on the Deck Size step.
+ *
+ * Architecture:
+ *   Lines 1–82:   Setup & math (grid constants, geometry helpers, presets)
+ *   Lines 84–119: Component state
+ *   Lines 142–182: Global drag listeners (window-level mouse/touch)
+ *   Lines 184–261: Event handlers
+ *   Lines 286–372: Derived render data
+ *   Lines 374–662: JSX
+ */
+
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export interface ShapePt {
+  x: number; // feet
+  y: number; // feet
+}
+
+interface ShapeBuilderProps {
+  onShapeChange: (area: number, perimeter: number) => void;
+  initialVertices?: ShapePt[];
+  accentColor?: string;
+  accentBg?: string;
+}
+
+// ─── Grid constants ──────────────────────────────────────────────────────────
+const GRID_W = 44; // feet wide
+const GRID_H = 36; // feet tall
+const CELL = 2;    // feet per cell
+const COLS = GRID_W / CELL; // 22 columns
+const ROWS = GRID_H / CELL; // 18 rows
+const CLOSE_RADIUS = 2; // feet — snap radius for closing
+
+// SVG viewBox dimensions (1px per foot for clean math)
+const VB_W = GRID_W;
+const VB_H = GRID_H;
+
+// ─── Geometry helpers ─────────────────────────────────────────────────────────
+function shoelaceArea(pts: ShapePt[]): number {
+  if (pts.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    sum += pts[i].x * pts[j].y;
+    sum -= pts[j].x * pts[i].y;
+  }
+  return Math.abs(sum) / 2;
+}
+
+function polyPerimeter(pts: ShapePt[]): number {
+  if (pts.length < 2) return 0;
+  let total = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    total += Math.abs(pts[j].x - pts[i].x) + Math.abs(pts[j].y - pts[i].y);
+  }
+  return total;
+}
+
+/** Convert browser clientX/Y to SVG viewBox coordinates */
+function getSVGCoords(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number
+): { x: number; y: number } {
+  const rect = svg.getBoundingClientRect();
+  // The SVG is rendered at rect.width × rect.height but viewBox is VB_W × VB_H.
+  // preserveAspectRatio (default xMidYMid meet) may letterbox.
+  const viewBoxAspect = VB_W / VB_H;
+  const renderedAspect = rect.width / rect.height;
+  let contentW = rect.width;
+  let contentH = rect.height;
+  let offsetX = 0;
+  let offsetY = 0;
+  if (renderedAspect > viewBoxAspect) {
+    contentW = rect.height * viewBoxAspect;
+    offsetX = (rect.width - contentW) / 2;
+  } else if (renderedAspect < viewBoxAspect) {
+    contentH = rect.width / viewBoxAspect;
+    offsetY = (rect.height - contentH) / 2;
+  }
+  const localX = clientX - rect.left - offsetX;
+  const localY = clientY - rect.top - offsetY;
+  return {
+    x: (localX / contentW) * VB_W,
+    y: (localY / contentH) * VB_H,
+  };
+}
+
+/** Snap to nearest grid point (multiples of CELL) */
+function snapToGrid(x: number, y: number): ShapePt {
+  return {
+    x: Math.round(x / CELL) * CELL,
+    y: Math.round(y / CELL) * CELL,
+  };
+}
+
+/** Force orthogonal: new point shares either X or Y with previous */
+function orthoSnap(raw: ShapePt, prev: ShapePt): ShapePt {
+  const dx = Math.abs(raw.x - prev.x);
+  const dy = Math.abs(raw.y - prev.y);
+  if (dx >= dy) {
+    return { x: raw.x, y: prev.y };
+  } else {
+    return { x: prev.x, y: raw.y };
+  }
+}
+
+// ─── Shape presets ───────────────────────────────────────────────────────────
+const PRESETS: { id: string; label: string; icon: string; vertices: ShapePt[] }[] = [
+  {
+    id: "rectangle",
+    label: "Rectangle",
+    icon: "▬",
+    vertices: [
+      { x: 6, y: 6 }, { x: 38, y: 6 }, { x: 38, y: 26 }, { x: 6, y: 26 },
+    ],
+  },
+  {
+    id: "l-shape",
+    label: "L-Shape",
+    icon: "⌐",
+    vertices: [
+      { x: 4, y: 4 }, { x: 24, y: 4 }, { x: 24, y: 16 },
+      { x: 38, y: 16 }, { x: 38, y: 30 }, { x: 4, y: 30 },
+    ],
+  },
+  {
+    id: "t-shape",
+    label: "T-Shape",
+    icon: "⊤",
+    vertices: [
+      { x: 4, y: 4 }, { x: 40, y: 4 }, { x: 40, y: 14 },
+      { x: 28, y: 14 }, { x: 28, y: 30 }, { x: 16, y: 30 },
+      { x: 16, y: 14 }, { x: 4, y: 14 },
+    ],
+  },
+];
+
+// ─── Component ───────────────────────────────────────────────────────────────
+export default function ShapeBuilder({
+  onShapeChange,
+  initialVertices,
+  accentColor = "text-amber-400",
+  accentBg = "bg-amber-500",
+}: ShapeBuilderProps) {
+  // ─── State ──────────────────────────────────────────────────────────────────
+  const [vertices, setVertices] = useState<ShapePt[]>(initialVertices ?? []);
+  const [closed, setClosed] = useState(initialVertices ? initialVertices.length >= 3 : false);
+  const [candidate, setCandidate] = useState<ShapePt | null>(null);
+  const [dragging, setDragging] = useState<{ edge: number; axis: "x" | "y" } | null>(null);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  // Sync restored vertices from saved estimates
+  useEffect(() => {
+    if (initialVertices && initialVertices.length >= 3) {
+      setVertices(initialVertices);
+      setClosed(true);
+    }
+  }, [initialVertices]);
+
+  // Fire onShapeChange when closed shape updates
+  useEffect(() => {
+    if (closed && vertices.length >= 3) {
+      const area = shoelaceArea(vertices);
+      const perim = polyPerimeter(vertices);
+      onShapeChange(Math.round(area), Math.round(perim));
+    }
+  }, [vertices, closed, onShapeChange]);
+
+  // ─── Global drag listeners ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!dragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!svgRef.current) return;
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+      const raw = getSVGCoords(svgRef.current, clientX, clientY);
+      const snapped = snapToGrid(raw.x, raw.y);
+
+      setVertices((prev) => {
+        const pts = [...prev];
+        const i = dragging.edge;
+        const j = (i + 1) % pts.length;
+
+        if (dragging.axis === "y") {
+          // Horizontal edge — drag up/down
+          const newY = Math.max(0, Math.min(GRID_H, snapped.y));
+          pts[i] = { ...pts[i], y: newY };
+          pts[j] = { ...pts[j], y: newY };
+        } else {
+          // Vertical edge — drag left/right
+          const newX = Math.max(0, Math.min(GRID_W, snapped.x));
+          pts[i] = { ...pts[i], x: newX };
+          pts[j] = { ...pts[j], x: newX };
+        }
+        return pts;
+      });
+    };
+
+    const handleUp = () => setDragging(null);
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchend", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, [dragging]);
+
+  // ─── Event handlers ─────────────────────────────────────────────────────────
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (closed || vertices.length === 0 || !svgRef.current) {
+      setCandidate(null);
+      return;
+    }
+    const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
+    const snapped = snapToGrid(raw.x, raw.y);
+    const prev = vertices[vertices.length - 1];
+    const ortho = orthoSnap(snapped, prev);
+    setCandidate(ortho);
+  }, [closed, vertices]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (closed || vertices.length === 0 || !svgRef.current) return;
+    const touch = e.touches[0];
+    const raw = getSVGCoords(svgRef.current, touch.clientX, touch.clientY);
+    const snapped = snapToGrid(raw.x, raw.y);
+    const prev = vertices[vertices.length - 1];
+    const ortho = orthoSnap(snapped, prev);
+    setCandidate(ortho);
+  }, [closed, vertices]);
+
+  const tryAddVertex = useCallback((clientX: number, clientY: number) => {
+    if (closed || !svgRef.current) return;
+    const raw = getSVGCoords(svgRef.current, clientX, clientY);
+    const snapped = snapToGrid(raw.x, raw.y);
+
+    if (vertices.length === 0) {
+      setVertices([snapped]);
+      setActivePreset(null);
+      return;
+    }
+
+    const prev = vertices[vertices.length - 1];
+    const ortho = orthoSnap(snapped, prev);
+
+    // Clamp to grid bounds
+    const clamped: ShapePt = {
+      x: Math.max(0, Math.min(GRID_W, ortho.x)),
+      y: Math.max(0, Math.min(GRID_H, ortho.y)),
+    };
+
+    // Check close gesture
+    if (vertices.length >= 3) {
+      const first = vertices[0];
+      const dist = Math.abs(clamped.x - first.x) + Math.abs(clamped.y - first.y);
+      if (dist <= CLOSE_RADIUS) {
+        setClosed(true);
+        setCandidate(null);
+        setActivePreset(null);
+        return;
+      }
+    }
+
+    setVertices((prev) => [...prev, clamped]);
+    setActivePreset(null);
+  }, [closed, vertices]);
+
+  const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (closed) return;
+    tryAddVertex(e.clientX, e.clientY);
+  }, [closed, tryAddVertex]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
+    if (closed) return;
+    const touch = e.changedTouches[0];
+    tryAddVertex(touch.clientX, touch.clientY);
+  }, [closed, tryAddVertex]);
+
+  const startEdgeDrag = useCallback((edgeIndex: number, axis: "x" | "y", e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDragging({ edge: edgeIndex, axis });
+  }, []);
+
+  // ─── Presets & reset ────────────────────────────────────────────────────────
+  const loadPreset = useCallback((presetId: string) => {
+    const preset = PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setVertices([...preset.vertices]);
+    setClosed(true);
+    setActivePreset(presetId);
+    setCandidate(null);
+  }, []);
+
+  const reset = useCallback(() => {
+    setVertices([]);
+    setClosed(false);
+    setCandidate(null);
+    setDragging(null);
+    setActivePreset(null);
+    onShapeChange(0, 0);
+  }, [onShapeChange]);
+
+  // ─── Derived render data ────────────────────────────────────────────────────
+  const area = useMemo(() => (closed ? shoelaceArea(vertices) : 0), [vertices, closed]);
+  const perim = useMemo(() => (closed ? polyPerimeter(vertices) : 0), [vertices, closed]);
+
+  // Polygon points string for SVG
+  const polygonPoints = useMemo(() => {
+    if (vertices.length < 2) return "";
+    return vertices.map((v) => `${v.x},${v.y}`).join(" ");
+  }, [vertices]);
+
+  // Edge midpoints and dimension labels
+  const edges = useMemo(() => {
+    if (!closed || vertices.length < 3) return [];
+    return vertices.map((v, i) => {
+      const j = (i + 1) % vertices.length;
+      const next = vertices[j];
+      const midX = (v.x + next.x) / 2;
+      const midY = (v.y + next.y) / 2;
+      const isHoriz = v.y === next.y;
+      const len = Math.abs(next.x - v.x) + Math.abs(next.y - v.y);
+      return { midX, midY, isHoriz, len, i };
+    });
+  }, [vertices, closed]);
+
+  // Centroid for area badge
+  const centroid = useMemo(() => {
+    if (vertices.length < 3) return { x: VB_W / 2, y: VB_H / 2 };
+    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
+    const cy = vertices.reduce((s, v) => s + v.y, 0) / vertices.length;
+    return { x: cx, y: cy };
+  }, [vertices]);
+
+  // Can-close detection for visual hint
+  const canClose = useMemo(() => {
+    if (closed || vertices.length < 3 || !candidate) return false;
+    const first = vertices[0];
+    const dist = Math.abs(candidate.x - first.x) + Math.abs(candidate.y - first.y);
+    return dist <= CLOSE_RADIUS;
+  }, [closed, vertices, candidate]);
+
+  // ─── JSX ────────────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-3">
+      {/* Preset buttons */}
+      <div className="flex gap-2">
+        {PRESETS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => loadPreset(p.id)}
+            className={cn(
+              "flex-1 py-2 px-3 rounded-lg border text-xs font-semibold transition-all",
+              activePreset === p.id
+                ? `border-amber-500/50 bg-amber-500/10 ${accentColor}`
+                : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white"
+            )}
+          >
+            <span className="text-base mr-1">{p.icon}</span>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* SVG Canvas */}
+      <div className="relative rounded-lg border border-white/10 bg-slate-900/80 overflow-hidden">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          className="w-full h-auto cursor-crosshair select-none"
+          style={{ maxHeight: "400px" }}
+          preserveAspectRatio="xMidYMid meet"
+          onClick={handleClick}
+          onMouseMove={handleMouseMove}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseLeave={() => setCandidate(null)}
+        >
+          {/* Grid lines */}
+          {Array.from({ length: COLS + 1 }, (_, i) => (
+            <line
+              key={`v${i}`}
+              x1={i * CELL} y1={0} x2={i * CELL} y2={VB_H}
+              className={i % 5 === 0 ? "stroke-white/[0.08]" : "stroke-white/[0.03]"}
+              strokeWidth={i % 5 === 0 ? 0.3 : 0.15}
+            />
+          ))}
+          {Array.from({ length: ROWS + 1 }, (_, i) => (
+            <line
+              key={`h${i}`}
+              x1={0} y1={i * CELL} x2={VB_W} y2={i * CELL}
+              className={i % 5 === 0 ? "stroke-white/[0.08]" : "stroke-white/[0.03]"}
+              strokeWidth={i % 5 === 0 ? 0.3 : 0.15}
+            />
+          ))}
+
+          {/* Ruler labels — bottom edge */}
+          {Array.from({ length: Math.floor(GRID_W / 10) + 1 }, (_, i) => (
+            <text
+              key={`rx${i}`}
+              x={i * 10}
+              y={VB_H - 0.5}
+              className="fill-white/25"
+              style={{ fontSize: "1.8px", fontFamily: "monospace" }}
+            >
+              {i * 10}'
+            </text>
+          ))}
+          {/* Ruler labels — left edge */}
+          {Array.from({ length: Math.floor(GRID_H / 10) + 1 }, (_, i) => (
+            <text
+              key={`ry${i}`}
+              x={0.5}
+              y={i * 10 + 1.5}
+              className="fill-white/25"
+              style={{ fontSize: "1.8px", fontFamily: "monospace" }}
+            >
+              {i * 10}'
+            </text>
+          ))}
+
+          {/* Filled polygon */}
+          {closed && vertices.length >= 3 && (
+            <polygon
+              points={polygonPoints}
+              className="fill-amber-500/15 stroke-none"
+            />
+          )}
+
+          {/* Drawing polyline (while building) */}
+          {!closed && vertices.length >= 2 && (
+            <polyline
+              points={polygonPoints}
+              fill="none"
+              className="stroke-amber-400/70"
+              strokeWidth={0.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Closed outline */}
+          {closed && vertices.length >= 3 && (
+            <polygon
+              points={polygonPoints}
+              fill="none"
+              className="stroke-amber-400"
+              strokeWidth={0.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          {/* Dashed preview line to candidate */}
+          {!closed && candidate && vertices.length > 0 && (
+            <line
+              x1={vertices[vertices.length - 1].x}
+              y1={vertices[vertices.length - 1].y}
+              x2={candidate.x}
+              y2={candidate.y}
+              className="stroke-amber-400/40"
+              strokeWidth={0.4}
+              strokeDasharray="1 0.8"
+            />
+          )}
+
+          {/* Edge dimension labels */}
+          {edges.map((edge) => {
+            if (edge.len < 2) return null;
+            return (
+              <text
+                key={`dim-${edge.i}`}
+                x={edge.midX + (edge.isHoriz ? 0 : 1.8)}
+                y={edge.midY + (edge.isHoriz ? -1.5 : 0.5)}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-slate-400 pointer-events-none"
+                style={{ fontSize: "1.6px", fontFamily: "monospace" }}
+              >
+                {edge.len}'
+              </text>
+            );
+          })}
+
+          {/* Area badge at centroid */}
+          {closed && area > 0 && (
+            <text
+              x={centroid.x}
+              y={centroid.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="fill-amber-300/80 pointer-events-none"
+              style={{ fontSize: "2.5px", fontFamily: "monospace", fontWeight: 700 }}
+            >
+              {Math.round(area)} ft²
+            </text>
+          )}
+
+          {/* Drag handles at edge midpoints */}
+          {edges.map((edge) => {
+            if (edge.len < 2) return null;
+            return (
+              <circle
+                key={`handle-${edge.i}`}
+                cx={edge.midX}
+                cy={edge.midY}
+                r={1}
+                className={cn(
+                  "fill-slate-800 stroke-amber-400 cursor-move transition-colors",
+                  dragging?.edge === edge.i ? "fill-amber-500/30" : "hover:fill-amber-500/20"
+                )}
+                strokeWidth={0.3}
+                style={{ cursor: edge.isHoriz ? "ns-resize" : "ew-resize" }}
+                onMouseDown={(e) => startEdgeDrag(edge.i, edge.isHoriz ? "y" : "x", e)}
+                onTouchStart={(e) => startEdgeDrag(edge.i, edge.isHoriz ? "y" : "x", e as unknown as React.MouseEvent)}
+              />
+            );
+          })}
+
+          {/* Vertex dots */}
+          {vertices.map((v, i) => (
+            <circle
+              key={`v-${i}`}
+              cx={v.x}
+              cy={v.y}
+              r={i === 0 && !closed ? 1.2 : 0.8}
+              className={cn(
+                i === 0 && !closed
+                  ? canClose ? "fill-emerald-400 stroke-emerald-300" : "fill-amber-400 stroke-amber-300"
+                  : "fill-amber-400 stroke-amber-300"
+              )}
+              strokeWidth={0.2}
+            />
+          ))}
+
+          {/* Close indicator ring */}
+          {canClose && !closed && vertices.length >= 3 && (
+            <circle
+              cx={vertices[0].x}
+              cy={vertices[0].y}
+              r={2}
+              className="fill-none stroke-emerald-400 animate-pulse"
+              strokeWidth={0.3}
+              strokeDasharray="0.8 0.5"
+            />
+          )}
+        </svg>
+
+        {/* Instructions overlay */}
+        {!closed && vertices.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center text-slate-500 text-xs">
+              <div className="text-sm mb-1">Click to place corners</div>
+              <div>All edges snap to horizontal/vertical</div>
+              <div className="mt-1 text-[10px]">Or choose a preset above</div>
+            </div>
+          </div>
+        )}
+
+        {/* Drawing progress hint */}
+        {!closed && vertices.length > 0 && vertices.length < 3 && (
+          <div className="absolute bottom-2 left-2 text-[10px] text-slate-500 bg-slate-900/80 px-2 py-1 rounded">
+            {vertices.length}/3 min. points — click to add more
+          </div>
+        )}
+        {!closed && vertices.length >= 3 && (
+          <div className="absolute bottom-2 left-2 text-[10px] text-emerald-400 bg-slate-900/80 px-2 py-1 rounded">
+            Click near the start point to close the shape
+          </div>
+        )}
+      </div>
+
+      {/* Summary bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-4">
+          {closed && (
+            <>
+              <div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Area</div>
+                <div className={`font-mono font-bold text-sm ${accentColor}`}>{Math.round(area)} sq ft</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Perimeter</div>
+                <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim)} LF</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Railing est.</div>
+                <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim * 0.75)} LF</div>
+              </div>
+            </>
+          )}
+        </div>
+        <button
+          onClick={reset}
+          className="text-xs text-slate-500 hover:text-red-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-red-400/30"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+}

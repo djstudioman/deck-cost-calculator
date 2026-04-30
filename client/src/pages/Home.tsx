@@ -35,7 +35,7 @@ import {
 import ResultsPanel from "@/components/ResultsPanel";
 import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
-import CustomShapeTool from "@/components/CustomShapeTool";
+import ShapeBuilder from "@/components/ShapeBuilder";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -1374,9 +1374,11 @@ export default function Home() {
                         </button>
                         {sizeId === "shape" && (
                           <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                            <CustomShapeTool
-                              onAreaChange={setShapeArea}
-                              onPerimeterChange={setShapePerimeter}
+                            <ShapeBuilder
+                              onShapeChange={(area, perimeter) => {
+                                setShapeArea(area);
+                                setShapePerimeter(perimeter);
+                              }}
                               accentColor={ac.text}
                               accentBg={ac.btnClass}
                             />
