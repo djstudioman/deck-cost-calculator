@@ -458,6 +458,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
   // ── Tabbed navigation state ──
   const [activePhase, setActivePhase] = useState<number>(1);
+  const [showComparison, setShowComparison] = useState(false);
   const PHASE_TABS = [
     { id: 1, label: "Boards" },
     { id: 2, label: "Fasteners" },
@@ -608,9 +609,89 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
       </div>
 
+      {/* ── Collapsible Estimate Comparison Banner ── */}
+      {(() => {
+        const takeoffPreTax = grandTotal / (1 + taxRate);
+        const estimateMaterialsLow = result.materialsLow;
+        const estimateMaterialsHigh = result.materialsHigh;
+        const isBelow = takeoffPreTax < estimateMaterialsLow;
+        const isAbove = takeoffPreTax > estimateMaterialsHigh;
+        const isInRange = !isBelow && !isAbove;
+        const pctDiff = isAbove
+          ? Math.round(((takeoffPreTax - estimateMaterialsHigh) / estimateMaterialsHigh) * 100)
+          : isBelow
+          ? Math.round(((estimateMaterialsLow - takeoffPreTax) / estimateMaterialsLow) * 100)
+          : 0;
+        const statusColor = isInRange ? 'emerald' : isAbove ? 'amber' : 'blue';
+        return (
+          <div className="mt-2">
+            <button
+              onClick={() => setShowComparison(!showComparison)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                isInRange
+                  ? 'bg-emerald-950/30 border-emerald-700/40 text-emerald-400 hover:bg-emerald-950/50'
+                  : isAbove
+                  ? 'bg-amber-950/30 border-amber-700/40 text-amber-400 hover:bg-amber-950/50'
+                  : 'bg-blue-950/30 border-blue-700/40 text-blue-400 hover:bg-blue-950/50'
+              }`}
+            >
+              <span>
+                {isInRange ? '\u2713 Within Estimate' : isAbove ? '\u26a0 Above Estimate' : '\u2139 Below Estimate'}
+                {' \u00b7 '}
+                <span className="font-mono">{formatTakeoffCurrency(Math.round(takeoffPreTax))}</span>
+                {' vs '}
+                <span className="font-mono">{formatTakeoffCurrency(estimateMaterialsLow)}\u2013{formatTakeoffCurrency(estimateMaterialsHigh)}</span>
+                {!isInRange && <span className="ml-1 opacity-70">({pctDiff}% {isAbove ? 'over' : 'under'})</span>}
+              </span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className={`w-3.5 h-3.5 transition-transform ${showComparison ? 'rotate-180' : ''}`}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {showComparison && (
+              <div className={`mt-1 rounded-lg border p-3 text-xs ${
+                isInRange
+                  ? 'bg-emerald-950/20 border-emerald-700/30'
+                  : isAbove
+                  ? 'bg-amber-950/20 border-amber-700/30'
+                  : 'bg-blue-950/20 border-blue-700/30'
+              }`}>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="text-slate-300 mb-1">
+                      Estimate materials range: <span className="font-semibold text-white font-mono">{formatTakeoffCurrency(estimateMaterialsLow)} \u2013 {formatTakeoffCurrency(estimateMaterialsHigh)}</span>
+                    </div>
+                    <div className="text-slate-500">
+                      Includes all materials (boards, framing, hardware, footings) \u2014 excludes labor.
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-slate-500 mb-0.5">Takeoff (pre-tax)</div>
+                    <div className={`text-lg font-bold font-mono text-${statusColor}-400`}>{formatTakeoffCurrency(Math.round(takeoffPreTax))}</div>
+                  </div>
+                </div>
+                {isAbove && (
+                  <div className="mt-2 pt-2 border-t border-amber-800/30 text-amber-300/80">
+                    Your selections may exceed the estimate range. Consider reviewing unit prices, waste factor, or board length.
+                  </div>
+                )}
+                {isBelow && (
+                  <div className="mt-2 pt-2 border-t border-blue-800/30 text-blue-300/80">
+                    Not all phases may be fully configured yet. Complete all 7 phases for the most accurate comparison.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Phase position indicator */}
       <div className="pt-4 pb-2 text-xs text-slate-500">
-        Phase {activePhase} of 7 · {PHASE_TABS[activePhase - 1].label}
+        Phase {activePhase} of 7 \u00b7 {PHASE_TABS[activePhase - 1].label}
       </div>
 
       {/* ══ PHASE 1: DECK BOARDS ══ */}
