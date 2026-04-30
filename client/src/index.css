@@ -121,6 +121,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Barlow', system-ui, sans-serif;
+    /* Faint dot grid — engineer's graph paper atmosphere */
+    background-image: radial-gradient(circle, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
   .font-mono {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
