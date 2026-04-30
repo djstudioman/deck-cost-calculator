@@ -140,17 +140,44 @@ export default function CustomShapeTool({
     y: pt.y * CELL_SIZE_PX,
   }), []);
 
-  const fromSvg = useCallback((clientX: number, clientY: number): Point => {
+  // Core coordinate transform: client coords → grid coords
+  // Used by drag handler (native DOM events where we only have clientX/clientY)
+  const fromSvgRaw = useCallback((clientX: number, clientY: number): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
-    const rect = svgRef.current.getBoundingClientRect();
-    // Account for CSS scaling: rendered size may differ from viewBox size
-    const scaleX = svgWidth / rect.width;
-    const scaleY = svgHeight / rect.height;
-    const rawX = ((clientX - rect.left) * scaleX) / CELL_SIZE_PX;
-    const rawY = ((clientY - rect.top) * scaleY) / CELL_SIZE_PX;
-    // Snap to grid
+    const svg = svgRef.current;
+    // getBoundingClientRect gives us the SVG's position on screen,
+    // accounting for all CSS transforms on ancestors (Framer Motion, etc.)
+    const rect = svg.getBoundingClientRect();
+    // The SVG viewBox is svgWidth x svgHeight but rendered at rect.width x rect.height.
+    // preserveAspectRatio may add internal padding — compute actual content offset.
+    const viewBoxAspect = svgWidth / svgHeight;
+    const renderedAspect = rect.width / rect.height;
+    let contentOffsetX = 0;
+    let contentOffsetY = 0;
+    let contentWidth = rect.width;
+    let contentHeight = rect.height;
+    if (renderedAspect > viewBoxAspect) {
+      // Wider than viewBox → horizontal letterboxing (content centered)
+      contentWidth = rect.height * viewBoxAspect;
+      contentOffsetX = (rect.width - contentWidth) / 2;
+    } else if (renderedAspect < viewBoxAspect) {
+      // Taller than viewBox → vertical letterboxing
+      contentHeight = rect.width / viewBoxAspect;
+      contentOffsetY = (rect.height - contentHeight) / 2;
+    }
+    const localX = clientX - rect.left - contentOffsetX;
+    const localY = clientY - rect.top - contentOffsetY;
+    const scaleX = svgWidth / contentWidth;
+    const scaleY = svgHeight / contentHeight;
+    const rawX = (localX * scaleX) / CELL_SIZE_PX;
+    const rawY = (localY * scaleY) / CELL_SIZE_PX;
     return { x: Math.round(rawX), y: Math.round(rawY) };
   }, [svgWidth, svgHeight]);
+
+  // React event wrapper for SVG click/mousemove events
+  const fromSvg = useCallback((e: React.MouseEvent<SVGSVGElement>): Point => {
+    return fromSvgRaw(e.clientX, e.clientY);
+  }, [fromSvgRaw]);
 
   // ─── Orthogonal snap ──────────────────────────────────────────────────────
   const snapOrthogonal = useCallback((raw: Point, prev: Point): Point => {
@@ -167,7 +194,7 @@ export default function CustomShapeTool({
   // ─── Handle grid click ────────────────────────────────────────────────────
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (isClosed) return;
-    const raw = fromSvg(e.clientX, e.clientY);
+    const raw = fromSvg(e);
 
     if (points.length === 0) {
       setPoints([raw]);
@@ -207,7 +234,7 @@ export default function CustomShapeTool({
       return;
     }
 
-    const raw = fromSvg(e.clientX, e.clientY);
+    const raw = fromSvg(e);
     const prev = points[points.length - 1];
     const snapped = snapOrthogonal(raw, prev);
 
@@ -235,7 +262,7 @@ export default function CustomShapeTool({
     const handleMove = (e: MouseEvent | TouchEvent) => {
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-      const raw = fromSvg(clientX, clientY);
+      const raw = fromSvgRaw(clientX, clientY);
 
       setPoints((prev) => {
         const newPts = [...prev];
