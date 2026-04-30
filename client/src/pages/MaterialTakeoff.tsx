@@ -653,7 +653,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                     }`}>{formatTakeoffCurrency(Math.round(takeoffPreTax))}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-slate-500 leading-none mb-0.5">Estimate range</div>
+                    <div className="text-[10px] text-slate-500 leading-none mb-0.5">Est. materials range</div>
                     <div className="text-sm font-mono text-slate-300">
                       {formatCurrency(estimateMaterialsLow)}–{formatCurrency(estimateMaterialsHigh)}
                     </div>
@@ -697,7 +697,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                   : 'bg-blue-950/20 border-blue-700/30'
               }`}>
                 <div className="text-slate-400">
-                  Materials estimate covers boards, framing, hardware, and footings — excludes labor.
+                  <span className="text-slate-300 font-medium">Est. materials range</span> is the materials-only slice of your bid estimate — it excludes labor, markup, permits, and fees. Your takeoff total should fall within this band when all 7 phases are complete.
                 </div>
                 {isAbove && (
                   <div className="mt-1.5 text-amber-300/80">
