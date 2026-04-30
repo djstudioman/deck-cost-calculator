@@ -757,7 +757,7 @@ export interface CalculatorInputs {
   // Edge board type (contractor only)
   edgeBoardType?: "solid" | "grooved"; // grooved auto-set when hidden fasteners on
   // Custom size (contractor only)
-  customSqFt?: number; // used when sizeId === "custom"
+  customSqFt?: number; // used when sizeId === "custom" or "shape"
   // Demolition / removal (contractor only)
   includeDemoRemoval?: boolean;
   demoMaterialType?: "wood" | "composite" | "other"; // affects labor difficulty
@@ -918,10 +918,11 @@ export interface CalculatorResult {
 
 export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const region = REGIONS.find((r) => r.id === inputs.regionId)!;
-  // Support custom size: create a synthetic DeckSize when sizeId === "custom"
+  // Support custom size / custom shape: create a synthetic DeckSize when sizeId === "custom" or "shape"
+  const isCustomSize = inputs.sizeId === "custom" || inputs.sizeId === "shape";
   const customSqFt = inputs.customSqFt ?? 320;
-  const size: DeckSize = inputs.sizeId === "custom"
-    ? { id: "custom", label: "Custom", sqFt: customSqFt, dimensions: `${Math.round(Math.sqrt(customSqFt))} × ${Math.round(customSqFt / Math.round(Math.sqrt(customSqFt)))} ft (approx)` }
+  const size: DeckSize = isCustomSize
+    ? { id: inputs.sizeId, label: inputs.sizeId === "shape" ? "Custom Shape" : "Custom", sqFt: customSqFt, dimensions: `${Math.round(Math.sqrt(customSqFt))} × ${Math.round(customSqFt / Math.round(Math.sqrt(customSqFt)))} ft (approx)` }
     : DECK_SIZES.find((s) => s.id === inputs.sizeId)!;
   const tier = MATERIAL_TIERS.find((t) => t.id === inputs.tierId)!;
   const complexity = COMPLEXITIES.find((c) => c.id === inputs.complexityId)!;
@@ -934,14 +935,14 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const isDIY = inputs.audience === "diy";
   const isContractor = inputs.audience === "contractor";
 
-  // Base installed cost from lookup table (or interpolated for custom size)
-  const baseInstalled: { low: number; high: number } = inputs.sizeId === "custom"
+  // Base installed cost from lookup table (or interpolated for custom/shape size)
+  const baseInstalled: { low: number; high: number } = isCustomSize
     ? {
         low:  Math.round(tier.installedPerSqFtMin * customSqFt),
         high: Math.round(tier.installedPerSqFtMax * customSqFt),
       }
     : INSTALLED_COST_TABLE[inputs.sizeId][inputs.tierId];
-  const baseMaterials: { low: number; high: number } = inputs.sizeId === "custom"
+  const baseMaterials: { low: number; high: number } = isCustomSize
     ? {
         low:  Math.round(tier.materialPerSqFtMin * customSqFt),
         high: Math.round(tier.materialPerSqFtMax * customSqFt),
@@ -1122,7 +1123,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   let demolitionDisposalHigh = 0;
   let demolitionPermitCost = 0;
   if (isContractor && inputs.includeDemoRemoval) {
-    const demoSqFt = inputs.sizeId === "custom" ? (inputs.customSqFt ?? 320) : (DECK_SIZES.find(s => s.id === inputs.sizeId)?.sqFt ?? 320);
+    const demoSqFt = isCustomSize ? (inputs.customSqFt ?? 320) : (DECK_SIZES.find(s => s.id === inputs.sizeId)?.sqFt ?? 320);
     const mat = inputs.demoMaterialType ?? "wood";
     const laborLowPerSqFt = mat === "composite" ? 6 : mat === "other" ? 7 : 5;
     const laborHighPerSqFt = mat === "composite" ? 10 : mat === "other" ? 11 : 8;

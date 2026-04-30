@@ -35,6 +35,7 @@ import {
 import ResultsPanel from "@/components/ResultsPanel";
 import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
+import CustomShapeTool from "@/components/CustomShapeTool";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -146,6 +147,9 @@ export default function Home() {
   const [customWidth, setCustomWidth] = useState<number>(20);
   const [customLength, setCustomLength] = useState<number>(20);
   const customSqFt = customWidth * customLength;
+  // Custom shape tool (contractor only)
+  const [shapeArea, setShapeArea] = useState<number>(0);
+  const [shapePerimeter, setShapePerimeter] = useState<number>(0);
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
   const [joistSpacingIn, setJoistSpacingIn] = useState<12 | 16 | 24>(16);
@@ -194,13 +198,15 @@ export default function Home() {
   // For custom sizes, use actual dimensions (width + 2*length = 3 exposed sides).
   // For preset sizes, fall back to the sqrt heuristic.
   useEffect(() => {
-    if (sizeId === "custom") {
+    if (sizeId === "shape" && shapePerimeter > 0) {
+      setRailingLF(Math.round(shapePerimeter * 0.75));
+    } else if (sizeId === "custom") {
       setRailingLF(Math.round(customWidth + 2 * customLength));
     } else {
       const sizeSqFt = DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320;
       setRailingLF(Math.round(Math.sqrt(sizeSqFt) * 3));
     }
-  }, [sizeId, customWidth, customLength]);
+  }, [sizeId, customWidth, customLength, shapePerimeter]);
 
 
   const inputs: CalculatorInputs = useMemo(
@@ -226,7 +232,7 @@ export default function Home() {
       crewSizeId,
       includeCrew,
       subFootings,
-      customSqFt: sizeId === "custom" ? customSqFt : undefined,
+      customSqFt: sizeId === "custom" ? customSqFt : sizeId === "shape" ? shapeArea : undefined,
       includeDemoRemoval,
       demoMaterialType,
       demoIncludeDisposal,
@@ -256,7 +262,7 @@ export default function Home() {
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
       includeStairs, stairSteps, stairWidthFt, includeStairRailing, skillLevelId, selectedTools, includePermit,
       permitCost, markupTierId, includeMarkup, homeownerMarkupTierId, homeownerShowMarkup, crewSizeId, includeCrew, subFootings, customSqFt,
-      includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, joistSpacingIn, marketTierId,
+      includeDemoRemoval, demoMaterialType, demoIncludeDisposal, demoPermit, framingId, joistSpacingIn, marketTierId, shapeArea, shapePerimeter,
       isMultiLevel, level2SizeId, level2CustomWidth, level2CustomLength,
       brandId, fastenerSystemId, edgeBoardType, rendering3dTier,
       postMountId, postSpacingFt, railingHeightIn,
@@ -1336,6 +1342,48 @@ export default function Home() {
                         )}
                       </div>
                     )}
+
+                    {/* Custom Shape tool — contractor only */}
+                    {audience === "contractor" && (
+                      <div
+                        className={cn(
+                          "col-span-1 sm:col-span-2 p-3 rounded-lg border transition-all",
+                          sizeId === "shape"
+                            ? `${sel.border} ${sel.bg}`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                        )}
+                      >
+                        <button
+                          className="w-full text-left"
+                          onClick={() => {
+                            if (sizeId !== "shape") setSizeId("shape");
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-semibold text-sm text-white">Custom Shape</div>
+                              <div className="text-xs text-slate-500 mt-0.5">Draw L-shapes, T-shapes, or any outline</div>
+                            </div>
+                            <div className="text-right">
+                              {sizeId === "shape" && shapeArea > 0 && (
+                                <div className={`text-xs font-mono ${ac.text}`}>{shapeArea} sq ft</div>
+                              )}
+                              <div className="text-xs text-slate-600">contractor only</div>
+                            </div>
+                          </div>
+                        </button>
+                        {sizeId === "shape" && (
+                          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                            <CustomShapeTool
+                              onAreaChange={setShapeArea}
+                              onPerimeterChange={setShapePerimeter}
+                              accentColor={ac.text}
+                              accentBg={ac.btnClass}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>{/* end main size grid */}
                   {/* Multi-level toggle — contractor only */}
                   {audience === "contractor" && (
@@ -2192,8 +2240,10 @@ export default function Home() {
                           ].map((opt) => {
                             const sys = RAILING_SYSTEMS.find(r => r.id === opt.id)!;
                             // Auto-set railingLF from deck size when a style is picked.
-                            // For custom sizes use actual perimeter (width + 2*length); otherwise sqrt heuristic.
-                            const autoLF = sizeId === "custom"
+                            // For custom sizes use actual perimeter; for shape use drawn perimeter × 0.75; otherwise sqrt heuristic.
+                            const autoLF = sizeId === "shape" && shapePerimeter > 0
+                              ? Math.round(shapePerimeter * 0.75)
+                              : sizeId === "custom"
                               ? Math.round(customWidth + 2 * customLength)
                               : Math.round(Math.sqrt(DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320) * 3);
                             return (
