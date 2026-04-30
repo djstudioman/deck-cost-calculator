@@ -686,18 +686,59 @@ export default function ShapeBuilder({
             );
           })()}
 
-          {/* Dashed preview line to candidate */}
-          {!closed && candidate && vertices.length > 0 && (
-            <line
-              x1={vertices[vertices.length - 1].x}
-              y1={vertices[vertices.length - 1].y}
-              x2={candidate.x}
-              y2={candidate.y}
-              className="stroke-amber-400/40"
-              strokeWidth={0.2}
-              strokeDasharray="0.5 0.4"
-            />
-          )}
+          {/* Dashed preview line to candidate + live edge length */}
+          {!closed && candidate && vertices.length > 0 && (() => {
+            const prev = vertices[vertices.length - 1];
+            const dx = candidate.x - prev.x;
+            const dy = candidate.y - prev.y;
+            const len = Math.round(Math.sqrt(dx * dx + dy * dy));
+            const midX = (prev.x + candidate.x) / 2;
+            const midY = (prev.y + candidate.y) / 2;
+            // Perpendicular offset for the label (push it off the line)
+            const lineLen = Math.sqrt(dx * dx + dy * dy) || 1;
+            // Left-hand normal, normalised
+            let nx = -dy / lineLen;
+            let ny = dx / lineLen;
+            const OFFSET = 1.5;
+            const labelX = midX + nx * OFFSET;
+            const labelY = midY + ny * OFFSET;
+            const lenLabel = `${len}'`;
+            const padW = lenLabel.length * 1.1 + 0.8;
+            return (
+              <g className="pointer-events-none">
+                <line
+                  x1={prev.x} y1={prev.y}
+                  x2={candidate.x} y2={candidate.y}
+                  className="stroke-amber-400/40"
+                  strokeWidth={0.2}
+                  strokeDasharray="0.5 0.4"
+                />
+                {len > 0 && (
+                  <>
+                    <rect
+                      x={labelX - padW / 2}
+                      y={labelY - 1.2}
+                      width={padW}
+                      height={2.2}
+                      rx={0.35}
+                      className="fill-slate-900"
+                      opacity={0.85}
+                    />
+                    <text
+                      x={labelX}
+                      y={labelY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      className="fill-amber-400"
+                      style={{ fontSize: "1.3px", fontFamily: "monospace", fontWeight: 600 }}
+                    >
+                      {lenLabel}
+                    </text>
+                  </>
+                )}
+              </g>
+            );
+          })()}
 
           {/* Edge dimension labels — always outside the shape, clamped at grid boundary */}
           {edges.map((edge) => {
