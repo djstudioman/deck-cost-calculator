@@ -852,11 +852,12 @@ export default function Home() {
             const currentLabel = stepLabels[step] || stepLabels[step - 1] || "";
             return (
               <>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-slate-500">
-                    Step {visibleIndex} of {visibleLabels.length}
+                {/* Step label + audience badge */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-slate-500 font-mono">
+                    Step {visibleIndex}/{visibleLabels.length}
                   </span>
-                  <span className="text-xs text-slate-400 font-medium">{currentLabel}</span>
+                  <span className="text-xs text-slate-300 font-medium font-display">{currentLabel}</span>
                   {step >= 3 && (
                     <span className={cn(
                       "text-xs px-2 py-0.5 rounded-full font-semibold",
@@ -866,12 +867,46 @@ export default function Home() {
                     </span>
                   )}
                 </div>
-                <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                {/* Ruler-style tick-mark stepper */}
+                <div className="relative flex items-center w-full h-6">
+                  {/* Baseline ruler track */}
+                  <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-white/[0.08] -translate-y-1/2" />
+                  {/* Completed track fill */}
                   <motion.div
-                    className={cn("h-full rounded-full", ac.progressBar)}
-                    animate={{ width: `${(visibleIndex / visibleLabels.length) * 100}%` }}
-                    transition={{ duration: 0.3 }}
+                    className={cn("absolute top-1/2 left-0 h-[2px] -translate-y-1/2 rounded-full", ac.progressBar)}
+                    animate={{ width: `${((visibleIndex - 1) / (visibleLabels.length - 1)) * 100}%` }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
                   />
+                  {/* Tick marks */}
+                  <div className="relative flex justify-between w-full">
+                    {visibleLabels.map((label, i) => {
+                      const isCompleted = i + 1 < visibleIndex;
+                      const isCurrent = i + 1 === visibleIndex;
+                      return (
+                        <div key={i} className="group relative flex flex-col items-center">
+                          {/* Tick */}
+                          <motion.div
+                            className={cn(
+                              "rounded-full transition-all duration-200",
+                              isCurrent
+                                ? cn("w-3.5 h-3.5 ring-2 ring-offset-1 ring-offset-[oklch(0.10_0.025_250)]", ac.progressBar, ac.progressBar.replace("bg-", "ring-"))
+                                : isCompleted
+                                  ? cn("w-2.5 h-2.5", ac.progressBar, "opacity-70")
+                                  : "w-2 h-2 bg-white/[0.15]"
+                            )}
+                            animate={isCurrent ? { scale: [1, 1.15, 1] } : {}}
+                            transition={isCurrent ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}}
+                          />
+                          {/* Tooltip on hover */}
+                          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <span className="text-[10px] text-slate-400 bg-slate-900/90 px-1.5 py-0.5 rounded">
+                              {label}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </>
             );
