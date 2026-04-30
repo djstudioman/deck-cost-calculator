@@ -878,7 +878,7 @@ export default function Home() {
                     transition={{ duration: 0.35, ease: "easeOut" }}
                   />
                   {/* Tick marks */}
-                  <div className="relative flex justify-between w-full">
+                  <div className="relative flex justify-between items-center w-full">
                     {visibleLabels.map((label, i) => {
                       const isCompleted = i + 1 < visibleIndex;
                       const isCurrent = i + 1 === visibleIndex;
