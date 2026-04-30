@@ -612,64 +612,100 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           ? Math.round(((estimateMaterialsLow - takeoffPreTax) / estimateMaterialsLow) * 100)
           : 0;
         const statusColor = isInRange ? 'emerald' : isAbove ? 'amber' : 'blue';
+        // Progress bar: position takeoff value within the estimate range (clamped 0–100%)
+        const barMin = estimateMaterialsLow * 0.8;
+        const barMax = estimateMaterialsHigh * 1.2;
+        const barPct = Math.min(100, Math.max(0, ((takeoffPreTax - barMin) / (barMax - barMin)) * 100));
+        const rangeStartPct = Math.min(100, Math.max(0, ((estimateMaterialsLow - barMin) / (barMax - barMin)) * 100));
+        const rangeEndPct = Math.min(100, Math.max(0, ((estimateMaterialsHigh - barMin) / (barMax - barMin)) * 100));
         return (
           <div className="mt-2">
             <button
               onClick={() => setShowComparison(!showComparison)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+              className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
                 isInRange
-                  ? 'bg-emerald-950/30 border-emerald-700/40 text-emerald-400 hover:bg-emerald-950/50'
+                  ? 'bg-emerald-950/30 border-emerald-700/40 hover:bg-emerald-950/50'
                   : isAbove
-                  ? 'bg-amber-950/30 border-amber-700/40 text-amber-400 hover:bg-amber-950/50'
-                  : 'bg-blue-950/30 border-blue-700/40 text-blue-400 hover:bg-blue-950/50'
+                  ? 'bg-amber-950/30 border-amber-700/40 hover:bg-amber-950/50'
+                  : 'bg-blue-950/30 border-blue-700/40 hover:bg-blue-950/50'
               }`}
             >
-              <span>
-                {isInRange ? '\u2713 Within Estimate' : isAbove ? '\u26a0 Above Estimate' : '\u2139 Below Estimate'}
-                {' \u00b7 '}
-                <span className="font-mono">{formatTakeoffCurrency(Math.round(takeoffPreTax))}</span>
-                {' vs '}
-                <span className="font-mono">{formatTakeoffCurrency(estimateMaterialsLow)}–{formatTakeoffCurrency(estimateMaterialsHigh)}</span>
-                {!isInRange && <span className="ml-1 opacity-70">({pctDiff}% {isAbove ? 'over' : 'under'})</span>}
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className={`w-3.5 h-3.5 transition-transform ${showComparison ? 'rotate-180' : ''}`}
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
+              {/* Top row: status pill + two numbers + chevron */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    isInRange ? 'bg-emerald-500/20 text-emerald-400'
+                    : isAbove ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {isInRange ? '✓ On track' : isAbove ? '↑ Over estimate' : '↓ Under estimate'}
+                  </span>
+                  {!isInRange && (
+                    <span className="text-xs text-slate-500">{pctDiff}% {isAbove ? 'over' : 'under'}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-500 leading-none mb-0.5">Takeoff</div>
+                    <div className={`text-sm font-bold font-mono ${
+                      isInRange ? 'text-emerald-400' : isAbove ? 'text-amber-400' : 'text-blue-400'
+                    }`}>{formatTakeoffCurrency(Math.round(takeoffPreTax))}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-500 leading-none mb-0.5">Estimate range</div>
+                    <div className="text-sm font-mono text-slate-300">
+                      {formatTakeoffCurrency(estimateMaterialsLow)}–{formatTakeoffCurrency(estimateMaterialsHigh)}
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`w-3.5 h-3.5 transition-transform text-slate-500 ${
+                      showComparison ? 'rotate-180' : ''
+                    }`}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div className="mt-2 relative h-1.5 rounded-full bg-white/[0.06] overflow-visible">
+                {/* Estimate range band */}
+                <div
+                  className={`absolute top-0 h-full rounded-full opacity-30 ${
+                    isInRange ? 'bg-emerald-400' : isAbove ? 'bg-amber-400' : 'bg-blue-400'
+                  }`}
+                  style={{ left: `${rangeStartPct}%`, width: `${rangeEndPct - rangeStartPct}%` }}
+                />
+                {/* Takeoff marker */}
+                <div
+                  className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${
+                    isInRange ? 'bg-emerald-400' : isAbove ? 'bg-amber-400' : 'bg-blue-400'
+                  }`}
+                  style={{ left: `calc(${barPct}% - 5px)` }}
+                />
+              </div>
             </button>
             {showComparison && (
-              <div className={`mt-1 rounded-lg border p-3 text-xs ${
+              <div className={`mt-1 rounded-lg border px-3 py-2.5 text-xs ${
                 isInRange
                   ? 'bg-emerald-950/20 border-emerald-700/30'
                   : isAbove
                   ? 'bg-amber-950/20 border-amber-700/30'
                   : 'bg-blue-950/20 border-blue-700/30'
               }`}>
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <div className="text-slate-300 mb-1">
-                      Estimate materials range: <span className="font-semibold text-white font-mono">{formatTakeoffCurrency(estimateMaterialsLow)} – {formatTakeoffCurrency(estimateMaterialsHigh)}</span>
-                    </div>
-                    <div className="text-slate-500">
-                      Includes all materials (boards, framing, hardware, footings) — excludes labor.
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-slate-500 mb-0.5">Takeoff (pre-tax)</div>
-                    <div className={`text-lg font-bold font-mono text-${statusColor}-400`}>{formatTakeoffCurrency(Math.round(takeoffPreTax))}</div>
-                  </div>
+                <div className="text-slate-400">
+                  Materials estimate covers boards, framing, hardware, and footings — excludes labor.
                 </div>
                 {isAbove && (
-                  <div className="mt-2 pt-2 border-t border-amber-800/30 text-amber-300/80">
-                    Your selections may exceed the estimate range. Consider reviewing unit prices, waste factor, or board length.
+                  <div className="mt-1.5 text-amber-300/80">
+                    Takeoff exceeds estimate range. Review unit prices, waste factor, or board length.
                   </div>
                 )}
                 {isBelow && (
-                  <div className="mt-2 pt-2 border-t border-blue-800/30 text-blue-300/80">
-                    Not all phases may be fully configured yet. Complete all 7 phases for the most accurate comparison.
+                  <div className="mt-1.5 text-blue-300/80">
+                    Complete all 7 phases for the most accurate comparison.
                   </div>
                 )}
               </div>
