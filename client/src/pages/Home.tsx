@@ -72,7 +72,7 @@ function getStepLabels(audience: AudienceType): string[] {
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
     return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit & Fees"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit & Fees", "Extras"];
+    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit & Fees"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
   return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit & Fees"];
 }
@@ -1054,7 +1054,7 @@ export default function Home() {
               icon: "📋",
               label: "Contractor",
               desc: "Bidding a project. Full markup, crew, and margin analysis.",
-              extra: "10 questions",
+              extra: "9 questions",
                         color: "blue",
                       },
                     ].map((opt) => (
@@ -1166,6 +1166,11 @@ export default function Home() {
                   {/* Market Tier — contractor only */}
                   {audience === "contractor" && (
                     <div className="mt-4">
+                      {/* Scroll indicator to signal more content below */}
+                      <div className="flex items-center gap-2 mb-3 py-2 border-t border-white/[0.08]">
+                        <div className="animate-bounce text-amber-400 text-sm">↓</div>
+                        <div className="text-xs text-slate-400">Scroll down — <span className="text-amber-400 font-semibold">Labor Market Tier</span> affects your labor rates</div>
+                      </div>
                       <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-2`}>
                         Labor Market Tier
                       </div>
@@ -1912,6 +1917,133 @@ export default function Home() {
                       </div>
                     </div>
                   )}
+
+                  {/* ── FOOTING SPEC (moved from Extras) ── */}
+                  <div className="mt-6 space-y-4">
+                    <div className={`p-4 rounded-lg border ${ac.border} bg-white/[0.03]`}>
+                      <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>Footing Spec</div>
+
+                      {/* Helical pier toggle */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <div className="font-semibold text-sm text-white">Use Helical Piers?</div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            Replaces concrete tube footings. No excavation needed — ideal for expansive soils,
+                            high frost zones, or sites with limited access. Installed cost: $250–$450/pier.
+                          </div>
+                          {useHelicalPiers && (
+                            <div className={`text-xs font-mono ${ac.text} mt-1`}>
+                              {result.footingCount} piers ·{" "}
+                              {result.footingSpecCostLow >= 0
+                                ? `+${formatCurrency(result.footingSpecCostLow)} to +${formatCurrency(result.footingSpecCostHigh)} vs tube footings`
+                                : `saves ${formatCurrency(Math.abs(result.footingSpecCostHigh))}–${formatCurrency(Math.abs(result.footingSpecCostLow))} vs tube footings`
+                              }
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setUseHelicalPiers((v) => !v)}
+                          className={cn(
+                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
+                            useHelicalPiers ? ac.bgSolid : "bg-white/20"
+                          )}
+                        >
+                          <span
+                            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                            style={{ transform: useHelicalPiers ? 'translateX(20px)' : 'translateX(2px)' }}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Footing diameter selector — hidden when helical piers selected */}
+                      {!useHelicalPiers && (
+                        <div>
+                          <div className="text-xs text-slate-400 mb-2">Tube Footing Diameter</div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {([8, 10, 12, 16] as const).map((d) => {
+                              const costs: Record<8|10|12|16, [number,number]> = {
+                                8:  [55,  90],
+                                10: [68,  120],
+                                12: [90,  160],
+                                16: [145, 240],
+                              };
+                              const [lo, hi] = costs[d];
+                              const isBase = d === 10;
+                              const delta = (lo - 68) * result.footingCount;
+                              return (
+                                <button
+                                  key={d}
+                                  onClick={() => setFootingDiameterIn(d)}
+                                  className={cn(
+                                    "p-3 rounded-lg border text-left transition-all",
+                                    footingDiameterIn === d
+                                      ? `${sel.border} ${sel.bg}`
+                                      : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                  )}
+                                >
+                                  <div className="font-semibold text-sm text-white">{d}"</div>
+                                  <div className={`text-xs font-mono mt-0.5 ${
+                                    isBase ? 'text-slate-400' :
+                                    delta > 0 ? 'text-amber-400' : 'text-emerald-400'
+                                  }`}>
+                                    {isBase ? 'Baseline' :
+                                     delta > 0 ? `+${formatCurrency(delta)}` :
+                                     `−${formatCurrency(Math.abs(delta))}`}
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">${lo}–${hi}/ea</div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-2">
+                            {result.footingCount} footings · {result.footingDiameterIn}" diameter · based on deck size ·{" "}
+                            {result.footingSpecCostLow === 0
+                              ? "Baseline pricing"
+                              : result.footingSpecCostLow > 0
+                                ? `+${formatCurrency(result.footingSpecCostLow)}–+${formatCurrency(result.footingSpecCostHigh)} vs 10" baseline`
+                                : `saves ${formatCurrency(Math.abs(result.footingSpecCostHigh))}–${formatCurrency(Math.abs(result.footingSpecCostLow))} vs 10" baseline`
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sub footings toggle */}
+                    <div className={cn(
+                      "p-4 rounded-lg border transition-all",
+                      subFootings ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
+                    )}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-sm text-white">Sub out footings / concrete work?</div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            Many deck contractors sub concrete work to a foundation specialist.
+                            Subcontracted footings are passed through at cost + 15% coordination fee,
+                            and excluded from your labor markup.
+                          </div>
+                          <div className="text-xs text-slate-500 mt-2">
+                            Typical footing sub cost for this project:{" "}
+                            <span className={`font-mono ${ac.text}`}>
+                              {formatCurrency(result.footingLow)} – {formatCurrency(result.footingHigh)}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setSubFootings((v) => !v)}
+                          className={cn(
+                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
+                            subFootings ? ac.bgSolid : "bg-white/20"
+                          )}
+                        >
+                          <span className={cn(
+                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                           )}
+                           style={{ transform: subFootings ? 'translateX(20px)' : 'translateX(2px)' }}
+                           />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </StepCard>
               )}
 
@@ -2868,148 +3000,8 @@ export default function Home() {
                         ))}
                       </div>
                     </div>
-                  </div>
-                </StepCard>
-              )}
 
-              {/* ── CONTRACTOR STEP 9: EXTRAS ── */}
-              {step === 9 && audience === "contractor" && (
-                <StepCard
-                  title="Extras & subcontracting"
-                  subtitle="Indicate demo, subcontracted work, and other add-ons. Subcontracted items are excluded from your markup."
-                  onNext={goNext}
-                  showTapHint={confirmedStep === step}
-                  onBack={goBack}
-                  nextLabel="See My Estimate →"
-                  accentBtnClass={ac.btnClass}
-                >
-                  <div className="space-y-4">
-                    {/* ── FOOTING SPEC (contractor only) ── */}
-                    <div className={`p-4 rounded-lg border ${ac.border} bg-white/[0.03]`}>
-                      <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>Footing Spec (Contractor)</div>
-
-                      {/* Helical pier toggle */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
-                        <div>
-                          <div className="font-semibold text-sm text-white">Use Helical Piers?</div>
-                          <div className="text-xs text-slate-400 mt-1">
-                            Replaces concrete tube footings. No excavation needed — ideal for expansive soils,
-                            high frost zones, or sites with limited access. Installed cost: $250–$450/pier.
-                          </div>
-                          {useHelicalPiers && (
-                            <div className={`text-xs font-mono ${ac.text} mt-1`}>
-                              {result.footingCount} piers ·{" "}
-                              {result.footingSpecCostLow >= 0
-                                ? `+${formatCurrency(result.footingSpecCostLow)} to +${formatCurrency(result.footingSpecCostHigh)} vs tube footings`
-                                : `saves ${formatCurrency(Math.abs(result.footingSpecCostHigh))}–${formatCurrency(Math.abs(result.footingSpecCostLow))} vs tube footings`
-                              }
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => setUseHelicalPiers((v) => !v)}
-                          className={cn(
-                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
-                            useHelicalPiers ? ac.bgSolid : "bg-white/20"
-                          )}
-                        >
-                          <span
-                            className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                            style={{ transform: useHelicalPiers ? 'translateX(20px)' : 'translateX(2px)' }}
-                          />
-                        </button>
-                      </div>
-
-                      {/* Footing diameter selector — hidden when helical piers selected */}
-                      {!useHelicalPiers && (
-                        <div>
-                          <div className="text-xs text-slate-400 mb-2">Tube Footing Diameter</div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {([8, 10, 12, 16] as const).map((d) => {
-                              const costs: Record<8|10|12|16, [number,number]> = {
-                                8:  [55,  90],
-                                10: [68,  120],
-                                12: [90,  160],
-                                16: [145, 240],
-                              };
-                              const [lo, hi] = costs[d];
-                              const isBase = d === 10;
-                              const delta = (lo - 68) * result.footingCount;
-                              return (
-                                <button
-                                  key={d}
-                                  onClick={() => setFootingDiameterIn(d)}
-                                  className={cn(
-                                    "p-3 rounded-lg border text-left transition-all",
-                                    footingDiameterIn === d
-                                      ? `${sel.border} ${sel.bg}`
-                                      : "border-white/20 bg-white/[0.03] hover:border-white/30"
-                                  )}
-                                >
-                                  <div className="font-semibold text-sm text-white">{d}"</div>
-                                  <div className={`text-xs font-mono mt-0.5 ${
-                                    isBase ? 'text-slate-400' :
-                                    delta > 0 ? 'text-amber-400' : 'text-emerald-400'
-                                  }`}>
-                                    {isBase ? 'Baseline' :
-                                     delta > 0 ? `+${formatCurrency(delta)}` :
-                                     `−${formatCurrency(Math.abs(delta))}`}
-                                  </div>
-                                  <div className="text-xs text-slate-500 mt-0.5">${lo}–${hi}/ea</div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <div className="text-xs text-slate-500 mt-2">
-                            {result.footingCount} footings · {result.footingDiameterIn}" diameter · based on deck size ·{" "}
-                            {result.footingSpecCostLow === 0
-                              ? "Baseline pricing"
-                              : result.footingSpecCostLow > 0
-                                ? `+${formatCurrency(result.footingSpecCostLow)}–+${formatCurrency(result.footingSpecCostHigh)} vs 10" baseline`
-                                : `saves ${formatCurrency(Math.abs(result.footingSpecCostHigh))}–${formatCurrency(Math.abs(result.footingSpecCostLow))} vs 10" baseline`
-                            }
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Sub footings toggle */}
-                    <div className={cn(
-                      "p-4 rounded-lg border transition-all",
-                      subFootings ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
-                    )}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-sm text-white">Sub out footings / concrete work?</div>
-                          <div className="text-xs text-slate-400 mt-1">
-                            Many deck contractors sub concrete work to a foundation specialist.
-                            Subcontracted footings are passed through at cost + 15% coordination fee,
-                            and excluded from your labor markup.
-                          </div>
-                          <div className="text-xs text-slate-500 mt-2">
-                            Typical footing sub cost for this project:{" "}
-                            <span className={`font-mono ${ac.text}`}>
-                              {formatCurrency(result.footingLow)} – {formatCurrency(result.footingHigh)}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setSubFootings((v) => !v)}
-                          className={cn(
-                            "relative w-10 h-5 rounded-full transition-colors shrink-0 mt-1",
-                            subFootings ? ac.bgSolid : "bg-white/20"
-                          )}
-                        >
-                          <span className={cn(
-                            "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                           )}
-                           style={{ transform: subFootings ? 'translateX(20px)' : 'translateX(2px)' }}
-                           />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Demo / Removal toggle */}
+                    {/* ── DEMO / REMOVAL (moved from Extras) ── */}
                     <div className={cn(
                       "p-4 rounded-lg border transition-all",
                       includeDemoRemoval ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
@@ -3103,129 +3095,6 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-
-                    {/* 3D Rendering option */}
-                    <div className={cn(
-                      "p-4 rounded-lg border transition-all",
-                      rendering3dTier !== "none" ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
-                    )}>
-                      <div className="font-semibold text-sm text-white mb-1">3D Rendering Service</div>
-                      <div className="text-xs text-slate-400 mb-3">
-                        Add a professional 3D visualization of the deck to your bid. Passed through at cost — helps clients approve faster and reduces change orders.
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        {([
-                          {
-                            id: "none" as const,
-                            label: "No rendering",
-                            sub: "Proceed without a 3D visualization.",
-                            price: "—",
-                          },
-                          {
-                            id: "basic" as const,
-                            label: "Basic",
-                            sub: "1–2 rendered views, standard quality. Good for simple rectangular decks.",
-                            price: "$199–$400",
-                          },
-                          {
-                            id: "professional" as const,
-                            label: "Professional",
-                            sub: "3–5 photo-realistic views with materials shown. Best for most projects.",
-                            price: "$400–$800",
-                          },
-                          {
-                            id: "premium" as const,
-                            label: "Premium",
-                            sub: "Full view set + one revision round. Ideal for multi-level or complex builds.",
-                            price: "$800–$1,500",
-                          },
-                        ]).map((opt) => (
-                          <button
-                            key={opt.id}
-                            onClick={() => setRendering3dTier(opt.id)}
-                            className={cn(
-                              "text-left px-3 py-2 rounded-md border transition-all",
-                              rendering3dTier === opt.id
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/15 bg-white/[0.02] hover:border-white/25"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold text-white">{opt.label}</span>
-                              <span className={cn(
-                                "text-xs font-mono shrink-0",
-                                opt.id === "none" ? "text-slate-500" : "text-amber-400"
-                              )}>{opt.price}</span>
-                            </div>
-                            <div className="text-xs text-slate-500 mt-0.5">{opt.sub}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Bid preview card */}
-                    {result.contractor && (
-                      <div className={`p-4 rounded-lg border ${sel.border} bg-opacity-5 ${sel.bg}`}>
-                        <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-3`}>
-                          Bid Preview
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                          <div className="text-slate-400">Materials (with markup)</div>
-                          <div className="font-mono text-right text-white">
-                            {formatCurrency(result.contractor.materialWithMarkup)}
-                          </div>
-                          <div className="text-slate-400">Labor (with markup)</div>
-                          <div className="font-mono text-right text-white">
-                            {formatCurrency(result.contractor.laborWithMarkup)}
-                          </div>
-                          <div className="text-slate-400">Overhead</div>
-                          <div className="font-mono text-right text-white">
-                            {formatCurrency(result.contractor.overhead)}
-                          </div>
-                          {subFootings && (
-                            <>
-                              <div className="text-slate-400">Footing sub (pass-through)</div>
-                              <div className="font-mono text-right text-white">
-                                {formatCurrency(result.contractor.subFootingsCost)}
-                              </div>
-                            </>
-                          )}
-                          {includeDemoRemoval && (
-                            <>
-                              <div className="text-slate-400">Demo & removal</div>
-                              <div className="font-mono text-right text-white">
-                                {formatRange(result.demolitionLow, result.demolitionHigh)}
-                              </div>
-                            </>
-                          )}
-                          {rendering3dTier !== "none" && (
-                            <>
-                              <div className="text-slate-400">3D rendering (pass-through)</div>
-                              <div className="font-mono text-right text-white">
-                                {formatRange(result.rendering3dCostLow, result.rendering3dCostHigh)}
-                              </div>
-                            </>
-                          )}
-                          <div className="text-slate-400 font-semibold border-t border-white/[0.18] pt-2">Total Bid Range</div>
-                          <div className={`font-mono text-right ${ac.text} font-semibold border-t border-white/[0.18] pt-2`}>
-                            {formatRange(result.contractor.totalBidLow, result.contractor.totalBidHigh)}
-                          </div>
-                          <div className="text-slate-400">Gross Margin</div>
-                          <div className={cn(
-                            "font-mono text-right font-semibold",
-                            result.contractor.grossMarginPct >= 30 ? "text-green-400"
-                            : result.contractor.grossMarginPct >= 20 ? "text-amber-400"
-                            : "text-red-400"
-                          )}>
-                            {result.contractor.grossMarginPct}%
-                          </div>
-                          <div className="text-slate-400">Est. crew days</div>
-                          <div className="font-mono text-right text-white">
-                            {result.contractor.estimatedDays} days
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </StepCard>
               )}
@@ -3238,7 +3107,7 @@ export default function Home() {
                   onNext={goNext}
                   showTapHint={confirmedStep === step}
                   onBack={goBack}
-                  nextLabel="Continue →"
+                  nextLabel="See My Estimate →"
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="space-y-3">
@@ -3370,6 +3239,67 @@ export default function Home() {
                           )}
                         </div>
                       )}
+                    </div>
+
+                    {/* ── 3D RENDERING (moved from Extras) ── */}
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <div className={cn(
+                        "p-4 rounded-lg border transition-all",
+                        rendering3dTier !== "none" ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03]"
+                      )}>
+                        <div className="font-semibold text-sm text-white mb-1">3D Rendering Service</div>
+                        <div className="text-xs text-slate-400 mb-3">
+                          Add a professional 3D visualization of the deck to your bid. Passed through at cost — helps clients approve faster and reduces change orders.
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                          {([
+                            {
+                              id: "none" as const,
+                              label: "No rendering",
+                              sub: "Proceed without a 3D visualization.",
+                              price: "—",
+                            },
+                            {
+                              id: "basic" as const,
+                              label: "Basic",
+                              sub: "1–2 rendered views, standard quality. Good for simple rectangular decks.",
+                              price: "$199–$400",
+                            },
+                            {
+                              id: "professional" as const,
+                              label: "Professional",
+                              sub: "3–5 photo-realistic views with materials shown. Best for most projects.",
+                              price: "$400–$800",
+                            },
+                            {
+                              id: "premium" as const,
+                              label: "Premium",
+                              sub: "Full view set + one revision round. Ideal for multi-level or complex builds.",
+                              price: "$800–$1,500",
+                            },
+                          ]).map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => setRendering3dTier(opt.id)}
+                              className={cn(
+                                "text-left px-3 py-2 rounded-md border transition-all",
+                                rendering3dTier === opt.id
+                                  ? `${sel.border} ${sel.bg}`
+                                  : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold text-white">{opt.label}</span>
+                                <span className={cn(
+                                  "text-xs font-mono shrink-0",
+                                  opt.id === "none" ? "text-slate-500" : "text-amber-400"
+                                )}>{opt.price}</span>
+                              </div>
+                              <div className="text-xs text-slate-500 mt-0.5">{opt.sub}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </StepCard>
