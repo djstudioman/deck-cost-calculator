@@ -326,6 +326,10 @@ export default function ShapeBuilder({
   // Edge midpoints and dimension labels
   const edges = useMemo(() => {
     if (!closed || vertices.length < 3) return [];
+    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
+    const cy = vertices.reduce((s, v) => s + v.y, 0) / vertices.length;
+    const LABEL_OFFSET = 2.2; // feet away from edge
+    const MARGIN = 1.5;       // min feet from grid boundary before flipping inward
     return vertices.map((v, i) => {
       const j = (i + 1) % vertices.length;
       const next = vertices[j];
@@ -333,7 +337,31 @@ export default function ShapeBuilder({
       const midY = (v.y + next.y) / 2;
       const isHoriz = v.y === next.y;
       const len = Math.abs(next.x - v.x) + Math.abs(next.y - v.y);
-      return { midX, midY, isHoriz, len, i };
+
+      // Determine which side of the edge is "outside" (away from centroid)
+      let labelX: number;
+      let labelY: number;
+      if (isHoriz) {
+        // Horizontal edge: label moves up or down
+        const outDir = midY < cy ? -1 : 1; // outside = away from centroid
+        let rawY = midY + outDir * LABEL_OFFSET;
+        // Clamp: if too close to top/bottom boundary, flip inward
+        if (rawY < MARGIN) rawY = midY + LABEL_OFFSET;
+        if (rawY > VB_H - MARGIN) rawY = midY - LABEL_OFFSET;
+        labelX = midX;
+        labelY = rawY;
+      } else {
+        // Vertical edge: label moves left or right
+        const outDir = midX < cx ? -1 : 1; // outside = away from centroid
+        let rawX = midX + outDir * LABEL_OFFSET;
+        // Clamp: if too close to left/right boundary, flip inward
+        if (rawX < MARGIN) rawX = midX + LABEL_OFFSET;
+        if (rawX > VB_W - MARGIN) rawX = midX - LABEL_OFFSET;
+        labelX = rawX;
+        labelY = midY;
+      }
+
+      return { midX, midY, isHoriz, len, i, labelX, labelY };
     });
   }, [vertices, closed]);
 
@@ -477,14 +505,14 @@ export default function ShapeBuilder({
             />
           )}
 
-          {/* Edge dimension labels */}
+          {/* Edge dimension labels — always outside the shape, clamped at grid boundary */}
           {edges.map((edge) => {
             if (edge.len < 2) return null;
             return (
               <text
                 key={`dim-${edge.i}`}
-                x={edge.midX + (edge.isHoriz ? 0 : 1.8)}
-                y={edge.midY + (edge.isHoriz ? -1.5 : 0.5)}
+                x={edge.labelX}
+                y={edge.labelY}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="fill-slate-400 pointer-events-none"
