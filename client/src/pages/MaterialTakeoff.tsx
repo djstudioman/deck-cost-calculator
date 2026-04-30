@@ -456,8 +456,21 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
   const isPhase7Edited = hwJoistHangerQtyOverride !== null || hwPostCapQtyOverride !== null || hwLedgerFlashingQtyOverride !== null || hwStructuralScrewQtyOverride !== null || hwJoistTapeQtyOverride !== null;
 
+  // ── Tabbed navigation state ──
+  const [activePhase, setActivePhase] = useState<number>(1);
+  const PHASE_TABS = [
+    { id: 1, label: "Boards" },
+    { id: 2, label: "Fasteners" },
+    { id: 3, label: "Framing" },
+    { id: 4, label: "Footings" },
+    { id: 5, label: "Railing" },
+    { id: 6, label: "Stairs" },
+    { id: 7, label: "Hardware" },
+  ];
+
   // ── Grand total ──
   const grandTotal = takeoff.total + fastenerTakeoff.total + lumberTakeoff.total + footingTakeoff.total + railingTakeoff.total + stairTakeoff.total + hardwareTakeoff.total;
+  const phaseTotals = [takeoff.total, fastenerTakeoff.total, lumberTakeoff.total, footingTakeoff.total, railingTakeoff.total, stairTakeoff.total, hardwareTakeoff.total];
 
   // ── CSV Export ──
   function handleExportCSV() {
@@ -505,53 +518,87 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* ── Header ── */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold tracking-widest uppercase text-amber-400">Contractor · Material Takeoff</span>
-        </div>
-        <h2 className="text-2xl font-bold text-white">Material Takeoff</h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Exact quantities and brand-specific pricing for your build. Edit any field to dial in your actual costs.
-        </p>
-      </div>
-
-      {/* ── Deck area summary ── */}
-      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-wrap items-center gap-4 sm:gap-6">
-        <div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider">Deck Area</div>
-          <div className="text-2xl font-bold text-white">{deckAreaSqFt.toLocaleString()} sq ft</div>
-        </div>
-        <div className="w-px h-10 bg-slate-700 hidden sm:block" />
-        <div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider">Dimensions</div>
-          <div className="text-lg font-semibold text-slate-200">{result.size.dimensions}</div>
-        </div>
-        <div className="w-px h-10 bg-slate-700 hidden sm:block" />
-        <div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider">Material</div>
-          <div className="text-lg font-semibold text-slate-200">{result.tier.label}</div>
-        </div>
-        <div className="w-px h-10 bg-slate-700 hidden sm:block" />
-        <div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider">Fastening</div>
-          <div className="text-lg font-semibold text-slate-200">{fastenerSystemLabel(fastenerSystemId)}</div>
-        </div>
-        {result.deckingBrand && (
-          <>
-            <div className="w-px h-10 bg-slate-700 hidden sm:block" />
+    <div className="space-y-0">
+      {/* ── Sticky Header: Grand Total + Tab Bar + Actions ── */}
+      <div className="sticky top-0 z-30 bg-[#0B1120]/95 backdrop-blur-md border-b border-slate-700/60 -mx-4 px-4 sm:-mx-6 sm:px-6 pb-0">
+        {/* Top row: title, grand total, actions */}
+        <div className="flex items-center justify-between gap-4 py-3 flex-wrap">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="text-sm text-slate-400 hover:text-white transition-colors"
+              title="Back to Estimate"
+            >
+              ←
+            </button>
             <div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider">Brand (from estimate)</div>
-              <div className="text-lg font-semibold text-emerald-400">{result.deckingBrand.name}</div>
+              <div className="text-xs font-bold tracking-widest uppercase text-amber-400">Material Takeoff</div>
+              <div className="text-sm text-slate-400">{deckAreaSqFt} sq ft · {result.tier.label} · {result.size.dimensions}</div>
             </div>
-          </>
-        )}
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Tax selector inline */}
+            <select
+              value={selectedStateCode}
+              onChange={e => setSelectedStateCode(e.target.value)}
+              className="bg-slate-800 border border-slate-600 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-500 w-28 sm:w-36"
+              title="Sales tax state"
+            >
+              <option value="">No tax</option>
+              {STATE_TAX_RATES.map(s => (
+                <option key={s.code} value={s.code}>
+                  {s.code} {(s.rate * 100).toFixed(1)}%
+                </option>
+              ))}
+            </select>
+            <div className="text-right">
+              <div className="text-xs text-slate-500 leading-none">Grand Total</div>
+              <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 leading-tight">{formatTakeoffCurrency(grandTotal)}</div>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="px-3 py-1.5 rounded-lg border border-amber-600/60 text-amber-400 text-xs font-medium hover:border-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-1.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex gap-0 overflow-x-auto scrollbar-none -mb-px">
+          {PHASE_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { setActivePhase(tab.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className={`relative px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
+                activePhase === tab.id
+                  ? "text-amber-400 border-b-2 border-amber-400"
+                  : "text-slate-500 hover:text-slate-300 border-b-2 border-transparent"
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span className={`ml-1.5 text-[10px] font-mono ${
+                activePhase === tab.id ? "text-amber-400/70" : "text-slate-600"
+              }`}>
+                {formatTakeoffCurrency(phaseTotals[tab.id - 1])}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 1: DECK BOARDS
-      ══════════════════════════════════════════════════════════════ */}
+      {/* Phase position indicator */}
+      <div className="pt-4 pb-2 text-xs text-slate-500">
+        Phase {activePhase} of 7 · {PHASE_TABS[activePhase - 1].label}
+      </div>
+
+      {/* ══ PHASE 1: DECK BOARDS ══ */}
+      {activePhase === 1 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -774,10 +821,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           )}
         </div>
       </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 2: FASTENERS
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PHASE 2: FASTENERS ══ */}
+      {activePhase === 2 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1076,10 +1123,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           </div>
         </div>
       </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 3: FRAMING LUMBER
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PHASE 3: FRAMING LUMBER ══ */}
+      {activePhase === 3 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1291,10 +1338,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           )}
         </div>
       </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 4: CONCRETE & FOOTINGS
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PHASE 4: CONCRETE & FOOTINGS ══ */}
+      {activePhase === 4 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1562,10 +1609,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           )}
         </div>
       </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 5: RAILING
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PHASE 5: RAILING ══ */}
+      {activePhase === 5 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1814,10 +1861,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           )}
         </div>
       </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 6: STAIRS
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PHASE 6: STAIRS ══ */}
+      {activePhase === 6 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -2031,10 +2078,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           )}
         </div>
       </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          PHASE 7: HARDWARE & MISC
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ══ PHASE 7: HARDWARE & MISC ══ */}
+      {activePhase === 7 && (
       <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -2228,153 +2275,35 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           )}
         </div>
       </div>
+      )}
 
-      {/* ── STATE TAX SELECTOR ── */}
-      <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex-1">
-            <label className="block text-xs font-bold tracking-widest uppercase text-slate-300 mb-1">
-              Project State
-            </label>
-            <p className="text-xs text-slate-500">Select the state where the deck will be built to apply the correct combined sales tax rate to all 7 phases.</p>
-          </div>
-          <div className="sm:w-72">
-            <select
-              value={selectedStateCode}
-              onChange={e => setSelectedStateCode(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-amber-500"
-            >
-              <option value="">No tax / select state…</option>
-              {STATE_TAX_RATES.map(s => (
-                <option key={s.code} value={s.code}>
-                  {s.name} — {(s.rate * 100).toFixed(2)}%{s.rate === 0 ? " (no sales tax)" : ""}
-                </option>
-              ))}
-            </select>
-            {selectedStateCode && (
-              <div className="text-xs text-amber-400 mt-1 font-medium">
-                {STATE_TAX_RATES.find(s => s.code === selectedStateCode)?.name} combined rate: {(taxRate * 100).toFixed(2)}%
-              </div>
-            )}
-            {!selectedStateCode && (
-              <div className="text-xs text-slate-500 mt-1">Tax not included in totals until a state is selected</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── FINAL GRAND TOTAL ── */}
-      <div className="bg-gradient-to-r from-emerald-900/40 to-slate-800/80 border border-emerald-500/50 rounded-xl p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold tracking-widest uppercase text-emerald-400 mb-1">Complete Material Takeoff</div>
-            <div className="text-base font-semibold text-white">All 7 Phases · {selectedStateCode ? `${(taxRate * 100).toFixed(2)}% ${STATE_TAX_RATES.find(s => s.code === selectedStateCode)?.name} Tax` : "Tax Not Applied"}</div>
-            <div className="text-xs text-slate-400 mt-1">Boards · Fasteners · Framing · Footings · Railing · Stairs · Hardware</div>
-          </div>
-          <div className="text-right">
-            <div className="text-4xl font-bold text-emerald-400">{formatTakeoffCurrency(grandTotal)}</div>
-            <div className="text-xs text-slate-400 mt-1">{selectedStateCode ? "Materials + tax · excludes labor" : "Materials only · select state for tax"}</div>
-          </div>
-        </div>
-        {/* Phase breakdown */}
-        <div className="mt-4 pt-4 border-t border-emerald-800/40 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          <div className="text-slate-500">Ph 1 Boards: <span className="text-slate-300">{formatTakeoffCurrency(takeoff.total)}</span></div>
-          <div className="text-slate-500">Ph 2 Fasteners: <span className="text-slate-300">{formatTakeoffCurrency(fastenerTakeoff.total)}</span></div>
-          <div className="text-slate-500">Ph 3 Framing: <span className="text-slate-300">{formatTakeoffCurrency(lumberTakeoff.total)}</span></div>
-          <div className="text-slate-500">Ph 4 Footings: <span className="text-slate-300">{formatTakeoffCurrency(footingTakeoff.total)}</span></div>
-          <div className="text-slate-500">Ph 5 Railing: <span className="text-slate-300">{formatTakeoffCurrency(railingTakeoff.total)}</span></div>
-          <div className="text-slate-500">Ph 6 Stairs: <span className="text-slate-300">{formatTakeoffCurrency(stairTakeoff.total)}</span></div>
-          <div className="text-slate-500">Ph 7 Hardware: <span className="text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.total)}</span></div>
-        </div>
-      </div>
-
-      {/* ── Estimate Comparison Banner ── */}
-      {(() => {
-        const estimateMaterialsLow = result.materialsLow;
-        const estimateMaterialsHigh = result.materialsHigh;
-        const takeoffPreTax = grandTotal / (1 + taxRate);
-        const isBelow = takeoffPreTax < estimateMaterialsLow;
-        const isAbove = takeoffPreTax > estimateMaterialsHigh;
-        const isInRange = !isBelow && !isAbove;
-        const pctDiff = isAbove
-          ? Math.round(((takeoffPreTax - estimateMaterialsHigh) / estimateMaterialsHigh) * 100)
-          : isBelow
-          ? Math.round(((estimateMaterialsLow - takeoffPreTax) / estimateMaterialsLow) * 100)
-          : 0;
-        return (
-          <div className={`rounded-xl border p-4 ${
-            isInRange
-              ? 'bg-emerald-950/40 border-emerald-600/40'
-              : isAbove
-              ? 'bg-amber-950/40 border-amber-500/40'
-              : 'bg-blue-950/40 border-blue-500/40'
-          }`}>
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <div className={`text-xs font-bold tracking-widest uppercase mb-1 ${
-                  isInRange ? 'text-emerald-400' : isAbove ? 'text-amber-400' : 'text-blue-400'
-                }`}>
-                  {isInRange ? '✓ Within Estimate Range' : isAbove ? '⚠ Above Estimate Range' : 'ℹ Below Estimate Range'}
-                </div>
-                <div className="text-sm text-slate-300">
-                  Estimate materials range: <span className="font-semibold text-white">{formatTakeoffCurrency(estimateMaterialsLow)} – {formatTakeoffCurrency(estimateMaterialsHigh)}</span>
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  Estimate includes all materials (boards, framing, hardware, footings, etc.) — excludes labor.
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="text-xs text-slate-500 mb-0.5">Takeoff total (pre-tax)</div>
-                <div className={`text-2xl font-bold ${
-                  isInRange ? 'text-emerald-400' : isAbove ? 'text-amber-400' : 'text-blue-400'
-                }`}>{formatTakeoffCurrency(Math.round(takeoffPreTax))}</div>
-                {!isInRange && (
-                  <div className="text-xs mt-0.5 text-slate-400">
-                    {isAbove ? `${pctDiff}% over high estimate` : `${pctDiff}% under low estimate`}
-                  </div>
-                )}
-              </div>
-            </div>
-            {isAbove && (
-              <div className="mt-3 pt-3 border-t border-amber-800/30 text-xs text-amber-300/80">
-                Your selections may exceed the estimate range. Consider reviewing unit prices, waste factor, or board length to align with your project budget.
-              </div>
-            )}
-            {isBelow && (
-              <div className="mt-3 pt-3 border-t border-blue-800/30 text-xs text-blue-300/80">
-                Not all phases may be fully configured yet. Complete all 7 phases to get the most accurate comparison.
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ── Navigation ── */}
-      <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
+      {/* ── Phase Navigation (Prev / Next / Done) ── */}
+      <div className="flex items-center justify-between pt-6 pb-2 flex-wrap gap-3">
         <button
-          onClick={onBack}
+          onClick={() => {
+            if (activePhase === 1) { onBack(); }
+            else { setActivePhase(activePhase - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+          }}
           className="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 text-sm font-medium hover:border-slate-500 hover:text-white transition-all"
         >
-          ← Back to Estimate
+          {activePhase === 1 ? '← Back to Estimate' : `← ${PHASE_TABS[activePhase - 2].label}`}
         </button>
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleExportCSV}
-            className="px-5 py-2.5 rounded-lg border border-amber-600/60 text-amber-400 text-sm font-medium hover:border-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export CSV
-          </button>
-          <button
-            onClick={onFinish}
-            className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
-          >
-            Done ✓
-          </button>
+          {activePhase < 7 ? (
+            <button
+              onClick={() => { setActivePhase(activePhase + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="px-6 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold transition-all"
+            >
+              {PHASE_TABS[activePhase].label} →
+            </button>
+          ) : (
+            <button
+              onClick={onFinish}
+              className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
+            >
+              Done ✓
+            </button>
+          )}
         </div>
       </div>
     </div>
