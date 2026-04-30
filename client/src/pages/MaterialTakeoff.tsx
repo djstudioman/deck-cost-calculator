@@ -570,7 +570,23 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-0 overflow-x-auto scrollbar-none -mb-px">
+        {/* Mobile: dropdown selector */}
+        <div className="sm:hidden pb-2">
+          <select
+            value={activePhase}
+            onChange={(e) => { setActivePhase(Number(e.target.value)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            className="w-full bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-amber-500"
+          >
+            {PHASE_TABS.map((tab) => (
+              <option key={tab.id} value={tab.id}>
+                Phase {tab.id}: {tab.label} — {formatTakeoffCurrency(phaseTotals[tab.id - 1])}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop: horizontal tab bar */}
+        <div className="hidden sm:flex gap-0 overflow-x-auto scrollbar-none -mb-px">
           {PHASE_TABS.map((tab) => (
             <button
               key={tab.id}
