@@ -6,7 +6,7 @@
  *   Homeowner: Audience → Region → Size → Material → Complexity → Railing → Results
  *   DIYer:     Audience → Region → Size → Material → Complexity → Railing → Skill + Tools → Permit → Results
  *   Contractor: Audience → Region → Size → Material → Complexity → Railing → Markup + Crew → Sub-footings → Framing → Permit → Results
- * - Space Grotesk headings, JetBrains Mono for cost figures
+ * - Barlow Condensed headings, Barlow body, JetBrains Mono for cost figures
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
