@@ -587,7 +587,7 @@ export default function ShapeBuilder({
           ))}
 
           {/* Ruler labels — bottom edge */}
-          {Array.from({ length: Math.floor(GRID_W / 10) + 1 }, (_, i) => (
+          {Array.from({ length: Math.floor(GRID_W / 10) + 1 }, (_, i) => i === 0 ? null : (
             <text
               key={`rx${i}`}
               x={i * 10}
@@ -599,7 +599,7 @@ export default function ShapeBuilder({
             </text>
           ))}
           {/* Ruler labels — left edge */}
-          {Array.from({ length: Math.floor(GRID_H / 10) + 1 }, (_, i) => (
+          {Array.from({ length: Math.floor(GRID_H / 10) + 1 }, (_, i) => i === 0 ? null : (
             <text
               key={`ry${i}`}
               x={0.5}
