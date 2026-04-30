@@ -302,34 +302,29 @@ function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false
         transition={{ duration: 0.4 }}
         className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-white/10 rounded-xl p-5 sm:p-6"
       >
-        {/* Billboard cost hero */}
-        <div className="text-center py-4">
-          <div className="text-xs font-semibold tracking-[0.2em] text-slate-500 uppercase mb-3">
-            {homeownerShowMarkup && activeTier ? `With ${activeTier.label} Markup` : "Contractor Quote Range"}
-          </div>
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-r from-transparent to-white/20" />
-            <div className="font-mono text-5xl sm:text-6xl lg:text-7xl font-bold text-white tracking-tight">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-xs font-semibold tracking-widest text-slate-500 uppercase mb-1">
+              {homeownerShowMarkup && activeTier ? `With ${activeTier.label} Markup` : "Contractor Quote Range"}
+            </div>
+            <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
               {formatRange(displayLow, displayHigh)}
             </div>
-            <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent to-white/20" />
-          </div>
-          {homeownerShowMarkup && (
-            <div className="text-xs text-slate-500 mb-1">
-              Base: {formatRange(result.totalLow, result.totalHigh)}
+            {homeownerShowMarkup && (
+              <div className="text-xs text-slate-500 mt-0.5">
+                Base: {formatRange(result.totalLow, result.totalHigh)}
+              </div>
+            )}
+            <div className="text-sm text-slate-400 mt-1">
+              {formatCurrency(displayPerSqFtLow)}–{formatCurrency(displayPerSqFtHigh)}/sq ft
+              &nbsp;·&nbsp;{result.size.sqFt} sq ft
             </div>
-          )}
-          <div className="flex items-center justify-center gap-3 text-sm text-slate-400">
-            <span>{formatCurrency(displayPerSqFtLow)}–{formatCurrency(displayPerSqFtHigh)}/sq ft</span>
-            <span className="text-slate-600">·</span>
-            <span>{result.size.sqFt} sq ft</span>
-            <span className="text-slate-600">·</span>
-            <span
-              className="px-2 py-0.5 rounded-full text-xs font-semibold"
-              style={{ background: `${tierColor}22`, color: tierColor, border: `1px solid ${tierColor}44` }}
-            >
-              {result.tier.shortLabel}
-            </span>
+          </div>
+          <div
+            className="px-3 py-1.5 rounded-full text-xs font-semibold"
+            style={{ background: `${tierColor}22`, color: tierColor, border: `1px solid ${tierColor}44` }}
+          >
+            {result.tier.shortLabel}
           </div>
         </div>
         <SummaryPills result={result} />
@@ -558,26 +553,20 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         transition={{ duration: 0.4 }}
         className="bg-gradient-to-br from-[#0F2A1E] to-[#0B1120] border border-emerald-500/20 rounded-xl p-5 sm:p-6"
       >
-        {/* Billboard cost hero */}
-        <div className="text-center py-4">
-          <div className="text-xs font-semibold tracking-[0.2em] text-emerald-500/70 uppercase mb-3">
-            DIY Materials + Extras Estimate
-          </div>
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-r from-transparent to-emerald-500/30" />
-            <div className="font-mono text-5xl sm:text-6xl lg:text-7xl font-bold text-white tracking-tight">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-xs font-semibold tracking-widest text-emerald-500/70 uppercase mb-1">
+              DIY Materials + Extras Estimate
+            </div>
+            <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
               {formatRange(d.totalWithExtrasLow, d.totalWithExtrasHigh)}
             </div>
-            <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent to-emerald-500/30" />
+            <div className="text-sm text-slate-400 mt-1">
+              Materials + waste + tools + permit &nbsp;·&nbsp; {result.size.sqFt} sq ft
+            </div>
           </div>
-          <div className="flex items-center justify-center gap-3 text-sm text-slate-400">
-            <span>Materials + waste + tools + permit</span>
-            <span className="text-slate-600">·</span>
-            <span>{result.size.sqFt} sq ft</span>
-            <span className="text-slate-600">·</span>
-            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              {result.tier.shortLabel}
-            </span>
+          <div className="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            {result.tier.shortLabel}
           </div>
         </div>
         <SummaryPills result={result} />
@@ -986,40 +975,36 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
         transition={{ duration: 0.4 }}
         className="bg-gradient-to-br from-[#0F1A2A] to-[#0B1120] border border-blue-500/20 rounded-xl p-5 sm:p-6"
       >
-        {/* Billboard cost hero */}
-        <div className="text-center py-4">
-          <div className="text-xs font-semibold tracking-[0.2em] text-blue-400/70 uppercase mb-3">
-            {coGrandLow > 0 ? "Bid + Change Orders" : "Bid Range Estimate"}
-          </div>
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-r from-transparent to-blue-500/30" />
-            <div className="font-mono text-5xl sm:text-6xl lg:text-7xl font-bold text-white tracking-tight">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-xs font-semibold tracking-widest text-blue-400/70 uppercase mb-1">
+              {coGrandLow > 0 ? "Bid + Change Orders" : "Bid Range Estimate"}
+            </div>
+            <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
               {formatRange(c.totalBidLow + coGrandLow, c.totalBidHigh + coGrandHigh)}
             </div>
-            <div className="h-[1px] flex-1 max-w-16 bg-gradient-to-l from-transparent to-blue-500/30" />
-          </div>
-          {coGrandLow > 0 && (
-            <div className="text-xs text-blue-400/70 mb-1">
-              Base bid {formatRange(c.totalBidLow, c.totalBidHigh)}
-              &nbsp;+&nbsp;
-              <span className="text-blue-300">CO {formatRange(coGrandLow, coGrandHigh)}</span>
+            {coGrandLow > 0 && (
+              <div className="text-xs text-blue-400/70 mt-0.5">
+                Base bid {formatRange(c.totalBidLow, c.totalBidHigh)}
+                &nbsp;+&nbsp;
+                <span className="text-blue-300">CO {formatRange(coGrandLow, coGrandHigh)}</span>
+              </div>
+            )}
+            <div className="text-sm text-slate-400 mt-1">
+              {formatCurrency(c.perSqFtBidLow)}–{formatCurrency(c.perSqFtBidHigh)}/sq ft
+              &nbsp;·&nbsp;{result.size.sqFt} sq ft
             </div>
-          )}
-          <div className="flex items-center justify-center gap-3 text-sm text-slate-400 flex-wrap">
-            <span>{formatCurrency(c.perSqFtBidLow)}–{formatCurrency(c.perSqFtBidHigh)}/sq ft</span>
-            <span className="text-slate-600">·</span>
-            <span>{result.size.sqFt} sq ft</span>
-            <span className="text-slate-600">·</span>
-            <span className={cn(
-              "px-2 py-0.5 rounded-full text-xs font-semibold",
+          </div>
+          <div className="text-right">
+            <div className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-semibold inline-block",
               c.grossMarginPct >= 30 ? "bg-green-500/20 text-green-400 border border-green-500/30"
               : c.grossMarginPct >= 20 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
               : "bg-red-500/20 text-red-400 border border-red-500/30"
             )}>
-              {c.grossMarginPct}% margin
-            </span>
-            <span className="text-slate-600">·</span>
-            <span className="text-xs text-slate-500">{c.markupTier.label}</span>
+              {c.grossMarginPct}% gross margin
+            </div>
+            <div className="text-xs text-slate-500 mt-1">{c.markupTier.label}</div>
           </div>
         </div>
         <SummaryPills result={result} />
