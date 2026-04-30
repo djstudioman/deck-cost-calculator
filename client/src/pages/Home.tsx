@@ -586,9 +586,9 @@ export default function Home() {
   // NOTE: selectedBorder/selectedBg use direct Tailwind color classes (not CSS vars)
   // because direct classes produce the vivid, clearly-visible border the original design had.
   const SELECTED_CARD: Record<AudienceType, { border: string; bg: string }> = {
-    homeowner: { border: "border-amber-500",   bg: "bg-amber-500/10"   },
-    diy:       { border: "border-emerald-500", bg: "bg-emerald-500/10" },
-    contractor:{ border: "border-blue-500",    bg: "bg-blue-500/10"    },
+    homeowner: { border: "border-amber-500 border-l-4 border-l-amber-400",   bg: "bg-amber-500/10 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.15),0_0_24px_rgba(245,158,11,0.08)]"   },
+    diy:       { border: "border-emerald-500 border-l-4 border-l-emerald-400", bg: "bg-emerald-500/10 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.15),0_0_24px_rgba(16,185,129,0.08)]" },
+    contractor:{ border: "border-blue-500 border-l-4 border-l-blue-400",    bg: "bg-blue-500/10 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.15),0_0_24px_rgba(59,130,246,0.08)]"    },
   };
   const sel = SELECTED_CARD[audience];
 
