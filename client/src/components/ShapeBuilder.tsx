@@ -472,8 +472,8 @@ export default function ShapeBuilder({
               x2={candidate.x}
               y2={candidate.y}
               className="stroke-amber-400/40"
-              strokeWidth={0.4}
-              strokeDasharray="1 0.8"
+              strokeWidth={0.2}
+              strokeDasharray="0.5 0.4"
             />
           )}
 
@@ -517,12 +517,12 @@ export default function ShapeBuilder({
                 key={`handle-${edge.i}`}
                 cx={edge.midX}
                 cy={edge.midY}
-                r={1}
+                r={0.5}
                 className={cn(
                   "fill-slate-800 stroke-amber-400 cursor-move transition-colors",
                   dragging?.edge === edge.i ? "fill-amber-500/30" : "hover:fill-amber-500/20"
                 )}
-                strokeWidth={0.3}
+                strokeWidth={0.15}
                 style={{ cursor: edge.isHoriz ? "ns-resize" : "ew-resize" }}
                 onMouseDown={(e) => startEdgeDrag(edge.i, edge.isHoriz ? "y" : "x", e)}
                 onTouchStart={(e) => startEdgeDrag(edge.i, edge.isHoriz ? "y" : "x", e as unknown as React.MouseEvent)}
@@ -536,13 +536,13 @@ export default function ShapeBuilder({
               key={`v-${i}`}
               cx={v.x}
               cy={v.y}
-              r={i === 0 && !closed ? 1.2 : 0.8}
+              r={i === 0 && !closed ? 0.6 : 0.4}
               className={cn(
                 i === 0 && !closed
                   ? canClose ? "fill-emerald-400 stroke-emerald-300" : "fill-amber-400 stroke-amber-300"
                   : "fill-amber-400 stroke-amber-300"
               )}
-              strokeWidth={0.2}
+              strokeWidth={0.1}
             />
           ))}
 
@@ -551,10 +551,10 @@ export default function ShapeBuilder({
             <circle
               cx={vertices[0].x}
               cy={vertices[0].y}
-              r={2}
+              r={1}
               className="fill-none stroke-emerald-400 animate-pulse"
-              strokeWidth={0.3}
-              strokeDasharray="0.8 0.5"
+              strokeWidth={0.15}
+              strokeDasharray="0.4 0.25"
             />
           )}
         </svg>
