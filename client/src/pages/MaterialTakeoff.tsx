@@ -556,17 +556,6 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <div className="text-xs text-slate-500 leading-none">Grand Total</div>
               <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 leading-tight">{formatTakeoffCurrency(grandTotal)}</div>
             </div>
-            <button
-              onClick={handleExportCSV}
-              className="px-3 py-1.5 rounded-lg border border-amber-600/60 text-amber-400 text-xs font-medium hover:border-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-1.5"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              CSV
-            </button>
           </div>
         </div>
 
@@ -2386,6 +2375,17 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           {activePhase === 1 ? '← Back to Estimate' : `← ${PHASE_TABS[activePhase - 2].label}`}
         </button>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2.5 rounded-lg border border-amber-600/60 text-amber-400 text-sm font-medium hover:border-amber-500 hover:bg-amber-500/10 transition-all flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export CSV
+          </button>
           {activePhase < 7 ? (
             <button
               onClick={() => { setActivePhase(activePhase + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
