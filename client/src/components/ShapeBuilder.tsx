@@ -952,6 +952,14 @@ export default function ShapeBuilder({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {closed && (
+            <button
+              onClick={() => setClosed(false)}
+              className="text-xs text-slate-400 hover:text-sky-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-sky-400/30"
+            >
+              ✎ Edit
+            </button>
+          )}
           {!closed && vertices.length > 0 && (
             <button
               onClick={() => setVertices((prev) => prev.slice(0, -1))}
