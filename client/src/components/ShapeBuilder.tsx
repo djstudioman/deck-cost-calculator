@@ -158,6 +158,7 @@ export default function ShapeBuilder({
     | null
   >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Sync restored vertices from saved estimates
@@ -695,9 +696,33 @@ export default function ShapeBuilder({
                 strokeWidth={2}
                 style={{ cursor: "cell" }}
                 onClick={insertVertexOnEdge}
+                onMouseMove={(e) => {
+                  if (!svgRef.current) return;
+                  const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
+                  const snapped = snapToGrid(raw.x, raw.y);
+                  // Project snapped point onto the edge segment so it stays on the line
+                  const dx = next.x - v.x, dy = next.y - v.y;
+                  const lenSq = dx * dx + dy * dy;
+                  if (lenSq === 0) return;
+                  const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
+                  // Snap t to nearest grid step along the edge
+                  const edgeLen = Math.sqrt(lenSq);
+                  const tSnapped = Math.round(t * edgeLen / CELL) * CELL / edgeLen;
+                  const tClamped = Math.max(0, Math.min(1, tSnapped));
+                  setEdgeHoverPt({ x: v.x + tClamped * dx, y: v.y + tClamped * dy });
+                }}
+                onMouseLeave={() => setEdgeHoverPt(null)}
               />
             );
           })}
+
+          {/* Ghost dot preview on edge hover */}
+          {edgeHoverPt && (
+            <g className="pointer-events-none">
+              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7} className="fill-emerald-400/40 stroke-emerald-400" strokeWidth={0.15} />
+              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.25} className="fill-emerald-300" />
+            </g>
+          )}
 
           {/* Drag handles at edge midpoints */}
           {edges.map((edge) => {
