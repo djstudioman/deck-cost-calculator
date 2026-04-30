@@ -716,13 +716,38 @@ export default function ShapeBuilder({
             );
           })}
 
-          {/* Ghost dot preview on edge hover */}
-          {edgeHoverPt && (
-            <g className="pointer-events-none">
-              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7} className="fill-emerald-400/40 stroke-emerald-400" strokeWidth={0.15} />
-              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.25} className="fill-emerald-300" />
-            </g>
-          )}
+          {/* Ghost dot preview on edge hover with coordinate label */}
+          {edgeHoverPt && (() => {
+            const label = `${Math.round(edgeHoverPt.x)}', ${Math.round(edgeHoverPt.y)}'`;
+            const tipX = edgeHoverPt.x > VB_W - 8 ? edgeHoverPt.x - 1.5 : edgeHoverPt.x + 1.5;
+            const tipY = edgeHoverPt.y > VB_H - 4 ? edgeHoverPt.y - 2 : edgeHoverPt.y - 1.5;
+            const padW = label.length * 1.05 + 1;
+            return (
+              <g className="pointer-events-none">
+                <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7} className="fill-emerald-400/40 stroke-emerald-400" strokeWidth={0.15} />
+                <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.25} className="fill-emerald-300" />
+                <rect
+                  x={tipX - padW / 2}
+                  y={tipY - 1.4}
+                  width={padW}
+                  height={2.6}
+                  rx={0.4}
+                  className="fill-slate-900"
+                  opacity={0.9}
+                />
+                <text
+                  x={tipX}
+                  y={tipY}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-emerald-300"
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })()}
 
           {/* Drag handles at edge midpoints */}
           {edges.map((edge) => {
