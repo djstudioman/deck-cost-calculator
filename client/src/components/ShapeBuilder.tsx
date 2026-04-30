@@ -28,11 +28,11 @@ interface ShapeBuilderProps {
 }
 
 // ─── Grid constants ──────────────────────────────────────────────────────────
-const GRID_W = 44; // feet wide
-const GRID_H = 36; // feet tall
+const GRID_W = 60; // feet wide
+const GRID_H = 48; // feet tall
 const CELL = 2;    // feet per cell
-const COLS = GRID_W / CELL; // 22 columns
-const ROWS = GRID_H / CELL; // 18 rows
+const COLS = GRID_W / CELL; // 30 columns
+const ROWS = GRID_H / CELL; // 24 rows
 const CLOSE_RADIUS = 3; // feet — snap radius for closing (uses raw coords for reliability)
 
 // SVG viewBox dimensions (1px per foot for clean math)
@@ -560,7 +560,7 @@ export default function ShapeBuilder({
           ref={svgRef}
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           className="w-full h-auto cursor-crosshair select-none"
-          style={{ maxHeight: "400px" }}
+          style={{ maxHeight: "520px" }}
           preserveAspectRatio="xMidYMid meet"
           onClick={handleClick}
           onMouseMove={handleMouseMove}
