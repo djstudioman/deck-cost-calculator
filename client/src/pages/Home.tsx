@@ -36,6 +36,7 @@ import ResultsPanel from "@/components/ResultsPanel";
 import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   saveEstimate,
   loadAllEstimates,
@@ -189,11 +190,17 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step, showResults, showTakeoff]);
 
-  // Bug 1 fix: auto-update railingLF whenever deck size changes
+  // Auto-update railingLF whenever deck size changes.
+  // For custom sizes, use actual dimensions (width + 2*length = 3 exposed sides).
+  // For preset sizes, fall back to the sqrt heuristic.
   useEffect(() => {
-    const sizeSqFt = DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320;
-    setRailingLF(Math.round(Math.sqrt(sizeSqFt) * 3));
-  }, [sizeId]);
+    if (sizeId === "custom") {
+      setRailingLF(Math.round(customWidth + 2 * customLength));
+    } else {
+      const sizeSqFt = DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320;
+      setRailingLF(Math.round(Math.sqrt(sizeSqFt) * 3));
+    }
+  }, [sizeId, customWidth, customLength]);
 
 
   const inputs: CalculatorInputs = useMemo(
@@ -355,8 +362,16 @@ export default function Home() {
   // ─── SAVE / LOAD ESTIMATE ───────────────────────────────────────────────────
   // On mount: check if URL contains an encoded estimate and restore it
   useState(() => {
+    const hasParam = new URLSearchParams(window.location.search).has("e");
     const snap = decodeEstimateFromUrl();
-    if (!snap) return;
+    if (!snap) {
+      if (hasParam) {
+        // Param was present but failed to decode — malformed share link
+        clearUrlParam();
+        setTimeout(() => toast.error("This share link appears to be invalid or expired. Starting a fresh estimate."), 100);
+      }
+      return;
+    }
     clearUrlParam();
     setAudience(snap.audience);
     setRegionId(snap.regionId);
@@ -2000,9 +2015,11 @@ export default function Home() {
                             { id: "cable",             label: "Premium look",     sub: "Cable, glass, or high-end composite — modern aesthetic, maximum views",      badge: "Premium"         },
                           ].map((opt) => {
                             const sys = RAILING_SYSTEMS.find(r => r.id === opt.id)!;
-                            // Auto-set railingLF from deck size when a style is picked
-                            const sizeSqFt = DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320;
-                            const autoLF = Math.round(Math.sqrt(sizeSqFt) * 3); // ~3 open sides
+                            // Auto-set railingLF from deck size when a style is picked.
+                            // For custom sizes use actual perimeter (width + 2*length); otherwise sqrt heuristic.
+                            const autoLF = sizeId === "custom"
+                              ? Math.round(customWidth + 2 * customLength)
+                              : Math.round(Math.sqrt(DECK_SIZES.find(s => s.id === sizeId)?.sqFt ?? 320) * 3);
                             return (
                               <button
                                 key={opt.id}
