@@ -220,12 +220,17 @@ export default function ShapeBuilder({
 
   // ─── Event handlers ─────────────────────────────────────────────────────────
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (closed || vertices.length === 0 || !svgRef.current) {
+    if (closed || !svgRef.current) {
       setCandidate(null);
       return;
     }
     const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
     const snapped = snapToGrid(raw.x, raw.y);
+    if (vertices.length === 0) {
+      // No vertices yet — just show the snapped grid point as a ghost
+      setCandidate(snapped);
+      return;
+    }
     const prev = vertices[vertices.length - 1];
     const ortho = orthoSnap(snapped, prev);
     setCandidate(ortho);
@@ -490,6 +495,20 @@ export default function ShapeBuilder({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
+          )}
+
+          {/* Ghost snap point — shown when hovering before first vertex is placed */}
+          {!closed && candidate && vertices.length === 0 && (
+            <g>
+              {/* Crosshair lines */}
+              <line x1={candidate.x - 1.2} y1={candidate.y} x2={candidate.x + 1.2} y2={candidate.y}
+                className="stroke-amber-400/50" strokeWidth={0.2} />
+              <line x1={candidate.x} y1={candidate.y - 1.2} x2={candidate.x} y2={candidate.y + 1.2}
+                className="stroke-amber-400/50" strokeWidth={0.2} />
+              {/* Center dot */}
+              <circle cx={candidate.x} cy={candidate.y} r={0.4}
+                className="fill-amber-400/70 stroke-amber-300/50" strokeWidth={0.1} />
+            </g>
           )}
 
           {/* Dashed preview line to candidate */}
