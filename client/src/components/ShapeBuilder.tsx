@@ -776,6 +776,14 @@ export default function ShapeBuilder({
 
 
 
+          {/* Ghost dot on edge hover — indicates edge can be split, no label */}
+          {edgeHoverPt && (
+            <g className="pointer-events-none">
+              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7} className="fill-emerald-400/30 stroke-emerald-400" strokeWidth={0.15} />
+              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.25} className="fill-emerald-300" />
+            </g>
+          )}
+
           {/* Drag handles at edge midpoints */}
           {edges.map((edge) => {
             if (edge.len < 2) return null;
