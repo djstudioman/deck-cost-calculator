@@ -299,6 +299,19 @@ export default function ShapeBuilder({
     setDragging({ edge: edgeIndex, axis });
   }, []);
 
+  const deleteVertex = useCallback((index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVertices((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length < 3) {
+        // Too few points to stay closed — re-open for editing
+        setClosed(false);
+        onShapeChange(0, 0);
+      }
+      return next;
+    });
+  }, [onShapeChange]);
+
   // ─── Presets & reset ────────────────────────────────────────────────────────
   const loadPreset = useCallback((presetId: string) => {
     const preset = PRESETS.find((p) => p.id === presetId);
@@ -587,20 +600,32 @@ export default function ShapeBuilder({
             );
           })}
 
-          {/* Vertex dots */}
+          {/* Vertex dots — double-click to delete when shape is closed */}
           {vertices.map((v, i) => (
-            <circle
-              key={`v-${i}`}
-              cx={v.x}
-              cy={v.y}
-              r={i === 0 && !closed ? 0.6 : 0.4}
-              className={cn(
-                i === 0 && !closed
-                  ? canClose ? "fill-emerald-400 stroke-emerald-300" : "fill-amber-400 stroke-amber-300"
-                  : "fill-amber-400 stroke-amber-300"
-              )}
-              strokeWidth={0.1}
-            />
+            <g key={`v-${i}`}>
+              {/* Invisible wider hit area for easier interaction */}
+              <circle
+                cx={v.x}
+                cy={v.y}
+                r={1.5}
+                fill="transparent"
+                style={{ cursor: closed ? "pointer" : "default" }}
+                onDoubleClick={closed ? (e) => deleteVertex(i, e) : undefined}
+              />
+              {/* Visible dot */}
+              <circle
+                cx={v.x}
+                cy={v.y}
+                r={i === 0 && !closed ? 0.6 : 0.4}
+                className={cn(
+                  "pointer-events-none",
+                  i === 0 && !closed
+                    ? canClose ? "fill-emerald-400 stroke-emerald-300" : "fill-amber-400 stroke-amber-300"
+                    : closed ? "fill-amber-400/80 stroke-amber-300 hover:fill-red-400" : "fill-amber-400 stroke-amber-300"
+                )}
+                strokeWidth={0.1}
+              />
+            </g>
           ))}
 
           {/* Close indicator ring */}
@@ -636,6 +661,11 @@ export default function ShapeBuilder({
         {!closed && vertices.length >= 3 && (
           <div className="absolute bottom-2 left-2 text-[10px] text-emerald-400 bg-slate-900/80 px-2 py-1 rounded">
             Click near the start point to close the shape
+          </div>
+        )}
+        {closed && (
+          <div className="absolute bottom-2 left-2 text-[10px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded">
+            Double-click a corner to remove it
           </div>
         )}
       </div>
