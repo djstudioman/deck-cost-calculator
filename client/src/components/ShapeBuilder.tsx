@@ -652,28 +652,36 @@ export default function ShapeBuilder({
           })}
 
           {/* Area badge at centroid — rendered last so it sits on top */}
-          {closed && area > 0 && (
-            <>
-              <rect
-                x={centroid.x - 5}
-                y={centroid.y - 1.5}
-                width={10}
-                height={3}
-                rx={0.5}
-                className="fill-slate-900/80"
-              />
-              <text
-                x={centroid.x}
-                y={centroid.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-amber-300 pointer-events-none"
-                style={{ fontSize: "2px", fontFamily: "monospace", fontWeight: 700 }}
-              >
-                {Math.round(area * 2 / 3)} ft²
-              </text>
-            </>
-          )}
+          {closed && area > 0 && (() => {
+            const displayArea = Math.round(area * 2 / 3);
+            const label = `${displayArea} ft²`;
+            // Approximate badge width: ~1.1 SVG units per character at fontSize 1.6px
+            const badgeW = label.length * 1.1 + 1.2;
+            const badgeH = 2.6;
+            return (
+              <>
+                <rect
+                  x={centroid.x - badgeW / 2}
+                  y={centroid.y - badgeH / 2}
+                  width={badgeW}
+                  height={badgeH}
+                  rx={0.45}
+                  className="fill-slate-900"
+                  opacity={0.88}
+                />
+                <text
+                  x={centroid.x}
+                  y={centroid.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-amber-300 pointer-events-none"
+                  style={{ fontSize: "1.6px", fontFamily: "monospace", fontWeight: 700 }}
+                >
+                  {label}
+                </text>
+              </>
+            );
+          })()}
 
           {/* Clickable edge hit areas for inserting a new vertex */}
           {closed && vertices.map((v, i) => {
