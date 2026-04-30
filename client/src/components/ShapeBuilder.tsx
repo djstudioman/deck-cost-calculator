@@ -670,7 +670,7 @@ export default function ShapeBuilder({
                 className="fill-amber-300 pointer-events-none"
                 style={{ fontSize: "2px", fontFamily: "monospace", fontWeight: 700 }}
               >
-                {Math.round(area)} ft²
+                {Math.round(area * 2 / 3)} ft²
               </text>
             </>
           )}
