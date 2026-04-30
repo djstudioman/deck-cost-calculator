@@ -198,20 +198,26 @@ export default function ShapeBuilder({
           return pts;
         });
       } else {
-        // Edge drag — constrain to one axis
+        // Edge drag — translate both endpoints by the same delta, snapped
         setVertices((prev) => {
           const pts = [...prev];
           const i = dragging.edge;
           const j = (i + 1) % pts.length;
-          if (dragging.axis === "y") {
-            const newY = Math.max(0, Math.min(GRID_H, snapped.y));
-            pts[i] = { ...pts[i], y: newY };
-            pts[j] = { ...pts[j], y: newY };
-          } else {
-            const newX = Math.max(0, Math.min(GRID_W, snapped.x));
-            pts[i] = { ...pts[i], x: newX };
-            pts[j] = { ...pts[j], x: newX };
-          }
+          const newX = Math.max(0, Math.min(GRID_W, snapped.x));
+          const newY = Math.max(0, Math.min(GRID_H, snapped.y));
+          // Move the midpoint to the new snapped position, preserving edge shape
+          const oldMidX = (pts[i].x + pts[j].x) / 2;
+          const oldMidY = (pts[i].y + pts[j].y) / 2;
+          const dxSnap = Math.round((newX - oldMidX) / CELL) * CELL;
+          const dySnap = Math.round((newY - oldMidY) / CELL) * CELL;
+          pts[i] = {
+            x: Math.max(0, Math.min(GRID_W, pts[i].x + dxSnap)),
+            y: Math.max(0, Math.min(GRID_H, pts[i].y + dySnap)),
+          };
+          pts[j] = {
+            x: Math.max(0, Math.min(GRID_W, pts[j].x + dxSnap)),
+            y: Math.max(0, Math.min(GRID_H, pts[j].y + dySnap)),
+          };
           return pts;
         });
       }
@@ -239,25 +245,16 @@ export default function ShapeBuilder({
     }
     const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
     const snapped = snapToGrid(raw.x, raw.y);
-    if (vertices.length === 0) {
-      // No vertices yet — just show the snapped grid point as a ghost
-      setCandidate(snapped);
-      return;
-    }
-    const prev = vertices[vertices.length - 1];
-    const ortho = orthoSnap(snapped, prev);
-    setCandidate(ortho);
-  }, [closed, vertices]);
+    setCandidate(snapped);
+  }, [closed]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
-    if (closed || vertices.length === 0 || !svgRef.current) return;
+    if (closed || !svgRef.current) return;
     const touch = e.touches[0];
     const raw = getSVGCoords(svgRef.current, touch.clientX, touch.clientY);
     const snapped = snapToGrid(raw.x, raw.y);
-    const prev = vertices[vertices.length - 1];
-    const ortho = orthoSnap(snapped, prev);
-    setCandidate(ortho);
-  }, [closed, vertices]);
+    setCandidate(snapped);
+  }, [closed]);
 
   const tryAddVertex = useCallback((clientX: number, clientY: number) => {
     if (closed || !svgRef.current) return;
@@ -270,19 +267,18 @@ export default function ShapeBuilder({
       return;
     }
 
-    const prev = vertices[vertices.length - 1];
-    const ortho = orthoSnap(snapped, prev);
-
     // Clamp to grid bounds
     const clamped: ShapePt = {
-      x: Math.max(0, Math.min(GRID_W, ortho.x)),
-      y: Math.max(0, Math.min(GRID_H, ortho.y)),
+      x: Math.max(0, Math.min(GRID_W, snapped.x)),
+      y: Math.max(0, Math.min(GRID_H, snapped.y)),
     };
 
     // Check close gesture
     if (vertices.length >= 3) {
       const first = vertices[0];
-      const dist = Math.abs(clamped.x - first.x) + Math.abs(clamped.y - first.y);
+      const dx = clamped.x - first.x;
+      const dy = clamped.y - first.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist <= CLOSE_RADIUS) {
         setClosed(true);
         setCandidate(null);
@@ -374,30 +370,28 @@ export default function ShapeBuilder({
       const midX = (v.x + next.x) / 2;
       const midY = (v.y + next.y) / 2;
       const isHoriz = v.y === next.y;
-      const len = Math.abs(next.x - v.x) + Math.abs(next.y - v.y);
+      // True Euclidean length for diagonal edges
+      const dx = next.x - v.x;
+      const dy = next.y - v.y;
+      const len = Math.round(Math.sqrt(dx * dx + dy * dy));
 
-      // Determine which side of the edge is "outside" (away from centroid)
-      let labelX: number;
-      let labelY: number;
-      if (isHoriz) {
-        // Horizontal edge: label moves up or down
-        const outDir = midY < cy ? -1 : 1; // outside = away from centroid
-        let rawY = midY + outDir * LABEL_OFFSET;
-        // Clamp: if too close to top/bottom boundary, flip inward
-        if (rawY < MARGIN) rawY = midY + LABEL_OFFSET;
-        if (rawY > VB_H - MARGIN) rawY = midY - LABEL_OFFSET;
-        labelX = midX;
-        labelY = rawY;
-      } else {
-        // Vertical edge: label moves left or right
-        const outDir = midX < cx ? -1 : 1; // outside = away from centroid
-        let rawX = midX + outDir * LABEL_OFFSET;
-        // Clamp: if too close to left/right boundary, flip inward
-        if (rawX < MARGIN) rawX = midX + LABEL_OFFSET;
-        if (rawX > VB_W - MARGIN) rawX = midX - LABEL_OFFSET;
-        labelX = rawX;
-        labelY = midY;
-      }
+      // Edge normal pointing away from centroid (outward)
+      // Perpendicular to edge direction, normalised
+      const edgeLen = Math.sqrt(dx * dx + dy * dy) || 1;
+      let nx = -dy / edgeLen; // left-hand normal
+      let ny = dx / edgeLen;
+      // Flip if it points toward centroid instead of away
+      const toCx = cx - midX;
+      const toCy = cy - midY;
+      if (nx * toCx + ny * toCy > 0) { nx = -nx; ny = -ny; }
+
+      let labelX = midX + nx * LABEL_OFFSET;
+      let labelY = midY + ny * LABEL_OFFSET;
+      // Clamp to grid boundary
+      if (labelX < MARGIN) labelX = midX + Math.abs(nx) * LABEL_OFFSET;
+      if (labelX > VB_W - MARGIN) labelX = midX - Math.abs(nx) * LABEL_OFFSET;
+      if (labelY < MARGIN) labelY = midY + Math.abs(ny) * LABEL_OFFSET;
+      if (labelY > VB_H - MARGIN) labelY = midY - Math.abs(ny) * LABEL_OFFSET;
 
       return { midX, midY, isHoriz, len, i, labelX, labelY };
     });
@@ -415,8 +409,9 @@ export default function ShapeBuilder({
   const canClose = useMemo(() => {
     if (closed || vertices.length < 3 || !candidate) return false;
     const first = vertices[0];
-    const dist = Math.abs(candidate.x - first.x) + Math.abs(candidate.y - first.y);
-    return dist <= CLOSE_RADIUS;
+    const dx = candidate.x - first.x;
+    const dy = candidate.y - first.y;
+    return Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS;
   }, [closed, vertices, candidate]);
 
   // ─── JSX ────────────────────────────────────────────────────────────────────
@@ -613,9 +608,9 @@ export default function ShapeBuilder({
                   dragging?.type === "edge" && dragging.edge === edge.i ? "fill-amber-500/30" : "hover:fill-amber-500/20"
                 )}
                 strokeWidth={0.15}
-                style={{ cursor: edge.isHoriz ? "ns-resize" : "ew-resize" }}
-                onMouseDown={(e) => startEdgeDrag(edge.i, edge.isHoriz ? "y" : "x", e)}
-                onTouchStart={(e) => startEdgeDrag(edge.i, edge.isHoriz ? "y" : "x", e as unknown as React.MouseEvent)}
+                style={{ cursor: "move" }}
+                onMouseDown={(e) => startEdgeDrag(edge.i, "x", e)}
+                onTouchStart={(e) => startEdgeDrag(edge.i, "x", e as unknown as React.MouseEvent)}
               />
             );
           })}
