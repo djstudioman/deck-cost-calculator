@@ -1345,46 +1345,62 @@ export default function Home() {
 
                     {/* Custom Shape tool — contractor only */}
                     {audience === "contractor" && (
-                      <div
-                        className={cn(
-                          "col-span-2 p-3 rounded-lg border transition-all",
-                          sizeId === "shape"
-                            ? `${sel.border} ${sel.bg}`
-                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
-                        )}
-                      >
-                        <button
-                          className="w-full text-left"
-                          onClick={() => {
-                            if (sizeId !== "shape") setSizeId("shape");
-                          }}
-                        >
+                      <>
+                        {/* Mobile: disabled placeholder */}
+                        <div className="sm:hidden col-span-2 p-3 rounded-lg border border-white/10 bg-white/[0.02] opacity-50 cursor-not-allowed">
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-semibold text-sm text-white">Custom Shape</div>
                               <div className="text-xs text-slate-500 mt-0.5">Draw L-shapes, T-shapes, or any outline</div>
                             </div>
                             <div className="text-right">
-                              {sizeId === "shape" && shapeArea > 0 && (
-                                <div className={`text-xs font-mono ${ac.text}`}>{shapeArea} sq ft</div>
-                              )}
-                              <div className="text-xs text-slate-600">contractor only</div>
+                              <div className="text-xs text-slate-500 border border-white/10 rounded px-1.5 py-0.5">Desktop only</div>
                             </div>
                           </div>
-                        </button>
-                        {sizeId === "shape" && (
-                          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                            <ShapeBuilder
-                              onShapeChange={(area, perimeter) => {
-                                setShapeArea(area);
-                                setShapePerimeter(perimeter);
-                              }}
-                              accentColor={ac.text}
-                              accentBg={ac.btnClass}
-                            />
-                          </div>
-                        )}
-                      </div>
+                        </div>
+
+                        {/* Desktop: full interactive tool */}
+                        <div
+                          className={cn(
+                            "hidden sm:block col-span-2 p-3 rounded-lg border transition-all",
+                            sizeId === "shape"
+                              ? `${sel.border} ${sel.bg}`
+                              : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                          )}
+                        >
+                          <button
+                            className="w-full text-left"
+                            onClick={() => {
+                              if (sizeId !== "shape") setSizeId("shape");
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold text-sm text-white">Custom Shape</div>
+                                <div className="text-xs text-slate-500 mt-0.5">Draw L-shapes, T-shapes, or any outline</div>
+                              </div>
+                              <div className="text-right">
+                                {sizeId === "shape" && shapeArea > 0 && (
+                                  <div className={`text-xs font-mono ${ac.text}`}>{shapeArea} sq ft</div>
+                                )}
+                                <div className="text-xs text-slate-600">contractor only</div>
+                              </div>
+                            </div>
+                          </button>
+                          {sizeId === "shape" && (
+                            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                              <ShapeBuilder
+                                onShapeChange={(area, perimeter) => {
+                                  setShapeArea(area);
+                                  setShapePerimeter(perimeter);
+                                }}
+                                accentColor={ac.text}
+                                accentBg={ac.btnClass}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>{/* end main size grid */}
                   {/* Multi-level toggle — contractor only */}
