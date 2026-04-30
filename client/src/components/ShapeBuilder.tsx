@@ -434,11 +434,56 @@ export default function ShapeBuilder({
   }, [vertices, closed]);
 
   // Centroid for area badge
+  // Pole of inaccessibility — the interior point farthest from all edges.
+  // Gives a visually stable label position in the largest "room" of the shape.
   const centroid = useMemo(() => {
     if (vertices.length < 3) return { x: VB_W / 2, y: VB_H / 2 };
-    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
-    const cy = vertices.reduce((s, v) => s + v.y, 0) / vertices.length;
-    return { x: cx, y: cy };
+
+    // Helper: is point (px,py) inside the polygon? (ray casting)
+    function pointInPoly(px: number, py: number): boolean {
+      let inside = false;
+      for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const xi = vertices[i].x, yi = vertices[i].y;
+        const xj = vertices[j].x, yj = vertices[j].y;
+        if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+          inside = !inside;
+        }
+      }
+      return inside;
+    }
+
+    // Helper: min distance from point to any polygon edge
+    function distToEdges(px: number, py: number): number {
+      let minD = Infinity;
+      for (let i = 0; i < vertices.length; i++) {
+        const j = (i + 1) % vertices.length;
+        const ax = vertices[i].x, ay = vertices[i].y;
+        const bx = vertices[j].x, by = vertices[j].y;
+        const dx = bx - ax, dy = by - ay;
+        const lenSq = dx * dx + dy * dy;
+        const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+        const nearX = ax + t * dx, nearY = ay + t * dy;
+        const d = Math.sqrt((px - nearX) ** 2 + (py - nearY) ** 2);
+        if (d < minD) minD = d;
+      }
+      return minD;
+    }
+
+    // Sample on a coarse grid, keep the interior point with the largest clearance
+    const STEP = CELL; // 2ft steps
+    let bestX = vertices[0].x, bestY = vertices[0].y, bestD = -1;
+    const xs = vertices.map((v) => v.x);
+    const ys = vertices.map((v) => v.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    for (let sx = minX + STEP / 2; sx < maxX; sx += STEP) {
+      for (let sy = minY + STEP / 2; sy < maxY; sy += STEP) {
+        if (!pointInPoly(sx, sy)) continue;
+        const d = distToEdges(sx, sy);
+        if (d > bestD) { bestD = d; bestX = sx; bestY = sy; }
+      }
+    }
+    return { x: bestX, y: bestY };
   }, [vertices]);
 
   // Can-close detection for visual hint
