@@ -1172,11 +1172,7 @@ export default function Home() {
                   {/* Market Tier — contractor only */}
                   {audience === "contractor" && (
                     <div className="mt-4">
-                      {/* Scroll indicator to signal more content below */}
-                      <div className="flex items-center gap-2 mb-3 py-2 border-t border-white/[0.08]">
-                        <div className="animate-bounce text-amber-400 text-sm">↓</div>
-                        <div className="text-xs text-slate-400">Scroll down — <span className="text-amber-400 font-semibold">Labor Market Tier</span> affects your labor rates</div>
-                      </div>
+
                       <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider mb-2`}>
                         Labor Market Tier
                       </div>
