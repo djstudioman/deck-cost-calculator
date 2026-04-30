@@ -654,6 +654,41 @@ export default function ShapeBuilder({
             </g>
           ))}
 
+          {/* Live coordinate tooltip while dragging a vertex */}
+          {dragging?.type === "vertex" && (() => {
+            const v = vertices[dragging.index];
+            if (!v) return null;
+            // Offset the tooltip so it doesn't overlap the dot
+            // Push right by default; flip left if near right boundary
+            const tipX = v.x > VB_W - 8 ? v.x - 1.5 : v.x + 1.5;
+            const tipY = v.y > VB_H - 4 ? v.y - 2 : v.y - 1.5;
+            const label = `${v.x}', ${v.y}'`;
+            const padW = label.length * 1.05 + 1;
+            return (
+              <g className="pointer-events-none">
+                <rect
+                  x={tipX - padW / 2}
+                  y={tipY - 1.4}
+                  width={padW}
+                  height={2.6}
+                  rx={0.4}
+                  className="fill-slate-900"
+                  opacity={0.9}
+                />
+                <text
+                  x={tipX}
+                  y={tipY}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-amber-300"
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })()}
+
           {/* Close indicator ring */}
           {canClose && !closed && vertices.length >= 3 && (
             <circle
