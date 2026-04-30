@@ -642,19 +642,49 @@ export default function ShapeBuilder({
             />
           )}
 
-          {/* Ghost snap point — shown when hovering before first vertex is placed */}
-          {!closed && candidate && vertices.length === 0 && (
-            <g>
-              {/* Crosshair lines */}
-              <line x1={candidate.x - 1.2} y1={candidate.y} x2={candidate.x + 1.2} y2={candidate.y}
-                className="stroke-amber-400/50" strokeWidth={0.2} />
-              <line x1={candidate.x} y1={candidate.y - 1.2} x2={candidate.x} y2={candidate.y + 1.2}
-                className="stroke-amber-400/50" strokeWidth={0.2} />
-              {/* Center dot */}
-              <circle cx={candidate.x} cy={candidate.y} r={0.4}
-                className="fill-amber-400/70 stroke-amber-300/50" strokeWidth={0.1} />
-            </g>
-          )}
+          {/* Ghost snap point + coordinate label — shown while drawing */}
+          {!closed && candidate && (() => {
+            const tipX = candidate.x > VB_W - 8 ? candidate.x - 1.5 : candidate.x + 1.5;
+            const tipY = candidate.y > VB_H - 4 ? candidate.y - 2 : candidate.y - 1.5;
+            const coordLabel = `${candidate.x}', ${candidate.y}'`;
+            const padW = coordLabel.length * 1.05 + 1;
+            return (
+              <g className="pointer-events-none">
+                {/* Crosshair (only before first vertex) */}
+                {vertices.length === 0 && (
+                  <>
+                    <line x1={candidate.x - 1.2} y1={candidate.y} x2={candidate.x + 1.2} y2={candidate.y}
+                      className="stroke-amber-400/50" strokeWidth={0.2} />
+                    <line x1={candidate.x} y1={candidate.y - 1.2} x2={candidate.x} y2={candidate.y + 1.2}
+                      className="stroke-amber-400/50" strokeWidth={0.2} />
+                  </>
+                )}
+                {/* Center dot */}
+                <circle cx={candidate.x} cy={candidate.y} r={vertices.length === 0 ? 0.4 : 0.3}
+                  className="fill-amber-400/70 stroke-amber-300/50" strokeWidth={0.1} />
+                {/* Coordinate label pill */}
+                <rect
+                  x={tipX - padW / 2}
+                  y={tipY - 1.4}
+                  width={padW}
+                  height={2.6}
+                  rx={0.4}
+                  className="fill-slate-900"
+                  opacity={0.9}
+                />
+                <text
+                  x={tipX}
+                  y={tipY}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-amber-300"
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}
+                >
+                  {coordLabel}
+                </text>
+              </g>
+            );
+          })()}
 
           {/* Dashed preview line to candidate */}
           {!closed && candidate && vertices.length > 0 && (
