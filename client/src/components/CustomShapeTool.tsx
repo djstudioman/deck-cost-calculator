@@ -143,11 +143,14 @@ export default function CustomShapeTool({
   const fromSvg = useCallback((clientX: number, clientY: number): Point => {
     if (!svgRef.current) return { x: 0, y: 0 };
     const rect = svgRef.current.getBoundingClientRect();
-    const rawX = (clientX - rect.left) / CELL_SIZE_PX;
-    const rawY = (clientY - rect.top) / CELL_SIZE_PX;
+    // Account for CSS scaling: rendered size may differ from viewBox size
+    const scaleX = svgWidth / rect.width;
+    const scaleY = svgHeight / rect.height;
+    const rawX = ((clientX - rect.left) * scaleX) / CELL_SIZE_PX;
+    const rawY = ((clientY - rect.top) * scaleY) / CELL_SIZE_PX;
     // Snap to grid
     return { x: Math.round(rawX), y: Math.round(rawY) };
-  }, []);
+  }, [svgWidth, svgHeight]);
 
   // ─── Orthogonal snap ──────────────────────────────────────────────────────
   const snapOrthogonal = useCallback((raw: Point, prev: Point): Point => {
