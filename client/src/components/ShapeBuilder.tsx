@@ -315,6 +315,42 @@ export default function ShapeBuilder({
     setDragging({ type: "vertex", index });
   }, [closed]);
 
+  // Insert a new vertex by clicking on an edge of the closed polygon
+  const insertVertexOnEdge = useCallback((e: React.MouseEvent<SVGElement>) => {
+    if (!closed || !svgRef.current) return;
+    e.stopPropagation();
+    const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
+    const snapped = snapToGrid(raw.x, raw.y);
+
+    // Find the closest edge to the click point
+    let bestEdge = -1;
+    let bestDist = Infinity;
+    vertices.forEach((v, i) => {
+      const j = (i + 1) % vertices.length;
+      const next = vertices[j];
+      // Distance from point to line segment
+      const dx = next.x - v.x;
+      const dy = next.y - v.y;
+      const lenSq = dx * dx + dy * dy;
+      if (lenSq === 0) return;
+      const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
+      const projX = v.x + t * dx;
+      const projY = v.y + t * dy;
+      const dist = Math.sqrt((snapped.x - projX) ** 2 + (snapped.y - projY) ** 2);
+      if (dist < bestDist) { bestDist = dist; bestEdge = i; }
+    });
+
+    // Only insert if click is reasonably close to an edge (within 2ft)
+    if (bestEdge === -1 || bestDist > 2) return;
+
+    setVertices((prev) => {
+      const pts = [...prev];
+      pts.splice(bestEdge + 1, 0, snapped);
+      return pts;
+    });
+    setActivePreset(null);
+  }, [closed, vertices]);
+
   const deleteVertex = useCallback((index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setVertices((prev) => {
@@ -594,6 +630,22 @@ export default function ShapeBuilder({
             </>
           )}
 
+          {/* Clickable edge hit areas for inserting a new vertex */}
+          {closed && vertices.map((v, i) => {
+            const j = (i + 1) % vertices.length;
+            const next = vertices[j];
+            return (
+              <line
+                key={`edge-hit-${i}`}
+                x1={v.x} y1={v.y} x2={next.x} y2={next.y}
+                stroke="transparent"
+                strokeWidth={2}
+                style={{ cursor: "cell" }}
+                onClick={insertVertexOnEdge}
+              />
+            );
+          })}
+
           {/* Drag handles at edge midpoints */}
           {edges.map((edge) => {
             if (edge.len < 2) return null;
@@ -702,7 +754,7 @@ export default function ShapeBuilder({
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center text-slate-500 text-xs">
               <div className="text-sm mb-1">Click to place corners</div>
-              <div>All edges snap to horizontal/vertical</div>
+              <div>Lines snap to 2ft grid points</div>
               <div className="mt-1 text-[10px]">Or choose a preset above</div>
             </div>
           </div>
@@ -720,8 +772,8 @@ export default function ShapeBuilder({
           </div>
         )}
         {closed && (
-          <div className="absolute bottom-2 left-2 text-[10px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded">
-            Double-click a corner to remove it
+          <div className="absolute bottom-2 left-2 text-[10px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded space-y-0.5">
+            <div>Click an edge to add a point &nbsp;·&nbsp; Double-click a corner to remove it</div>
           </div>
         )}
       </div>
