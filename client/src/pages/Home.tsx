@@ -1485,6 +1485,15 @@ export default function Home() {
                             ? `${sel.border} ${sel.bg}`
                             : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
+                        style={{ backgroundImage:
+                          t.id === "pt"
+                            ? "repeating-linear-gradient(95deg, transparent, transparent 8px, rgba(139,90,43,0.05) 8px, rgba(139,90,43,0.05) 9px)"
+                            : t.id === "composite"
+                              ? "repeating-linear-gradient(135deg, transparent, transparent 12px, rgba(148,163,184,0.05) 12px, rgba(148,163,184,0.05) 13px)"
+                              : t.id === "pvc"
+                                ? "linear-gradient(160deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.06) 100%)"
+                                : undefined
+                        }}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
