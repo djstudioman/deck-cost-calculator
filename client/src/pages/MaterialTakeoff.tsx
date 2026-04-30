@@ -629,7 +629,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                 {' \u00b7 '}
                 <span className="font-mono">{formatTakeoffCurrency(Math.round(takeoffPreTax))}</span>
                 {' vs '}
-                <span className="font-mono">{formatTakeoffCurrency(estimateMaterialsLow)}\u2013{formatTakeoffCurrency(estimateMaterialsHigh)}</span>
+                <span className="font-mono">{formatTakeoffCurrency(estimateMaterialsLow)}–{formatTakeoffCurrency(estimateMaterialsHigh)}</span>
                 {!isInRange && <span className="ml-1 opacity-70">({pctDiff}% {isAbove ? 'over' : 'under'})</span>}
               </span>
               <svg
@@ -651,10 +651,10 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <div className="text-slate-300 mb-1">
-                      Estimate materials range: <span className="font-semibold text-white font-mono">{formatTakeoffCurrency(estimateMaterialsLow)} \u2013 {formatTakeoffCurrency(estimateMaterialsHigh)}</span>
+                      Estimate materials range: <span className="font-semibold text-white font-mono">{formatTakeoffCurrency(estimateMaterialsLow)} – {formatTakeoffCurrency(estimateMaterialsHigh)}</span>
                     </div>
                     <div className="text-slate-500">
-                      Includes all materials (boards, framing, hardware, footings) \u2014 excludes labor.
+                      Includes all materials (boards, framing, hardware, footings) — excludes labor.
                     </div>
                   </div>
                   <div className="text-right shrink-0">
