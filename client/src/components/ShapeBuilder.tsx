@@ -152,7 +152,11 @@ export default function ShapeBuilder({
   const [vertices, setVertices] = useState<ShapePt[]>(initialVertices ?? []);
   const [closed, setClosed] = useState(initialVertices ? initialVertices.length >= 3 : false);
   const [candidate, setCandidate] = useState<ShapePt | null>(null);
-  const [dragging, setDragging] = useState<{ edge: number; axis: "x" | "y" } | null>(null);
+  const [dragging, setDragging] = useState<
+    | { type: "edge"; edge: number; axis: "x" | "y" }
+    | { type: "vertex"; index: number }
+    | null
+  >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -184,31 +188,40 @@ export default function ShapeBuilder({
       const raw = getSVGCoords(svgRef.current, clientX, clientY);
       const snapped = snapToGrid(raw.x, raw.y);
 
-      setVertices((prev) => {
-        const pts = [...prev];
-        const i = dragging.edge;
-        const j = (i + 1) % pts.length;
-
-        if (dragging.axis === "y") {
-          // Horizontal edge — drag up/down
-          const newY = Math.max(0, Math.min(GRID_H, snapped.y));
-          pts[i] = { ...pts[i], y: newY };
-          pts[j] = { ...pts[j], y: newY };
-        } else {
-          // Vertical edge — drag left/right
-          const newX = Math.max(0, Math.min(GRID_W, snapped.x));
-          pts[i] = { ...pts[i], x: newX };
-          pts[j] = { ...pts[j], x: newX };
-        }
-        return pts;
-      });
+      if (dragging.type === "vertex") {
+        // Move the single vertex freely (clamped to grid bounds)
+        const newX = Math.max(0, Math.min(GRID_W, snapped.x));
+        const newY = Math.max(0, Math.min(GRID_H, snapped.y));
+        setVertices((prev) => {
+          const pts = [...prev];
+          pts[dragging.index] = { x: newX, y: newY };
+          return pts;
+        });
+      } else {
+        // Edge drag — constrain to one axis
+        setVertices((prev) => {
+          const pts = [...prev];
+          const i = dragging.edge;
+          const j = (i + 1) % pts.length;
+          if (dragging.axis === "y") {
+            const newY = Math.max(0, Math.min(GRID_H, snapped.y));
+            pts[i] = { ...pts[i], y: newY };
+            pts[j] = { ...pts[j], y: newY };
+          } else {
+            const newX = Math.max(0, Math.min(GRID_W, snapped.x));
+            pts[i] = { ...pts[i], x: newX };
+            pts[j] = { ...pts[j], x: newX };
+          }
+          return pts;
+        });
+      }
     };
 
     const handleUp = () => setDragging(null);
 
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
-    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchmove", handleMove, { passive: true });
     window.addEventListener("touchend", handleUp);
     return () => {
       window.removeEventListener("mousemove", handleMove);
@@ -296,8 +309,15 @@ export default function ShapeBuilder({
   const startEdgeDrag = useCallback((edgeIndex: number, axis: "x" | "y", e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setDragging({ edge: edgeIndex, axis });
+    setDragging({ type: "edge", edge: edgeIndex, axis });
   }, []);
+
+  const startVertexDrag = useCallback((index: number, e: React.MouseEvent | React.TouchEvent) => {
+    if (!closed) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setDragging({ type: "vertex", index });
+  }, [closed]);
 
   const deleteVertex = useCallback((index: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -590,7 +610,7 @@ export default function ShapeBuilder({
                 r={0.5}
                 className={cn(
                   "fill-slate-800 stroke-amber-400 cursor-move transition-colors",
-                  dragging?.edge === edge.i ? "fill-amber-500/30" : "hover:fill-amber-500/20"
+                  dragging?.type === "edge" && dragging.edge === edge.i ? "fill-amber-500/30" : "hover:fill-amber-500/20"
                 )}
                 strokeWidth={0.15}
                 style={{ cursor: edge.isHoriz ? "ns-resize" : "ew-resize" }}
@@ -603,13 +623,15 @@ export default function ShapeBuilder({
           {/* Vertex dots — double-click to delete when shape is closed */}
           {vertices.map((v, i) => (
             <g key={`v-${i}`}>
-              {/* Invisible wider hit area for easier interaction */}
+              {/* Invisible wider hit area — drag to move, double-click to delete */}
               <circle
                 cx={v.x}
                 cy={v.y}
                 r={1.5}
                 fill="transparent"
-                style={{ cursor: closed ? "pointer" : "default" }}
+                style={{ cursor: closed ? "move" : "default" }}
+                onMouseDown={closed ? (e) => startVertexDrag(i, e) : undefined}
+                onTouchStart={closed ? (e) => startVertexDrag(i, e as unknown as React.MouseEvent) : undefined}
                 onDoubleClick={closed ? (e) => deleteVertex(i, e) : undefined}
               />
               {/* Visible dot */}
@@ -618,10 +640,14 @@ export default function ShapeBuilder({
                 cy={v.y}
                 r={i === 0 && !closed ? 0.6 : 0.4}
                 className={cn(
-                  "pointer-events-none",
+                  "pointer-events-none transition-colors",
                   i === 0 && !closed
                     ? canClose ? "fill-emerald-400 stroke-emerald-300" : "fill-amber-400 stroke-amber-300"
-                    : closed ? "fill-amber-400/80 stroke-amber-300 hover:fill-red-400" : "fill-amber-400 stroke-amber-300"
+                    : closed
+                      ? dragging?.type === "vertex" && dragging.index === i
+                        ? "fill-white stroke-amber-200"
+                        : "fill-amber-400/80 stroke-amber-300"
+                      : "fill-amber-400 stroke-amber-300"
                 )}
                 strokeWidth={0.1}
               />
