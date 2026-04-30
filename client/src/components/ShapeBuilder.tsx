@@ -33,7 +33,7 @@ const GRID_H = 36; // feet tall
 const CELL = 2;    // feet per cell
 const COLS = GRID_W / CELL; // 22 columns
 const ROWS = GRID_H / CELL; // 18 rows
-const CLOSE_RADIUS = 2; // feet — snap radius for closing
+const CLOSE_RADIUS = 3; // feet — snap radius for closing (uses raw coords for reliability)
 
 // SVG viewBox dimensions (1px per foot for clean math)
 const VB_W = GRID_W;
@@ -309,11 +309,11 @@ export default function ShapeBuilder({
       y: Math.max(0, Math.min(GRID_H, snapped.y)),
     };
 
-    // Check close gesture
+    // Check close gesture — use raw coords so snapping doesn't prevent closing
     if (vertices.length >= 3) {
       const first = vertices[0];
-      const dx = clamped.x - first.x;
-      const dy = clamped.y - first.y;
+      const dx = raw.x - first.x;
+      const dy = raw.y - first.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist <= CLOSE_RADIUS) {
         setClosed(true);
@@ -528,7 +528,8 @@ export default function ShapeBuilder({
     const first = vertices[0];
     const dx = candidate.x - first.x;
     const dy = candidate.y - first.y;
-    return Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS;
+    // Use a slightly larger visual threshold so the ring appears before the click zone
+    return Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS + 1;
   }, [closed, vertices, candidate]);
 
   // ─── JSX ────────────────────────────────────────────────────────────────────
