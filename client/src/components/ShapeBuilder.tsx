@@ -239,15 +239,50 @@ export default function ShapeBuilder({
   }, [dragging]);
 
   // ─── Event handlers ─────────────────────────────────────────────────────────
+  // Helper: distance from point (px,py) to segment (ax,ay)-(bx,by)
+  const distToSegment = useCallback((px: number, py: number, ax: number, ay: number, bx: number, by: number): number => {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return Math.sqrt((px - (ax + t * dx)) ** 2 + (py - (ay + t * dy)) ** 2);
+  }, []);
+
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (closed || !svgRef.current) {
-      setCandidate(null);
-      return;
-    }
+    if (!svgRef.current) return;
     const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
     const snapped = snapToGrid(raw.x, raw.y);
-    setCandidate(snapped);
-  }, [closed]);
+
+    if (!closed) {
+      setCandidate(snapped);
+      setEdgeHoverPt(null);
+      return;
+    }
+
+    // When shape is closed: detect if cursor is near an edge (within 1.5ft in SVG units)
+    // Use raw (unsnapped) coords for distance test, then project snapped point onto edge
+    const EDGE_THRESHOLD = 1.5;
+    let bestDist = Infinity;
+    let bestPt: ShapePt | null = null;
+    for (let i = 0; i < vertices.length; i++) {
+      const j = (i + 1) % vertices.length;
+      const v = vertices[i], next = vertices[j];
+      const d = distToSegment(raw.x, raw.y, v.x, v.y, next.x, next.y);
+      if (d < EDGE_THRESHOLD && d < bestDist) {
+        bestDist = d;
+        // Project snapped point onto this edge
+        const dx = next.x - v.x, dy = next.y - v.y;
+        const lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) continue;
+        const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
+        const edgeLen = Math.sqrt(lenSq);
+        const tSnapped = Math.round(t * edgeLen / CELL) * CELL / edgeLen;
+        const tClamped = Math.max(0, Math.min(1, tSnapped));
+        bestPt = { x: v.x + tClamped * dx, y: v.y + tClamped * dy };
+      }
+    }
+    setEdgeHoverPt(bestPt);
+  }, [closed, vertices, distToSegment]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     if (closed || !svgRef.current) return;
@@ -530,7 +565,7 @@ export default function ShapeBuilder({
           onMouseMove={handleMouseMove}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onMouseLeave={() => setCandidate(null)}
+          onMouseLeave={() => { setCandidate(null); setEdgeHoverPt(null); }}
         >
           {/* Grid lines */}
           {Array.from({ length: COLS + 1 }, (_, i) => (
@@ -696,22 +731,6 @@ export default function ShapeBuilder({
                 strokeWidth={2}
                 style={{ cursor: "cell" }}
                 onClick={insertVertexOnEdge}
-                onMouseMove={(e) => {
-                  if (!svgRef.current) return;
-                  const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
-                  const snapped = snapToGrid(raw.x, raw.y);
-                  // Project snapped point onto the edge segment so it stays on the line
-                  const dx = next.x - v.x, dy = next.y - v.y;
-                  const lenSq = dx * dx + dy * dy;
-                  if (lenSq === 0) return;
-                  const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
-                  // Snap t to nearest grid step along the edge
-                  const edgeLen = Math.sqrt(lenSq);
-                  const tSnapped = Math.round(t * edgeLen / CELL) * CELL / edgeLen;
-                  const tClamped = Math.max(0, Math.min(1, tSnapped));
-                  setEdgeHoverPt({ x: v.x + tClamped * dx, y: v.y + tClamped * dy });
-                }}
-                onMouseLeave={() => setEdgeHoverPt(null)}
               />
             );
           })}
