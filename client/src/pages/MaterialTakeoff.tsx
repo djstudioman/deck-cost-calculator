@@ -62,6 +62,7 @@ import {
   type HardwareComponentType,
 } from "@/lib/takeoffData";
 import type { CalculatorResult } from "@/lib/deckData";
+import { formatCurrency } from "@/lib/deckData";
 import { exportTakeoffCSV } from "@/lib/exportTakeoffCSV";
 import { STATE_TAX_RATES, NO_TAX_STATE, type StateTaxEntry } from "@/lib/stateTaxData";
 
@@ -654,7 +655,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                   <div className="text-right">
                     <div className="text-[10px] text-slate-500 leading-none mb-0.5">Estimate range</div>
                     <div className="text-sm font-mono text-slate-300">
-                      {formatTakeoffCurrency(estimateMaterialsLow)}–{formatTakeoffCurrency(estimateMaterialsHigh)}
+                      {formatCurrency(estimateMaterialsLow)}–{formatCurrency(estimateMaterialsHigh)}
                     </div>
                   </div>
                   <svg
