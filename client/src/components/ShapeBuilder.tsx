@@ -336,6 +336,47 @@ export default function ShapeBuilder({
     [vertices, edgeCurves, closed, centroid]
   );
 
+  // ─── Framing estimate ───────────────────────────────────────────────────────
+  // Standard residential deck framing rules:
+  //   Rim joists  = perimeter (outer frame follows the shape outline)
+  //   Joists      = 2×8 @ 16" OC running the short direction of the bounding box,
+  //                 count scaled by (area / bbox_area) to avoid over-counting on
+  //                 irregular shapes like L- and T-shapes.
+  //   Beams       = one per 8 ft of span in the long direction, each beam spans
+  //                 the short direction of the bounding box.
+  //   Posts       = one per beam end + one per 8 ft of beam length (6×6 posts).
+  //   Ledger      = not counted (assumed house-attached; user knows their situation).
+  const framing = useMemo(() => {
+    if (!closed || vertices.length < 3 || area <= 0) return null;
+    const xs = vertices.map((v) => v.x);
+    const ys = vertices.map((v) => v.y);
+    const bboxW = Math.max(...xs) - Math.min(...xs);
+    const bboxH = Math.max(...ys) - Math.min(...ys);
+    const longSpan  = Math.max(bboxW, bboxH);
+    const shortSpan = Math.min(bboxW, bboxH);
+    const bboxArea  = bboxW * bboxH || 1;
+    const fillRatio = Math.min(1, area / bboxArea); // 1.0 for rectangle, <1 for L/T
+
+    // Rim joists: follow the perimeter exactly
+    const rimLF = Math.round(perim);
+
+    // Interior joists @ 16" OC running the short direction
+    // Number of joist bays = ceil(longSpan / (16/12)); each joist = shortSpan LF
+    const joistSpacing = 16 / 12; // 1.333 ft
+    const joistCount = Math.ceil(longSpan / joistSpacing) + 1;
+    const joistLF = Math.round(joistCount * shortSpan * fillRatio);
+
+    // Beams: one every 8 ft of span (long direction), each spans the short direction
+    const beamCount = Math.ceil(longSpan / 8) - 1; // interior beams only (ledger + rim handle ends)
+    const beamLF = Math.round(Math.max(beamCount, 1) * shortSpan);
+
+    // Posts: one per beam end + one per 8 ft of beam length (max 8 ft post spacing)
+    const postsPerBeam = Math.ceil(shortSpan / 8) + 1;
+    const postCount = Math.max(beamCount, 1) * postsPerBeam;
+
+    return { rimLF, joistLF, beamLF, postCount };
+  }, [closed, vertices, area, perim]);
+
   // Fire onShapeChange when closed shape updates.
   // Pass raw (unrounded) area/perim so that small curve changes that don't
   // change the rounded integer still trigger a Home.tsx re-render and price update.
@@ -1364,6 +1405,30 @@ export default function ShapeBuilder({
               <div className="font-mono font-bold text-sm text-slate-300">
                 {Math.ceil((area * 1.10) / ((5.5 / 12) * 16))} pcs
               </div>
+            </div>
+          </div>
+        )}
+        {/* Framing estimates row — shown when shape is closed */}
+        {closed && framing && (
+          <div className={cn("flex gap-3 flex-wrap border-t border-white/[0.07] pt-2", mobileFullscreen ? "mb-2" : "mt-2")}>
+            <div className="w-full">
+              <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-1.5">Framing est. · 2×8 @ 16″ OC</div>
+            </div>
+            <div title="Outer frame that follows the deck perimeter">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Rim joists</div>
+              <div className="font-mono font-bold text-sm text-sky-300">{framing.rimLF} LF</div>
+            </div>
+            <div title="Interior 2×8 joists @ 16″ OC, scaled for shape fill ratio">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Joists</div>
+              <div className="font-mono font-bold text-sm text-sky-300">{framing.joistLF} LF</div>
+            </div>
+            <div title="Beams every 8 ft of span, spanning the short direction">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Beams</div>
+              <div className="font-mono font-bold text-sm text-sky-300">{framing.beamLF} LF</div>
+            </div>
+            <div title="6×6 posts, one per beam end + one per 8 ft of beam length">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Posts</div>
+              <div className="font-mono font-bold text-sm text-sky-300">{framing.postCount} pcs</div>
             </div>
           </div>
         )}
