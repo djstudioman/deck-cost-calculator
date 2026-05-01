@@ -1133,7 +1133,7 @@ export default function ShapeBuilder({
                 <circle
                   cx={edge.midX}
                   cy={edge.midY}
-                  r={mobileFullscreen ? 1.8 : 0.5}
+                  r={mobileFullscreen ? 0.9 : 0.5}
                   className={cn(
                     "stroke-amber-400 transition-colors",
                     isCurving ? "fill-sky-400/50 stroke-sky-300" :
@@ -1153,7 +1153,7 @@ export default function ShapeBuilder({
                 <circle
                   cx={edge.midX + edge.outNx * 3.5}
                   cy={edge.midY + edge.outNy * 3.5}
-                  r={mobileFullscreen ? 1.4 : 0.35}
+                  r={mobileFullscreen ? 0.7 : 0.35}
                   className={cn(
                     "transition-colors",
                     isCurving ? "fill-sky-300 stroke-sky-200" :
@@ -1181,7 +1181,7 @@ export default function ShapeBuilder({
                   style={{ pointerEvents: "none" }}
                 />
               )}
-              <circle cx={v.x} cy={v.y} r={mobileFullscreen ? 3.5 : 1.5} fill="transparent"
+              <circle cx={v.x} cy={v.y} r={mobileFullscreen ? 2.2 : 1.5} fill="transparent"
                 style={{ cursor: closed ? "move" : "default" }}
                 onMouseDown={closed ? (e) => { startVertexDrag(i, e); } : undefined}
                 onClick={closed ? (e) => selectVertex(i, e) : undefined}
@@ -1189,7 +1189,7 @@ export default function ShapeBuilder({
                 onDoubleClick={closed ? (e) => deleteVertex(i, e) : undefined}
               />
               <circle cx={v.x} cy={v.y}
-                r={mobileFullscreen ? (i === 0 && !closed ? 1.2 : 0.9) : (i === 0 && !closed ? 0.6 : 0.4)}
+                r={mobileFullscreen ? (i === 0 && !closed ? 0.85 : 0.65) : (i === 0 && !closed ? 0.6 : 0.4)}
                 className={cn(
                   "pointer-events-none transition-colors",
                   i === 0 && !closed
@@ -1341,39 +1341,41 @@ export default function ShapeBuilder({
       )}
 
       {/* Summary bar */}
-      <div className={cn("flex items-center justify-between", mobileFullscreen && "px-3 py-2 shrink-0 border-t border-white/10 bg-slate-900/90")}>
-        <div className="flex gap-4">
-          {closed && (
-            <>
-              <div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Area</div>
-                <div className={`font-mono font-bold text-sm ${accentColor}`}>{Math.round(area)} sq ft</div>
+      <div className={cn(
+        "border-t border-white/10",
+        mobileFullscreen ? "px-3 pt-2 pb-2 shrink-0 bg-slate-900/90" : "flex items-center justify-between"
+      )}>
+        {/* Stats row — only shown when shape is closed */}
+        {closed && (
+          <div className={cn("flex gap-3 flex-wrap", mobileFullscreen ? "mb-2" : "")}>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Area</div>
+              <div className={`font-mono font-bold text-sm ${accentColor}`}>{Math.round(area)} sq ft</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Perimeter</div>
+              <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim)} LF</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Railing est.</div>
+              <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim * 0.75)} LF</div>
+            </div>
+            <div title="5.5in face x 16ft board, 10% waste">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Boards est.</div>
+              <div className="font-mono font-bold text-sm text-slate-300">
+                {Math.ceil((area * 1.10) / ((5.5 / 12) * 16))} pcs
               </div>
-              <div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Perimeter</div>
-                <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim)} LF</div>
-              </div>
-              <div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Railing est.</div>
-                <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim * 0.75)} LF</div>
-              </div>
-              <div title="5.5in face x 16ft board, 10% waste">
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Boards est.</div>
-                <div className="font-mono font-bold text-sm text-slate-300">
-                  {Math.ceil((area * 1.10) / ((5.5 / 12) * 16))} pcs
-                </div>
-                <div className="text-[9px] text-slate-600">5.5&quot; x 16ft &middot; 10% waste</div>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
+            </div>
+          </div>
+        )}
+        {/* Buttons row */}
+        <div className="flex items-center gap-2 flex-wrap">
           {closed && (
             <button
               onClick={() => setClosed(false)}
               className="text-xs text-slate-400 hover:text-sky-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-sky-400/30"
             >
-              ✎ Edit
+              Edit
             </button>
           )}
           {closed && Object.keys(edgeCurves).length > 0 && (
@@ -1381,7 +1383,7 @@ export default function ShapeBuilder({
               onClick={() => setEdgeCurves({})}
               className="text-xs text-sky-400 hover:text-sky-300 transition-colors px-2 py-1 rounded border border-sky-500/30 hover:border-sky-400/50 bg-sky-500/10"
             >
-              ⟳ Reset Curves
+              Reset Curves
             </button>
           )}
           {!closed && vertices.length >= 3 && (
@@ -1389,7 +1391,7 @@ export default function ShapeBuilder({
               onClick={() => setClosed(true)}
               className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-2 py-1 rounded border border-emerald-500/30 hover:border-emerald-400/50 bg-emerald-500/10"
             >
-              ✓ Close Shape
+              Close Shape
             </button>
           )}
           {!closed && vertices.length > 0 && (
@@ -1397,7 +1399,7 @@ export default function ShapeBuilder({
               onClick={() => setVertices((prev) => prev.slice(0, -1))}
               className="text-xs text-slate-400 hover:text-amber-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-amber-400/30"
             >
-              ↩ Undo
+              Undo
             </button>
           )}
           {/* Snap precision toggle */}
@@ -1411,7 +1413,7 @@ export default function ShapeBuilder({
                 : "text-slate-400 border-white/10 bg-white/[0.03] hover:border-white/20 hover:text-white"
             )}
           >
-            {snapTo1ft ? "⊞ 1ft" : "⊞ 2ft"}
+            {snapTo1ft ? "1ft" : "2ft"}
           </button>
           <button
             onClick={reset}
@@ -1422,9 +1424,9 @@ export default function ShapeBuilder({
           {onConfirm && closed && (
             <button
               onClick={() => onConfirm(area, perim, vertices, edgeCurves)}
-              className="text-sm font-semibold px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 transition-colors"
+              className="text-sm font-semibold px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 transition-colors ml-auto"
             >
-              ✓ Use This Shape
+              Use This Shape
             </button>
           )}
         </div>
