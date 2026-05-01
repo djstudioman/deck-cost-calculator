@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   REGIONS,
@@ -1420,6 +1420,7 @@ export default function Home() {
                                       side="bottom"
                                       className="h-[100dvh] p-0 flex flex-col bg-slate-950 border-t border-white/10 [&>button]:hidden"
                                     >
+                                      <SheetTitle className="sr-only">Draw Your Deck Shape</SheetTitle>
                                       {/* Header */}
                                       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
                                         <div>
