@@ -847,11 +847,11 @@ export default function ShapeBuilder({
                   className="stroke-amber-400/40" strokeWidth={0.2} strokeDasharray="0.5 0.4" />
                 {len > 0 && (
                   <>
-                    <rect x={labelX - padW / 2} y={labelY - 1.2} width={padW} height={2.2} rx={0.35}
+                    <rect x={labelX - padW / 2} y={labelY - 1.1} width={padW} height={2.0} rx={0.35}
                       className="fill-slate-900" opacity={0.85} />
-                    <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle"
+                    <text x={labelX} y={labelY} textAnchor="middle" dy="0.35em"
                       className="fill-amber-400"
-                      style={{ fontSize: "1.3px", fontFamily: "monospace", fontWeight: 600 }}>
+                      style={{ fontSize: "1.3px", fontFamily: "monospace", fontWeight: 600, lineHeight: 1 }}>
                       {lenLabel}
                     </text>
                   </>
@@ -860,31 +860,60 @@ export default function ShapeBuilder({
             );
           })()}
 
-          {/* Edge dimension labels */}
+          {/* Edge dimension labels — pill background + centered text */}
           {edges.map((edge) => {
             if (edge.len < 2) return null;
+            const dimLabel = `${edge.len}'`;
+            const pillW = dimLabel.length * 0.85 + 1.0;
+            const pillH = 1.9;
             return (
-              <text key={`dim-${edge.i}`} x={edge.labelX} y={edge.labelY}
-                textAnchor="middle" dominantBaseline="middle"
-                className="fill-slate-400 pointer-events-none"
-                style={{ fontSize: "1.2px", fontFamily: "monospace" }}>
-                {edge.len}'
-              </text>
+              <g key={`dim-${edge.i}`} className="pointer-events-none">
+                <rect
+                  x={edge.labelX - pillW / 2}
+                  y={edge.labelY - pillH / 2}
+                  width={pillW}
+                  height={pillH}
+                  rx={0.35}
+                  className="fill-slate-900"
+                  opacity={0.82}
+                />
+                <text
+                  x={edge.labelX}
+                  y={edge.labelY}
+                  textAnchor="middle"
+                  dy="0.35em"
+                  className="fill-slate-300"
+                  style={{ fontSize: "1.1px", fontFamily: "monospace", lineHeight: 1 }}>
+                  {dimLabel}
+                </text>
+              </g>
             );
           })}
 
           {/* Area badge at centroid */}
           {closed && area > 0 && (() => {
             const label = `${Math.round(area)} ft²`;
-            const badgeW = label.length * 1.1 + 1.2;
-            const badgeH = 2.6;
+            // Width: each char ~1.0px wide at 1.6px font size in monospace
+            const badgeW = label.length * 1.0 + 1.6;
+            const badgeH = 2.8;
             return (
               <>
-                <rect x={centroid.x - badgeW / 2} y={centroid.y - badgeH / 2}
-                  width={badgeW} height={badgeH} rx={0.45} className="fill-slate-900" opacity={0.88} />
-                <text x={centroid.x} y={centroid.y} textAnchor="middle" dominantBaseline="middle"
+                <rect
+                  x={centroid.x - badgeW / 2}
+                  y={centroid.y - badgeH / 2}
+                  width={badgeW}
+                  height={badgeH}
+                  rx={0.5}
+                  className="fill-slate-900"
+                  opacity={0.9}
+                />
+                <text
+                  x={centroid.x}
+                  y={centroid.y}
+                  textAnchor="middle"
+                  dy="0.35em"
                   className="fill-amber-300 pointer-events-none"
-                  style={{ fontSize: "1.6px", fontFamily: "monospace", fontWeight: 700 }}>
+                  style={{ fontSize: "1.6px", fontFamily: "monospace", fontWeight: 700, lineHeight: 1 }}>
                   {label}
                 </text>
               </>
@@ -998,11 +1027,11 @@ export default function ShapeBuilder({
             const padW = label.length * 1.05 + 1;
             return (
               <g className="pointer-events-none">
-                <rect x={tipX - padW / 2} y={tipY - 1.4} width={padW} height={2.6} rx={0.4}
+                <rect x={tipX - padW / 2} y={tipY - 1.3} width={padW} height={2.4} rx={0.4}
                   className="fill-slate-900" opacity={0.9} />
-                <text x={tipX} y={tipY} textAnchor="middle" dominantBaseline="middle"
+                <text x={tipX} y={tipY} textAnchor="middle" dy="0.35em"
                   className="fill-amber-300"
-                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}>
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600, lineHeight: 1 }}>
                   {label}
                 </text>
               </g>
@@ -1025,11 +1054,11 @@ export default function ShapeBuilder({
             const padW = label.length * 1.05 + 1;
             return (
               <g className="pointer-events-none">
-                <rect x={tipX - padW / 2} y={tipY - 1.4} width={padW} height={2.6} rx={0.4}
+                <rect x={tipX - padW / 2} y={tipY - 1.3} width={padW} height={2.4} rx={0.4}
                   className="fill-slate-900" opacity={0.9} />
-                <text x={tipX} y={tipY} textAnchor="middle" dominantBaseline="middle"
+                <text x={tipX} y={tipY} textAnchor="middle" dy="0.35em"
                   className="fill-sky-300"
-                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}>
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600, lineHeight: 1 }}>
                   {label}
                 </text>
               </g>
