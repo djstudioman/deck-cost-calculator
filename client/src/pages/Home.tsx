@@ -35,7 +35,7 @@ import {
 import ResultsPanel from "@/components/ResultsPanel";
 import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
-import ShapeBuilder from "@/components/ShapeBuilder";
+import ShapeBuilder, { type ShapePt } from "@/components/ShapeBuilder";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -150,6 +150,7 @@ export default function Home() {
   // Custom shape tool (contractor only)
   const [shapeArea, setShapeArea] = useState<number>(0);
   const [shapePerimeter, setShapePerimeter] = useState<number>(0);
+  const [shapeVertices, setShapeVertices] = useState<ShapePt[]>([]);
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
   const [joistSpacingIn, setJoistSpacingIn] = useState<12 | 16 | 24>(16);
@@ -423,6 +424,9 @@ export default function Home() {
     setIncludeEngineer(snap.includeEngineer ?? false);
     setEngineerCost(snap.engineerCost ?? 650);
     setEngineerCostMode((snap.engineerCostMode as "preset" | "custom") ?? "preset");
+    if (snap.shapeVertices && snap.shapeVertices.length >= 3) {
+      setShapeVertices(snap.shapeVertices);
+    }
     // Jump straight to results
     setShowResults(true);
   });
@@ -472,6 +476,11 @@ export default function Home() {
     setIncludeEngineer(snap.includeEngineer ?? false);
     setEngineerCost(snap.engineerCost ?? 650);
     setEngineerCostMode((snap.engineerCostMode as "preset" | "custom") ?? "preset");
+    if (snap.shapeVertices && snap.shapeVertices.length >= 3) {
+      setShapeVertices(snap.shapeVertices);
+    } else {
+      setShapeVertices([]);
+    }
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -508,6 +517,7 @@ export default function Home() {
       includeEngineer,
       engineerCost,
       engineerCostMode,
+      shapeVertices: sizeId === "shape" && shapeVertices.length >= 3 ? shapeVertices : undefined,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -1386,9 +1396,11 @@ export default function Home() {
                           {sizeId === "shape" && (
                             <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                               <ShapeBuilder
-                                onShapeChange={(area, perimeter) => {
+                                initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
+                                onShapeChange={(area, perimeter, vertices) => {
                                   setShapeArea(area);
                                   setShapePerimeter(perimeter);
+                                  setShapeVertices(vertices ?? []);
                                 }}
                                 accentColor={ac.text}
                                 accentBg={ac.btnClass}

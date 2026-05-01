@@ -21,7 +21,7 @@ export interface ShapePt {
 }
 
 interface ShapeBuilderProps {
-  onShapeChange: (area: number, perimeter: number) => void;
+  onShapeChange: (area: number, perimeter: number, vertices?: ShapePt[]) => void;
   initialVertices?: ShapePt[];
   accentColor?: string;
   accentBg?: string;
@@ -174,7 +174,7 @@ export default function ShapeBuilder({
     if (closed && vertices.length >= 3) {
       const area = shoelaceArea(vertices);
       const perim = polyPerimeter(vertices);
-      onShapeChange(Math.round(area), Math.round(perim));
+      onShapeChange(Math.round(area), Math.round(perim), vertices);
     }
   }, [vertices, closed, onShapeChange]);
 

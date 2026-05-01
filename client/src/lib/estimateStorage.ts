@@ -5,6 +5,7 @@
  */
 
 import type { AudienceType } from "./deckData";
+import type { ShapePt } from "@/components/ShapeBuilder";
 
 export interface EstimateSnapshot {
   id: string;           // short unique key (8 hex chars)
@@ -62,6 +63,7 @@ export interface EstimateSnapshot {
   engineerCost?: number;
   engineerCostMode?: "preset" | "custom";
   notes?: string;           // optional free-text context
+  shapeVertices?: ShapePt[]; // custom shape polygon vertices (feet)
   // result snapshot (for display in the saved list)
   totalLow: number;
   totalHigh: number;
