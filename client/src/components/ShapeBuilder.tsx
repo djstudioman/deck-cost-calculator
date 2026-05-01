@@ -240,6 +240,9 @@ export default function ShapeBuilder({
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  // Store callback in ref so it never causes useEffect re-runs
+  const onShapeChangeRef = useRef(onShapeChange);
+  useEffect(() => { onShapeChangeRef.current = onShapeChange; });
 
   // Sync restored vertices from saved estimates
   useEffect(() => {
@@ -311,9 +314,9 @@ export default function ShapeBuilder({
   // Fire onShapeChange when closed shape updates
   useEffect(() => {
     if (closed && vertices.length >= 3) {
-      onShapeChange(Math.round(area), Math.round(perim), vertices, edgeCurves);
+      onShapeChangeRef.current(Math.round(area), Math.round(perim), vertices, edgeCurves);
     }
-  }, [vertices, edgeCurves, closed, area, perim, onShapeChange]);
+  }, [vertices, edgeCurves, closed, area, perim]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
@@ -588,7 +591,7 @@ export default function ShapeBuilder({
       const next = prev.filter((_, i) => i !== index);
       if (next.length < 3) {
         setClosed(false);
-        onShapeChange(0, 0);
+        onShapeChangeRef.current(0, 0);
       }
       return next;
     });
@@ -603,7 +606,7 @@ export default function ShapeBuilder({
       }
       return next;
     });
-  }, [onShapeChange]);
+  }, []);
 
   const resetEdgeCurve = useCallback((edgeIndex: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -632,8 +635,8 @@ export default function ShapeBuilder({
     setDragging(null);
     setActivePreset(null);
     setEdgeCurves({});
-    onShapeChange(0, 0);
-  }, [onShapeChange]);
+    onShapeChangeRef.current(0, 0);
+  }, []);
 
   // ─── Derived render data ────────────────────────────────────────────────────
 
