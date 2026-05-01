@@ -23,7 +23,7 @@ interface Deck3DViewProps {
 
 // ─── Constants (all in feet = Three.js units) ────────────────────────────────
 const BOARD_FACE_WIDTH = 5.5 / 12;   // 5.5" face width in feet
-const BOARD_GAP        = 0.25 / 12;  // 0.25" gap between boards
+const BOARD_GAP        = 1.0 / 12;   // 1" visible gap between boards (prevents z-fighting)
 const BOARD_THICKNESS  = 1.5 / 12;   // 1.5" thick (5/4 deck board)
 const BOARD_STRIDE     = BOARD_FACE_WIDTH + BOARD_GAP;
 const DECK_Y           = 0.5;        // deck surface sits 0.5 ft above ground
@@ -124,9 +124,9 @@ function DeckBoards({ vertices, edgeCurves }: { vertices: ShapePt[]; edgeCurves:
 
         // BoxGeometry: width=X, height=Y(up), depth=Z
         const geo = new THREE.BoxGeometry(boardLen, BOARD_THICKNESS, BOARD_FACE_WIDTH);
-        // Translate so the board sits at the right world position
-        // Center X: x0 + boardLen/2, Y: DECK_Y + BOARD_THICKNESS/2, Z: z + BOARD_FACE_WIDTH/2
-        geo.translate(x0 + boardLen / 2, DECK_Y + BOARD_THICKNESS / 2, z + BOARD_FACE_WIDTH / 2);
+        // Each board gets a tiny unique Y offset to prevent z-fighting between adjacent boards
+        const yJitter = (k * 0.0001);
+        geo.translate(x0 + boardLen / 2, DECK_Y + BOARD_THICKNESS / 2 + yJitter, z + BOARD_FACE_WIDTH / 2);
         geometries.push(geo);
       }
     }
