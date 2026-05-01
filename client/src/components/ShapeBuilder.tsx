@@ -873,8 +873,7 @@ export default function ShapeBuilder({
 
           {/* Area badge at centroid */}
           {closed && area > 0 && (() => {
-            const displayArea = Math.round(area * 2 / 3);
-            const label = `${displayArea} ft²`;
+            const label = `${Math.round(area)} ft²`;
             const badgeW = label.length * 1.1 + 1.2;
             const badgeH = 2.6;
             return (
