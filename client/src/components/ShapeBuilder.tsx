@@ -904,8 +904,8 @@ export default function ShapeBuilder({
             Orbit: drag &middot; Zoom: scroll &middot; Pan: right-drag
           </div>
         )}
-        {/* 2D / 3D toggle — only show when shape is closed */}
-        {closed && vertices.length >= 3 && (
+        {/* 2D / 3D toggle — temporarily disabled; keep code for later */}
+        {/* DISABLED: {closed && vertices.length >= 3 && (
           <button
             onClick={() => setViewMode(viewMode === "2d" ? "3d" : "2d")}
             className={cn(
@@ -917,7 +917,7 @@ export default function ShapeBuilder({
           >
             {viewMode === "2d" ? "\u25A8 3D" : "\u25A1 2D"}
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Canvas area: 2D or 3D */}
