@@ -63,9 +63,8 @@ function bezierControl(
   // Flip so it points away from centroid
   const toCx = cx - midX, toCy = cy - midY;
   if (nx * toCx + ny * toCy > 0) { nx = -nx; ny = -ny; }
-  // Control point: midpoint + bulge * outward_normal * 2 (factor of 2 because quadratic Bézier
-  // reaches only halfway to the control point at t=0.5)
-  return { cpx: midX + nx * bulge * 2, cpy: midY + ny * bulge * 2 };
+  // Control point: midpoint + bulge * outward_normal
+  return { cpx: midX + nx * bulge, cpy: midY + ny * bulge };
 }
 
 /**
@@ -383,9 +382,12 @@ export default function ShapeBuilder({
         const midY = (v.y + next.y) / 2;
         // Signed distance from midpoint along outward normal
         const rawBulge = (raw.x - midX) * nx + (raw.y - midY) * ny;
-        // Snap bulge to 0.5ft increments, clamp to ±20ft
+        // Clamp to half the edge length to prevent control point from overshooting
+        const edgeLen = Math.sqrt((next.x - v.x) ** 2 + (next.y - v.y) ** 2) || 1;
+        const maxBulge = edgeLen * 0.8;
+        // Snap bulge to 0.5ft increments, clamp to ±maxBulge
         const snappedBulge = Math.round(rawBulge / 0.5) * 0.5;
-        const clampedBulge = Math.max(-20, Math.min(20, snappedBulge));
+        const clampedBulge = Math.max(-maxBulge, Math.min(maxBulge, snappedBulge));
         setEdgeCurves((prev) => {
           if (Math.abs(clampedBulge) < 0.25) {
             const next = { ...prev };
