@@ -960,6 +960,14 @@ export default function ShapeBuilder({
               ✎ Edit
             </button>
           )}
+          {!closed && vertices.length >= 3 && (
+            <button
+              onClick={() => setClosed(true)}
+              className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-2 py-1 rounded border border-emerald-500/30 hover:border-emerald-400/50 bg-emerald-500/10"
+            >
+              ✓ Close Shape
+            </button>
+          )}
           {!closed && vertices.length > 0 && (
             <button
               onClick={() => setVertices((prev) => prev.slice(0, -1))}
