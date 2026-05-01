@@ -1400,7 +1400,7 @@ export default function Home() {
                               </div>
                               <div className="text-right">
                                 {sizeId === "shape" && shapeArea > 0 && (
-                                  <div className={`text-xs font-mono ${ac.text}`}>{shapeArea} sq ft</div>
+                                  <div className={`text-xs font-mono ${ac.text}`}>{Math.round(shapeArea)} sq ft</div>
                                 )}
                                 <div className="text-xs text-slate-600">contractor only</div>
                               </div>

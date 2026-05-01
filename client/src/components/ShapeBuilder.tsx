@@ -301,10 +301,12 @@ export default function ShapeBuilder({
     [vertices, edgeCurves, closed, centroid]
   );
 
-  // Fire onShapeChange when closed shape updates
+  // Fire onShapeChange when closed shape updates.
+  // Pass raw (unrounded) area/perim so that small curve changes that don't
+  // change the rounded integer still trigger a Home.tsx re-render and price update.
   useEffect(() => {
     if (closed && vertices.length >= 3) {
-      onShapeChangeRef.current(Math.round(area), Math.round(perim), vertices, edgeCurves);
+      onShapeChangeRef.current(area, perim, vertices, edgeCurves);
     }
   }, [vertices, edgeCurves, closed, area, perim]);
 
