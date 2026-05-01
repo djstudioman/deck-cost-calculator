@@ -232,7 +232,6 @@ export default function ShapeBuilder({
   mobileFullscreen = false,
   onConfirm,
 }: ShapeBuilderProps) {
-  // In mobile fullscreen mode, default snap to 1ft for finger precision
   // ─── State ──────────────────────────────────────────────────────────────────
   const [vertices, setVertices] = useState<ShapePt[]>(initialVertices ?? []);
   const [closed, setClosed] = useState(initialVertices ? initialVertices.length >= 3 : false);
@@ -247,7 +246,7 @@ export default function ShapeBuilder({
   >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
-  const [snapTo1ft, setSnapTo1ft] = useState(mobileFullscreen);
+  const [snapTo1ft, setSnapTo1ft] = useState(false);
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
   // Selected vertex index for exact-coordinate editing
   const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
