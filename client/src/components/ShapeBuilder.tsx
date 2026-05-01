@@ -11,8 +11,10 @@
  *   Lines 560–900: JSX
  */
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
+
+const Deck3DView = lazy(() => import("./Deck3DView"));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface ShapePt {
@@ -246,6 +248,7 @@ export default function ShapeBuilder({
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
   const [snapTo1ft, setSnapTo1ft] = useState(mobileFullscreen);
+  const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
   // Selected vertex index for exact-coordinate editing
   const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
   // Controlled input values (strings so user can type freely)
@@ -839,9 +842,9 @@ export default function ShapeBuilder({
 
   return (
     <div className={cn(mobileFullscreen ? "flex flex-col h-full gap-0" : "space-y-3")}>
-      {/* Preset buttons */}
+      {/* Preset buttons + 2D/3D toggle */}
       <div className={cn("flex gap-2", mobileFullscreen && "px-3 pt-2 pb-1 shrink-0")}>
-        {PRESETS.map((p) => (
+        {viewMode === "2d" && PRESETS.map((p) => (
           <button
             key={p.id}
             onClick={() => loadPreset(p.id)}
@@ -856,9 +859,44 @@ export default function ShapeBuilder({
             {p.label}
           </button>
         ))}
+        {viewMode === "3d" && (
+          <div className="flex-1 text-xs text-slate-500 flex items-center">
+            Orbit: drag &middot; Zoom: scroll &middot; Pan: right-drag
+          </div>
+        )}
+        {/* 2D / 3D toggle — only show when shape is closed */}
+        {closed && vertices.length >= 3 && (
+          <button
+            onClick={() => setViewMode(viewMode === "2d" ? "3d" : "2d")}
+            className={cn(
+              "py-2 px-3 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap",
+              viewMode === "3d"
+                ? "border-sky-500/50 bg-sky-500/15 text-sky-300"
+                : "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:text-white"
+            )}
+          >
+            {viewMode === "2d" ? "\u25A8 3D" : "\u25A1 2D"}
+          </button>
+        )}
       </div>
 
-      {/* SVG Canvas */}
+      {/* Canvas area: 2D or 3D */}
+      {viewMode === "3d" && closed && vertices.length >= 3 ? (
+        <Suspense fallback={
+          <div className={cn(
+            "flex items-center justify-center",
+            mobileFullscreen ? "flex-1 min-h-0 bg-slate-900/80" : "rounded-lg border border-white/10 bg-slate-900/80"
+          )} style={{ height: "520px" }}>
+            <div className="text-slate-500 text-sm animate-pulse">Loading 3D view...</div>
+          </div>
+        }>
+          <Deck3DView
+            vertices={vertices}
+            edgeCurves={edgeCurves}
+            className={mobileFullscreen ? "flex-1 min-h-0" : ""}
+          />
+        </Suspense>
+      ) : (
       <div className={cn(
         "relative overflow-hidden",
         mobileFullscreen
@@ -1251,6 +1289,7 @@ export default function ShapeBuilder({
           </div>
         )}
       </div>
+      )}
 
       {/* Exact-coordinate editor — shown when a vertex is selected */}
       {closed && selectedVertex !== null && (
