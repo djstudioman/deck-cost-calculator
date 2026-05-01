@@ -153,6 +153,12 @@ export default function Home() {
   const [shapeVertices, setShapeVertices] = useState<ShapePt[]>([]);
   const [shapeEdgeCurves, setShapeEdgeCurves] = useState<Record<number, number>>({});
   const [shapeBuilderKey, setShapeBuilderKey] = useState(0);
+  const handleShapeChange = useCallback((area: number, perimeter: number, vertices?: ShapePt[], edgeCurves?: Record<number, number>) => {
+    setShapeArea(area);
+    setShapePerimeter(perimeter);
+    setShapeVertices(vertices ?? []);
+    setShapeEdgeCurves(edgeCurves ?? {});
+  }, []);
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
   const [joistSpacingIn, setJoistSpacingIn] = useState<12 | 16 | 24>(16);
@@ -1406,12 +1412,7 @@ export default function Home() {
                                 key={shapeBuilderKey}
                                 initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
                                 initialEdgeCurves={shapeEdgeCurves}
-                                onShapeChange={(area, perimeter, vertices, edgeCurves) => {
-                                  setShapeArea(area);
-                                  setShapePerimeter(perimeter);
-                                  setShapeVertices(vertices ?? []);
-                                  setShapeEdgeCurves(edgeCurves ?? {});
-                                }}
+                                onShapeChange={handleShapeChange}
                                 accentColor={ac.text}
                                 accentBg={ac.btnClass}
                               />
