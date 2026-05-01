@@ -1099,6 +1099,14 @@ export default function ShapeBuilder({
               ✎ Edit
             </button>
           )}
+          {closed && Object.keys(edgeCurves).length > 0 && (
+            <button
+              onClick={() => setEdgeCurves({})}
+              className="text-xs text-sky-400 hover:text-sky-300 transition-colors px-2 py-1 rounded border border-sky-500/30 hover:border-sky-400/50 bg-sky-500/10"
+            >
+              ⟳ Reset Curves
+            </button>
+          )}
           {!closed && vertices.length >= 3 && (
             <button
               onClick={() => setClosed(true)}
