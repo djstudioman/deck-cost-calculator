@@ -233,7 +233,7 @@ export default function ShapeBuilder({
   const [dragging, setDragging] = useState<
     | { type: "edge"; edge: number }
     | { type: "vertex"; index: number }
-    | { type: "curve"; edge: number; startBulge: number; perpAxis: { nx: number; ny: number } }
+    | { type: "curve"; edge: number; startBulge: number; handleOffset: number; perpAxis: { nx: number; ny: number } }
     | null
   >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
@@ -371,8 +371,9 @@ export default function ShapeBuilder({
         const next = vertices[j];
         const midX = (v.x + next.x) / 2;
         const midY = (v.y + next.y) / 2;
-        // Signed distance from midpoint along outward normal
-        const rawBulge = (raw.x - midX) * nx + (raw.y - midY) * ny;
+        // Signed distance from midpoint along outward normal.
+        // Subtract handleOffset so dragging from the handle's rest position gives 0 delta.
+        const rawBulge = (raw.x - midX) * nx + (raw.y - midY) * ny - dragging.handleOffset;
         // Clamp to half the edge length to prevent control point from overshooting
         const edgeLen = Math.sqrt((next.x - v.x) ** 2 + (next.y - v.y) ** 2) || 1;
         const maxBulge = edgeLen * 0.8;
@@ -523,10 +524,15 @@ export default function ShapeBuilder({
     const midY = (v.y + next.y) / 2;
     const toCx = centroid.x - midX, toCy = centroid.y - midY;
     if (nx * toCx + ny * toCy > 0) { nx = -nx; ny = -ny; }
+    const existingBulge = edgeCurves[edgeIndex] ?? 0;
+    // The handle is rendered at midpoint + outNormal * 3.5.
+    // Store this offset so the drag handler can zero-reference from the handle's rest position.
+    const HANDLE_OFFSET = 3.5;
     setDragging({
       type: "curve",
       edge: edgeIndex,
-      startBulge: edgeCurves[edgeIndex] ?? 0,
+      startBulge: existingBulge,
+      handleOffset: HANDLE_OFFSET,
       perpAxis: { nx, ny },
     });
   }, [vertices, edgeCurves, centroid]);
@@ -934,10 +940,10 @@ export default function ShapeBuilder({
                   }}
                   onTouchStart={(e) => startEdgeDrag(edge.i, e as unknown as React.MouseEvent)}
                 />
-                {/* Curve drag handle — small perpendicular arrow indicator */}
+                {/* Curve drag handle — offset beyond the dimension label */}
                 <circle
-                  cx={edge.midX + edge.outNx * 1.2}
-                  cy={edge.midY + edge.outNy * 1.2}
+                  cx={edge.midX + edge.outNx * 3.5}
+                  cy={edge.midY + edge.outNy * 3.5}
                   r={0.35}
                   className={cn(
                     "transition-colors",
