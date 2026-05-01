@@ -26,6 +26,10 @@ interface ShapeBuilderProps {
   initialEdgeCurves?: Record<number, number>;
   accentColor?: string;
   accentBg?: string;
+  /** When true, renders in full-screen mobile mode with enlarged touch targets */
+  mobileFullscreen?: boolean;
+  /** When provided, a Confirm button appears once the shape is closed */
+  onConfirm?: (area: number, perimeter: number, vertices: ShapePt[], edgeCurves: Record<number, number>) => void;
 }
 
 // ─── Grid constants ──────────────────────────────────────────────────────────
@@ -223,7 +227,10 @@ export default function ShapeBuilder({
   initialEdgeCurves,
   accentColor = "text-amber-400",
   accentBg = "bg-amber-500",
+  mobileFullscreen = false,
+  onConfirm,
 }: ShapeBuilderProps) {
+  // In mobile fullscreen mode, default snap to 1ft for finger precision
   // ─── State ──────────────────────────────────────────────────────────────────
   const [vertices, setVertices] = useState<ShapePt[]>(initialVertices ?? []);
   const [closed, setClosed] = useState(initialVertices ? initialVertices.length >= 3 : false);
@@ -238,7 +245,7 @@ export default function ShapeBuilder({
   >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
-  const [snapTo1ft, setSnapTo1ft] = useState(false);
+  const [snapTo1ft, setSnapTo1ft] = useState(mobileFullscreen);
   // Selected vertex index for exact-coordinate editing
   const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
   // Controlled input values (strings so user can type freely)
@@ -550,7 +557,7 @@ export default function ShapeBuilder({
       const first = vertices[0];
       const dx = raw.x - first.x;
       const dy = raw.y - first.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS) {
+      if (Math.sqrt(dx * dx + dy * dy) <= (mobileFullscreen ? CLOSE_RADIUS * 2.5 : CLOSE_RADIUS)) {
         setClosed(true);
         setCandidate(null);
         setActivePreset(null);
@@ -816,20 +823,24 @@ export default function ShapeBuilder({
     });
   }, [vertices, edgeCurves, closed, centroid]);
 
+  // In mobile fullscreen, close-snap radius is more generous for fingers
+  const effectiveCloseRadius = mobileFullscreen ? CLOSE_RADIUS * 2.5 : CLOSE_RADIUS;
+
   // Can-close detection
   const canClose = useMemo(() => {
     if (closed || vertices.length < 3 || !candidate) return false;
     const first = vertices[0];
     const dx = candidate.x - first.x;
     const dy = candidate.y - first.y;
-    return Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS + 1;
-  }, [closed, vertices, candidate]);
+    return Math.sqrt(dx * dx + dy * dy) <= effectiveCloseRadius + 1;
+  }, [closed, vertices, candidate, effectiveCloseRadius]);
 
   // ─── JSX ────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-3">
+    <div className={cn(mobileFullscreen ? "flex flex-col h-full gap-0" : "space-y-3")}>
       {/* Preset buttons */}
-      <div className="flex gap-2">
+      <div className={cn("flex gap-2", mobileFullscreen && "px-3 pt-2 pb-1 shrink-0")}>
         {PRESETS.map((p) => (
           <button
             key={p.id}
@@ -848,12 +859,20 @@ export default function ShapeBuilder({
       </div>
 
       {/* SVG Canvas */}
-      <div className="relative rounded-lg border border-white/10 bg-slate-900/80 overflow-hidden">
+      <div className={cn(
+        "relative overflow-hidden",
+        mobileFullscreen
+          ? "flex-1 min-h-0 bg-slate-900/80"
+          : "rounded-lg border border-white/10 bg-slate-900/80"
+      )}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${VB_W} ${VB_H}`}
-          className="w-full h-auto cursor-crosshair select-none"
-          style={{ maxHeight: "520px" }}
+          className={cn(
+            "cursor-crosshair select-none",
+            mobileFullscreen ? "w-full h-full" : "w-full h-auto"
+          )}
+          style={mobileFullscreen ? { touchAction: "none", display: "block" } : { maxHeight: "520px" }}
           preserveAspectRatio="xMidYMid meet"
           onClick={handleClick}
           onMouseMove={handleMouseMove}
@@ -1076,7 +1095,7 @@ export default function ShapeBuilder({
                 <circle
                   cx={edge.midX}
                   cy={edge.midY}
-                  r={0.5}
+                  r={mobileFullscreen ? 1.8 : 0.5}
                   className={cn(
                     "stroke-amber-400 transition-colors",
                     isCurving ? "fill-sky-400/50 stroke-sky-300" :
@@ -1096,7 +1115,7 @@ export default function ShapeBuilder({
                 <circle
                   cx={edge.midX + edge.outNx * 3.5}
                   cy={edge.midY + edge.outNy * 3.5}
-                  r={0.35}
+                  r={mobileFullscreen ? 1.4 : 0.35}
                   className={cn(
                     "transition-colors",
                     isCurving ? "fill-sky-300 stroke-sky-200" :
@@ -1124,7 +1143,7 @@ export default function ShapeBuilder({
                   style={{ pointerEvents: "none" }}
                 />
               )}
-              <circle cx={v.x} cy={v.y} r={1.5} fill="transparent"
+              <circle cx={v.x} cy={v.y} r={mobileFullscreen ? 3.5 : 1.5} fill="transparent"
                 style={{ cursor: closed ? "move" : "default" }}
                 onMouseDown={closed ? (e) => { startVertexDrag(i, e); } : undefined}
                 onClick={closed ? (e) => selectVertex(i, e) : undefined}
@@ -1132,7 +1151,7 @@ export default function ShapeBuilder({
                 onDoubleClick={closed ? (e) => deleteVertex(i, e) : undefined}
               />
               <circle cx={v.x} cy={v.y}
-                r={i === 0 && !closed ? 0.6 : 0.4}
+                r={mobileFullscreen ? (i === 0 && !closed ? 1.2 : 0.9) : (i === 0 && !closed ? 0.6 : 0.4)}
                 className={cn(
                   "pointer-events-none transition-colors",
                   i === 0 && !closed
@@ -1283,7 +1302,7 @@ export default function ShapeBuilder({
       )}
 
       {/* Summary bar */}
-      <div className="flex items-center justify-between">
+      <div className={cn("flex items-center justify-between", mobileFullscreen && "px-3 py-2 shrink-0 border-t border-white/10 bg-slate-900/90")}>
         <div className="flex gap-4">
           {closed && (
             <>
@@ -1354,6 +1373,14 @@ export default function ShapeBuilder({
           >
             Clear
           </button>
+          {onConfirm && closed && (
+            <button
+              onClick={() => onConfirm(area, perim, vertices, edgeCurves)}
+              className="text-sm font-semibold px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 transition-colors"
+            >
+              ✓ Use This Shape
+            </button>
+          )}
         </div>
       </div>
     </div>

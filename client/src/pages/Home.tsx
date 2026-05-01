@@ -10,6 +10,8 @@
  */
 
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useIsMobile } from "@/hooks/useMobile";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   REGIONS,
@@ -153,6 +155,8 @@ export default function Home() {
   const [shapeVertices, setShapeVertices] = useState<ShapePt[]>([]);
   const [shapeEdgeCurves, setShapeEdgeCurves] = useState<Record<number, number>>({});
   const [shapeBuilderKey, setShapeBuilderKey] = useState(0);
+  const [shapeOverlayOpen, setShapeOverlayOpen] = useState(false);
+  const isMobile = useIsMobile();
   const handleShapeChange = useCallback((area: number, perimeter: number, vertices?: ShapePt[], edgeCurves?: Record<number, number>) => {
     setShapeArea(area);
     setShapePerimeter(perimeter);
@@ -1408,14 +1412,70 @@ export default function Home() {
                           </button>
                           {sizeId === "shape" && (
                             <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                              <ShapeBuilder
-                                key={shapeBuilderKey}
-                                initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
-                                initialEdgeCurves={shapeEdgeCurves}
-                                onShapeChange={handleShapeChange}
-                                accentColor={ac.text}
-                                accentBg={ac.btnClass}
-                              />
+                              {isMobile ? (
+                                <>
+                                  {/* Mobile: button that opens full-screen overlay */}
+                                  <button
+                                    onClick={() => setShapeOverlayOpen(true)}
+                                    className={cn(
+                                      "w-full py-3 px-4 rounded-lg border text-sm font-semibold transition-all flex items-center justify-between",
+                                      shapeArea > 0
+                                        ? `border-amber-500/40 bg-amber-500/10 ${ac.text}`
+                                        : "border-white/15 bg-white/[0.04] text-slate-300 hover:border-white/25"
+                                    )}
+                                  >
+                                    <span>{shapeArea > 0 ? `✓ Shape drawn — ${Math.round(shapeArea)} sq ft` : "✏ Draw Custom Shape"}</span>
+                                    <span className="text-slate-500 text-xs">{shapeArea > 0 ? "Tap to edit" : "Opens full screen"}</span>
+                                  </button>
+                                  {/* Full-screen shape drawing overlay */}
+                                  <Sheet open={shapeOverlayOpen} onOpenChange={setShapeOverlayOpen}>
+                                    <SheetContent
+                                      side="bottom"
+                                      className="h-[100dvh] p-0 flex flex-col bg-slate-950 border-t border-white/10 [&>button]:hidden"
+                                    >
+                                      {/* Header */}
+                                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                                        <div>
+                                          <div className="font-semibold text-white text-sm">Draw Your Deck Shape</div>
+                                          <div className="text-xs text-slate-500">Tap to place corners · Tap near start to close</div>
+                                        </div>
+                                        <button
+                                          onClick={() => setShapeOverlayOpen(false)}
+                                          className="text-slate-400 hover:text-white text-sm px-3 py-1.5 rounded border border-white/10 hover:border-white/25 transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                      {/* Full-screen ShapeBuilder */}
+                                      <div className="flex-1 min-h-0">
+                                        <ShapeBuilder
+                                          key={shapeBuilderKey}
+                                          initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
+                                          initialEdgeCurves={shapeEdgeCurves}
+                                          onShapeChange={handleShapeChange}
+                                          accentColor={ac.text}
+                                          accentBg={ac.btnClass}
+                                          mobileFullscreen
+                                          onConfirm={(area, perim, verts, curves) => {
+                                            handleShapeChange(area, perim, verts, curves);
+                                            setShapeOverlayOpen(false);
+                                          }}
+                                        />
+                                      </div>
+                                    </SheetContent>
+                                  </Sheet>
+                                </>
+                              ) : (
+                                /* Desktop: inline as before */
+                                <ShapeBuilder
+                                  key={shapeBuilderKey}
+                                  initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
+                                  initialEdgeCurves={shapeEdgeCurves}
+                                  onShapeChange={handleShapeChange}
+                                  accentColor={ac.text}
+                                  accentBg={ac.btnClass}
+                                />
+                              )}
                             </div>
                           )}
                         </div>
