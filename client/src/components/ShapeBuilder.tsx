@@ -1318,6 +1318,13 @@ export default function ShapeBuilder({
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider">Railing est.</div>
                 <div className="font-mono font-bold text-sm text-slate-300">{Math.round(perim * 0.75)} LF</div>
               </div>
+              <div title="5.5in face x 16ft board, 10% waste">
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider">Boards est.</div>
+                <div className="font-mono font-bold text-sm text-slate-300">
+                  {Math.ceil((area * 1.10) / ((5.5 / 12) * 16))} pcs
+                </div>
+                <div className="text-[9px] text-slate-600">5.5&quot; x 16ft &middot; 10% waste</div>
+              </div>
             </>
           )}
         </div>
