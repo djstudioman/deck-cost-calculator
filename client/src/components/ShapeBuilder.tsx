@@ -457,25 +457,70 @@ export default function ShapeBuilder({
     const EDGE_THRESHOLD = 1.5;
     let bestDist = Infinity;
     let bestPt: ShapePt | null = null;
+    const cx = centroid.x, cy = centroid.y;
     for (let i = 0; i < vertices.length; i++) {
       const j = (i + 1) % vertices.length;
       const v = vertices[i], next = vertices[j];
-      const d = distToSegment(raw.x, raw.y, v.x, v.y, next.x, next.y);
-      if (d < EDGE_THRESHOLD && d < bestDist) {
-        bestDist = d;
-        const dx = next.x - v.x, dy = next.y - v.y;
-        const lenSq = dx * dx + dy * dy;
-        if (lenSq === 0) continue;
-        const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
-        const edgeLen = Math.sqrt(lenSq);
-        const snapSz = snapTo1ft ? 1 : CELL;
-        const tSnapped = Math.round(t * edgeLen / snapSz) * snapSz / edgeLen;
-        const tClamped = Math.max(0, Math.min(1, tSnapped));
-        bestPt = { x: v.x + tClamped * dx, y: v.y + tClamped * dy };
+      const bulge = edgeCurves[i] ?? 0;
+
+      if (bulge !== 0) {
+        // Curved edge: sample the Bézier arc and find closest point
+        const { cpx, cpy } = bezierControl(v.x, v.y, next.x, next.y, bulge, cx, cy);
+        const N = 40;
+        let closestT = 0;
+        let closestDist = Infinity;
+        for (let k = 0; k <= N; k++) {
+          const t = k / N;
+          const mt = 1 - t;
+          const qx = mt * mt * v.x + 2 * mt * t * cpx + t * t * next.x;
+          const qy = mt * mt * v.y + 2 * mt * t * cpy + t * t * next.y;
+          const d = Math.sqrt((raw.x - qx) ** 2 + (raw.y - qy) ** 2);
+          if (d < closestDist) { closestDist = d; closestT = t; }
+        }
+        if (closestDist < EDGE_THRESHOLD && closestDist < bestDist) {
+          bestDist = closestDist;
+          // Snap t to nearest foot increment along the arc
+          const snapSz = snapTo1ft ? 1 : CELL;
+          const arcLen = (() => {
+            let len = 0;
+            let px = v.x, py = v.y;
+            for (let k = 1; k <= N; k++) {
+              const t2 = k / N;
+              const mt2 = 1 - t2;
+              const qx2 = mt2 * mt2 * v.x + 2 * mt2 * t2 * cpx + t2 * t2 * next.x;
+              const qy2 = mt2 * mt2 * v.y + 2 * mt2 * t2 * cpy + t2 * t2 * next.y;
+              len += Math.sqrt((qx2 - px) ** 2 + (qy2 - py) ** 2);
+              px = qx2; py = qy2;
+            }
+            return len;
+          })();
+          const snappedArcDist = Math.round(closestT * arcLen / snapSz) * snapSz;
+          const tSnapped = Math.max(0, Math.min(1, snappedArcDist / arcLen));
+          const mt = 1 - tSnapped;
+          bestPt = {
+            x: mt * mt * v.x + 2 * mt * tSnapped * cpx + tSnapped * tSnapped * next.x,
+            y: mt * mt * v.y + 2 * mt * tSnapped * cpy + tSnapped * tSnapped * next.y,
+          };
+        }
+      } else {
+        // Straight edge
+        const d = distToSegment(raw.x, raw.y, v.x, v.y, next.x, next.y);
+        if (d < EDGE_THRESHOLD && d < bestDist) {
+          bestDist = d;
+          const dx = next.x - v.x, dy = next.y - v.y;
+          const lenSq = dx * dx + dy * dy;
+          if (lenSq === 0) continue;
+          const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
+          const edgeLen = Math.sqrt(lenSq);
+          const snapSz = snapTo1ft ? 1 : CELL;
+          const tSnapped = Math.round(t * edgeLen / snapSz) * snapSz / edgeLen;
+          const tClamped = Math.max(0, Math.min(1, tSnapped));
+          bestPt = { x: v.x + tClamped * dx, y: v.y + tClamped * dy };
+        }
       }
     }
     setEdgeHoverPt(bestPt);
-  }, [closed, vertices, distToSegment, snapTo1ft]);
+  }, [closed, vertices, distToSegment, snapTo1ft, edgeCurves, centroid]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     if (closed || !svgRef.current) return;
@@ -988,6 +1033,19 @@ export default function ShapeBuilder({
           {closed && vertices.map((v, i) => {
             const j = (i + 1) % vertices.length;
             const next = vertices[j];
+            const bulge = edgeCurves[i] ?? 0;
+            if (bulge !== 0) {
+              const { cpx, cpy } = bezierControl(v.x, v.y, next.x, next.y, bulge, centroid.x, centroid.y);
+              const d = `M ${v.x} ${v.y} Q ${cpx} ${cpy} ${next.x} ${next.y}`;
+              return (
+                <path key={`edge-hit-${i}`}
+                  d={d}
+                  stroke="transparent" strokeWidth={2} fill="none"
+                  style={{ cursor: "cell" }}
+                  onClick={insertVertexOnEdge}
+                />
+              );
+            }
             return (
               <line key={`edge-hit-${i}`}
                 x1={v.x} y1={v.y} x2={next.x} y2={next.y}
