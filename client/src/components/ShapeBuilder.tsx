@@ -291,6 +291,15 @@ export default function ShapeBuilder({
     return { x: bestX, y: bestY };
   }, [vertices]);
 
+  // Smooth geometric centroid for badge positioning — changes continuously during drag
+  // (no discrete jumps unlike the pole-of-inaccessibility centroid used for normals)
+  const badgeCentroid = useMemo(() => {
+    if (vertices.length < 3) return { x: VB_W / 2, y: VB_H / 2 };
+    const sumX = vertices.reduce((s, v) => s + v.x, 0);
+    const sumY = vertices.reduce((s, v) => s + v.y, 0);
+    return { x: sumX / vertices.length, y: sumY / vertices.length };
+  }, [vertices]);
+
   // ─── Area & perimeter (curve-aware) ─────────────────────────────────────
   const area = useMemo(
     () => closed ? computeArea(vertices, edgeCurves, centroid.x, centroid.y) : 0,
@@ -896,11 +905,14 @@ export default function ShapeBuilder({
             // Width: each char ~1.0px wide at 1.6px font size in monospace
             const badgeW = label.length * 1.0 + 1.6;
             const badgeH = 2.8;
+            // Use smooth geometric centroid so badge moves continuously, not in discrete jumps
+            const bx = badgeCentroid.x;
+            const by = badgeCentroid.y;
             return (
               <>
                 <rect
-                  x={centroid.x - badgeW / 2}
-                  y={centroid.y - badgeH / 2}
+                  x={bx - badgeW / 2}
+                  y={by - badgeH / 2}
                   width={badgeW}
                   height={badgeH}
                   rx={0.5}
@@ -908,8 +920,8 @@ export default function ShapeBuilder({
                   opacity={0.9}
                 />
                 <text
-                  x={centroid.x}
-                  y={centroid.y}
+                  x={bx}
+                  y={by}
                   textAnchor="middle"
                   dy="0.35em"
                   className="fill-amber-300 pointer-events-none"
