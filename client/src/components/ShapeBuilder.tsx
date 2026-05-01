@@ -239,10 +239,26 @@ export default function ShapeBuilder({
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
   const [snapTo1ft, setSnapTo1ft] = useState(false);
+  // Selected vertex index for exact-coordinate editing
+  const [selectedVertex, setSelectedVertex] = useState<number | null>(null);
+  // Controlled input values (strings so user can type freely)
+  const [editX, setEditX] = useState("");
+  const [editY, setEditY] = useState("");
   const svgRef = useRef<SVGSVGElement>(null);
   // Store callback in ref so it never causes useEffect re-runs
   const onShapeChangeRef = useRef(onShapeChange);
   useEffect(() => { onShapeChangeRef.current = onShapeChange; });
+
+  // Keep coordinate inputs in sync when the selected vertex is dragged
+  useEffect(() => {
+    if (selectedVertex === null || !vertices[selectedVertex]) return;
+    // Only update when not actively typing (dragging sets values, not user input)
+    if (dragging?.type === "vertex" && dragging.index === selectedVertex) {
+      const v = vertices[selectedVertex];
+      setEditX(String(v.x));
+      setEditY(String(v.y));
+    }
+  }, [vertices, selectedVertex, dragging]);
 
   // ─── Centroid (simple, for outward normal direction) ─────────────────────
   const centroid = useMemo(() => {
@@ -557,6 +573,39 @@ export default function ShapeBuilder({
     e.preventDefault();
     setDragging({ type: "vertex", index });
   }, [closed]);
+
+  // Single-click on a vertex selects it and populates the coordinate inputs
+  const selectVertex = useCallback((index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!closed) return;
+    setSelectedVertex((prev) => {
+      if (prev === index) {
+        // Deselect on second click
+        return null;
+      }
+      const v = vertices[index];
+      setEditX(String(v.x));
+      setEditY(String(v.y));
+      return index;
+    });
+  }, [closed, vertices]);
+
+  // Apply typed coordinates to the selected vertex
+  const applyCoordinates = useCallback(() => {
+    if (selectedVertex === null) return;
+    const nx = parseFloat(editX);
+    const ny = parseFloat(editY);
+    if (isNaN(nx) || isNaN(ny)) return;
+    const clampedX = Math.max(0, Math.min(GRID_W, nx));
+    const clampedY = Math.max(0, Math.min(GRID_H, ny));
+    setVertices((prev) => {
+      const pts = [...prev];
+      pts[selectedVertex] = { x: clampedX, y: clampedY };
+      return pts;
+    });
+    setEditX(String(clampedX));
+    setEditY(String(clampedY));
+  }, [selectedVertex, editX, editY]);
 
   const insertVertexOnEdge = useCallback((e: React.MouseEvent<SVGElement>) => {
     if (!closed || !svgRef.current) return;
@@ -1009,9 +1058,18 @@ export default function ShapeBuilder({
           {/* Vertex dots */}
           {vertices.map((v, i) => (
             <g key={`v-${i}`}>
+              {/* Selection ring */}
+              {closed && selectedVertex === i && (
+                <circle cx={v.x} cy={v.y} r={1.1}
+                  className="fill-none stroke-sky-400"
+                  strokeWidth={0.25}
+                  style={{ pointerEvents: "none" }}
+                />
+              )}
               <circle cx={v.x} cy={v.y} r={1.5} fill="transparent"
                 style={{ cursor: closed ? "move" : "default" }}
-                onMouseDown={closed ? (e) => startVertexDrag(i, e) : undefined}
+                onMouseDown={closed ? (e) => { startVertexDrag(i, e); } : undefined}
+                onClick={closed ? (e) => selectVertex(i, e) : undefined}
                 onTouchStart={closed ? (e) => startVertexDrag(i, e as unknown as React.MouseEvent) : undefined}
                 onDoubleClick={closed ? (e) => deleteVertex(i, e) : undefined}
               />
@@ -1024,7 +1082,9 @@ export default function ShapeBuilder({
                     : closed
                       ? dragging?.type === "vertex" && dragging.index === i
                         ? "fill-white stroke-amber-200"
-                        : "fill-amber-400/80 stroke-amber-300"
+                        : selectedVertex === i
+                          ? "fill-sky-300 stroke-sky-200"
+                          : "fill-amber-400/80 stroke-amber-300"
                       : "fill-amber-400 stroke-amber-300"
                 )}
                 strokeWidth={0.1}
@@ -1114,6 +1174,55 @@ export default function ShapeBuilder({
           </div>
         )}
       </div>
+
+      {/* Exact-coordinate editor — shown when a vertex is selected */}
+      {closed && selectedVertex !== null && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-sky-500/30 bg-sky-500/5">
+          <span className="text-[10px] text-sky-400 uppercase tracking-wider font-semibold whitespace-nowrap">
+            Corner {selectedVertex + 1}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <label className="text-[10px] text-slate-500 font-mono">X</label>
+            <input
+              type="number"
+              value={editX}
+              min={0}
+              max={GRID_W}
+              step={snapTo1ft ? 1 : CELL}
+              onChange={(e) => setEditX(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") applyCoordinates(); if (e.key === "Escape") setSelectedVertex(null); }}
+              className="w-14 px-2 py-0.5 rounded border border-white/10 bg-slate-800 text-xs font-mono text-white focus:outline-none focus:border-sky-500/60 focus:ring-1 focus:ring-sky-500/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-[10px] text-slate-500">ft</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label className="text-[10px] text-slate-500 font-mono">Y</label>
+            <input
+              type="number"
+              value={editY}
+              min={0}
+              max={GRID_H}
+              step={snapTo1ft ? 1 : CELL}
+              onChange={(e) => setEditY(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") applyCoordinates(); if (e.key === "Escape") setSelectedVertex(null); }}
+              className="w-14 px-2 py-0.5 rounded border border-white/10 bg-slate-800 text-xs font-mono text-white focus:outline-none focus:border-sky-500/60 focus:ring-1 focus:ring-sky-500/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="text-[10px] text-slate-500">ft</span>
+          </div>
+          <button
+            onClick={applyCoordinates}
+            className="text-xs px-2 py-0.5 rounded border border-sky-500/40 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 transition-colors font-mono"
+          >
+            Apply
+          </button>
+          <button
+            onClick={() => setSelectedVertex(null)}
+            className="text-xs text-slate-500 hover:text-slate-300 transition-colors ml-auto"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Summary bar */}
       <div className="flex items-center justify-between">
