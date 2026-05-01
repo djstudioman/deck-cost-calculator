@@ -975,8 +975,8 @@ export default function ShapeBuilder({
             />
           )}
 
-          {/* Ghost snap crosshair — only before first vertex is placed */}
-          {!closed && candidate && vertices.length === 0 && (
+          {/* Ghost snap crosshair — only before first vertex is placed (hidden on mobile) */}
+          {!closed && candidate && vertices.length === 0 && !mobileFullscreen && (
             <g className="pointer-events-none">
               <line x1={candidate.x - 1.2} y1={candidate.y} x2={candidate.x + 1.2} y2={candidate.y}
                 className="stroke-amber-400/50" strokeWidth={0.2} />
@@ -987,8 +987,8 @@ export default function ShapeBuilder({
             </g>
           )}
 
-          {/* Dashed preview line to candidate + live edge length */}
-          {!closed && candidate && vertices.length > 0 && (() => {
+          {/* Dashed preview line to candidate + live edge length (hidden on mobile) */}
+          {!closed && candidate && vertices.length > 0 && !mobileFullscreen && (() => {
             const prev = vertices[vertices.length - 1];
             const dx = candidate.x - prev.x;
             const dy = candidate.y - prev.y;
@@ -1112,8 +1112,8 @@ export default function ShapeBuilder({
             );
           })}
 
-          {/* Ghost dot on edge hover */}
-          {edgeHoverPt && (
+          {/* Ghost dot on edge hover (hidden on mobile) */}
+          {edgeHoverPt && !mobileFullscreen && (
             <g className="pointer-events-none">
               <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7}
                 className="fill-emerald-400/30 stroke-emerald-400" strokeWidth={0.15} />
