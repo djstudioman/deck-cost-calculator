@@ -151,6 +151,7 @@ export default function Home() {
   const [shapeArea, setShapeArea] = useState<number>(0);
   const [shapePerimeter, setShapePerimeter] = useState<number>(0);
   const [shapeVertices, setShapeVertices] = useState<ShapePt[]>([]);
+  const [shapeEdgeCurves, setShapeEdgeCurves] = useState<Record<number, number>>({});
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
   const [joistSpacingIn, setJoistSpacingIn] = useState<12 | 16 | 24>(16);
@@ -427,6 +428,7 @@ export default function Home() {
     if (snap.shapeVertices && snap.shapeVertices.length >= 3) {
       setShapeVertices(snap.shapeVertices);
     }
+    setShapeEdgeCurves(snap.shapeEdgeCurves ?? {});
     // Jump straight to results
     setShowResults(true);
   });
@@ -481,6 +483,7 @@ export default function Home() {
     } else {
       setShapeVertices([]);
     }
+    setShapeEdgeCurves(snap.shapeEdgeCurves ?? {});
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -518,6 +521,7 @@ export default function Home() {
       engineerCost,
       engineerCostMode,
       shapeVertices: sizeId === "shape" && shapeVertices.length >= 3 ? shapeVertices : undefined,
+      shapeEdgeCurves: sizeId === "shape" && Object.keys(shapeEdgeCurves).length > 0 ? shapeEdgeCurves : undefined,
       totalLow: result.totalLow,
       totalHigh: result.totalHigh,
     });
@@ -1397,10 +1401,12 @@ export default function Home() {
                             <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                               <ShapeBuilder
                                 initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
-                                onShapeChange={(area, perimeter, vertices) => {
+                                initialEdgeCurves={shapeEdgeCurves}
+                                onShapeChange={(area, perimeter, vertices, edgeCurves) => {
                                   setShapeArea(area);
                                   setShapePerimeter(perimeter);
                                   setShapeVertices(vertices ?? []);
+                                  setShapeEdgeCurves(edgeCurves ?? {});
                                 }}
                                 accentColor={ac.text}
                                 accentBg={ac.btnClass}

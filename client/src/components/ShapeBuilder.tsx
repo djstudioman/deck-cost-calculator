@@ -1,14 +1,14 @@
 /**
- * ShapeBuilder.tsx — orthogonal polygon drawing tool for irregular deck footprints.
+ * ShapeBuilder.tsx — polygon drawing tool for irregular deck footprints.
  * Contractor-only feature on the Deck Size step.
  *
  * Architecture:
- *   Lines 1–82:   Setup & math (grid constants, geometry helpers, presets)
- *   Lines 84–119: Component state
- *   Lines 142–182: Global drag listeners (window-level mouse/touch)
- *   Lines 184–261: Event handlers
- *   Lines 286–372: Derived render data
- *   Lines 374–662: JSX
+ *   Lines 1–110:  Setup & math (grid constants, geometry helpers, presets)
+ *   Lines 112–200: Component state
+ *   Lines 200–310: Global drag listeners (window-level mouse/touch)
+ *   Lines 310–430: Event handlers
+ *   Lines 430–560: Derived render data
+ *   Lines 560–900: JSX
  */
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
@@ -21,8 +21,9 @@ export interface ShapePt {
 }
 
 interface ShapeBuilderProps {
-  onShapeChange: (area: number, perimeter: number, vertices?: ShapePt[]) => void;
+  onShapeChange: (area: number, perimeter: number, vertices?: ShapePt[], edgeCurves?: Record<number, number>) => void;
   initialVertices?: ShapePt[];
+  initialEdgeCurves?: Record<number, number>;
   accentColor?: string;
   accentBg?: string;
 }
@@ -40,25 +41,113 @@ const VB_W = GRID_W;
 const VB_H = GRID_H;
 
 // ─── Geometry helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Compute the control point for a quadratic Bézier given two endpoints and a bulge.
+ * bulge > 0 = outward (away from polygon interior), bulge < 0 = inward.
+ * The control point is placed at the edge midpoint + bulge * outward_normal.
+ */
+function bezierControl(
+  ax: number, ay: number,
+  bx: number, by: number,
+  bulge: number,
+  cx: number, cy: number // polygon centroid for outward direction
+): { cpx: number; cpy: number } {
+  const midX = (ax + bx) / 2;
+  const midY = (ay + by) / 2;
+  const dx = bx - ax, dy = by - ay;
+  const edgeLen = Math.sqrt(dx * dx + dy * dy) || 1;
+  // Left-hand normal
+  let nx = -dy / edgeLen;
+  let ny = dx / edgeLen;
+  // Flip so it points away from centroid
+  const toCx = cx - midX, toCy = cy - midY;
+  if (nx * toCx + ny * toCy > 0) { nx = -nx; ny = -ny; }
+  // Control point: midpoint + bulge * outward_normal * 2 (factor of 2 because quadratic Bézier
+  // reaches only halfway to the control point at t=0.5)
+  return { cpx: midX + nx * bulge * 2, cpy: midY + ny * bulge * 2 };
+}
+
+/**
+ * Area of the closed shape accounting for quadratic Bézier curved edges.
+ * Uses the exact parametric area formula for each segment.
+ * For a straight edge: standard shoelace contribution.
+ * For a curved edge (quadratic Bézier P0→CP→P2):
+ *   area contribution = (P0.x*(CP.y - P2.y) + CP.x*(P2.y - P0.y) + P2.x*(P0.y - CP.y)) / 3
+ *   (this is the exact signed area under the Bézier curve)
+ */
+function computeArea(
+  pts: ShapePt[],
+  curves: Record<number, number>,
+  centroidX: number,
+  centroidY: number
+): number {
+  if (pts.length < 3) return 0;
+  let sum = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    const ax = pts[i].x, ay = pts[i].y;
+    const bx = pts[j].x, by = pts[j].y;
+    const bulge = curves[i] ?? 0;
+    if (bulge === 0) {
+      // Straight edge: standard shoelace
+      sum += ax * by - bx * ay;
+    } else {
+      const { cpx, cpy } = bezierControl(ax, ay, bx, by, bulge, centroidX, centroidY);
+      // Exact quadratic Bézier area contribution (signed)
+      sum += (ax * (cpy - by) + cpx * (by - ay) + bx * (ay - cpy)) / 3 * 2;
+      // Add the straight-edge shoelace contribution for the chord
+      sum += ax * by - bx * ay;
+    }
+  }
+  return Math.abs(sum) / 2;
+}
+
+/**
+ * Perimeter accounting for curved edges.
+ * Approximates arc length by sampling the Bézier at 20 points.
+ */
+function computePerimeter(
+  pts: ShapePt[],
+  curves: Record<number, number>,
+  centroidX: number,
+  centroidY: number
+): number {
+  if (pts.length < 2) return 0;
+  let total = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    const ax = pts[i].x, ay = pts[i].y;
+    const bx = pts[j].x, by = pts[j].y;
+    const bulge = curves[i] ?? 0;
+    if (bulge === 0) {
+      total += Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
+    } else {
+      const { cpx, cpy } = bezierControl(ax, ay, bx, by, bulge, centroidX, centroidY);
+      const N = 20;
+      let px = ax, py = ay;
+      for (let k = 1; k <= N; k++) {
+        const t = k / N;
+        const mt = 1 - t;
+        const qx = mt * mt * ax + 2 * mt * t * cpx + t * t * bx;
+        const qy = mt * mt * ay + 2 * mt * t * cpy + t * t * by;
+        total += Math.sqrt((qx - px) ** 2 + (qy - py) ** 2);
+        px = qx; py = qy;
+      }
+    }
+  }
+  return total;
+}
+
+/** Simple shoelace area for centroid computation (ignores curves — close enough for label placement) */
 function shoelaceArea(pts: ShapePt[]): number {
   if (pts.length < 3) return 0;
   let sum = 0;
   for (let i = 0; i < pts.length; i++) {
     const j = (i + 1) % pts.length;
-    sum += pts[i].x * pts[j].y;
-    sum -= pts[j].x * pts[i].y;
+    sum += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
   }
   return Math.abs(sum) / 2;
-}
-
-function polyPerimeter(pts: ShapePt[]): number {
-  if (pts.length < 2) return 0;
-  let total = 0;
-  for (let i = 0; i < pts.length; i++) {
-    const j = (i + 1) % pts.length;
-    total += Math.abs(pts[j].x - pts[i].x) + Math.abs(pts[j].y - pts[i].y);
-  }
-  return total;
 }
 
 /** Convert browser clientX/Y to SVG viewBox coordinates */
@@ -68,8 +157,6 @@ function getSVGCoords(
   clientY: number
 ): { x: number; y: number } {
   const rect = svg.getBoundingClientRect();
-  // The SVG is rendered at rect.width × rect.height but viewBox is VB_W × VB_H.
-  // preserveAspectRatio (default xMidYMid meet) may letterbox.
   const viewBoxAspect = VB_W / VB_H;
   const renderedAspect = rect.width / rect.height;
   let contentW = rect.width;
@@ -97,17 +184,6 @@ function snapToGrid(x: number, y: number): ShapePt {
     x: Math.round(x / CELL) * CELL,
     y: Math.round(y / CELL) * CELL,
   };
-}
-
-/** Force orthogonal: new point shares either X or Y with previous */
-function orthoSnap(raw: ShapePt, prev: ShapePt): ShapePt {
-  const dx = Math.abs(raw.x - prev.x);
-  const dy = Math.abs(raw.y - prev.y);
-  if (dx >= dy) {
-    return { x: raw.x, y: prev.y };
-  } else {
-    return { x: prev.x, y: raw.y };
-  }
 }
 
 // ─── Shape presets ───────────────────────────────────────────────────────────
@@ -145,6 +221,7 @@ const PRESETS: { id: string; label: string; icon: string; vertices: ShapePt[] }[
 export default function ShapeBuilder({
   onShapeChange,
   initialVertices,
+  initialEdgeCurves,
   accentColor = "text-amber-400",
   accentBg = "bg-amber-500",
 }: ShapeBuilderProps) {
@@ -152,9 +229,12 @@ export default function ShapeBuilder({
   const [vertices, setVertices] = useState<ShapePt[]>(initialVertices ?? []);
   const [closed, setClosed] = useState(initialVertices ? initialVertices.length >= 3 : false);
   const [candidate, setCandidate] = useState<ShapePt | null>(null);
+  // edgeCurves: map from edge index → bulge in feet (0 = straight)
+  const [edgeCurves, setEdgeCurves] = useState<Record<number, number>>(initialEdgeCurves ?? {});
   const [dragging, setDragging] = useState<
-    | { type: "edge"; edge: number; axis: "x" | "y" }
+    | { type: "edge"; edge: number }
     | { type: "vertex"; index: number }
+    | { type: "curve"; edge: number; startBulge: number; perpAxis: { nx: number; ny: number } }
     | null
   >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
@@ -166,17 +246,74 @@ export default function ShapeBuilder({
     if (initialVertices && initialVertices.length >= 3) {
       setVertices(initialVertices);
       setClosed(true);
+      setEdgeCurves(initialEdgeCurves ?? {});
     }
-  }, [initialVertices]);
+  }, [initialVertices, initialEdgeCurves]);
+
+  // ─── Centroid (simple, for outward normal direction) ─────────────────────
+  const centroid = useMemo(() => {
+    if (vertices.length < 3) return { x: VB_W / 2, y: VB_H / 2 };
+
+    function pointInPoly(px: number, py: number): boolean {
+      let inside = false;
+      for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const xi = vertices[i].x, yi = vertices[i].y;
+        const xj = vertices[j].x, yj = vertices[j].y;
+        if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+          inside = !inside;
+        }
+      }
+      return inside;
+    }
+
+    function distToEdges(px: number, py: number): number {
+      let minD = Infinity;
+      for (let i = 0; i < vertices.length; i++) {
+        const j = (i + 1) % vertices.length;
+        const ax = vertices[i].x, ay = vertices[i].y;
+        const bx = vertices[j].x, by = vertices[j].y;
+        const dx = bx - ax, dy = by - ay;
+        const lenSq = dx * dx + dy * dy;
+        const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+        const nearX = ax + t * dx, nearY = ay + t * dy;
+        const d = Math.sqrt((px - nearX) ** 2 + (py - nearY) ** 2);
+        if (d < minD) minD = d;
+      }
+      return minD;
+    }
+
+    const STEP = CELL;
+    let bestX = vertices[0].x, bestY = vertices[0].y, bestD = -1;
+    const xs = vertices.map((v) => v.x);
+    const ys = vertices.map((v) => v.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    for (let sx = minX + STEP / 2; sx < maxX; sx += STEP) {
+      for (let sy = minY + STEP / 2; sy < maxY; sy += STEP) {
+        if (!pointInPoly(sx, sy)) continue;
+        const d = distToEdges(sx, sy);
+        if (d > bestD) { bestD = d; bestX = sx; bestY = sy; }
+      }
+    }
+    return { x: bestX, y: bestY };
+  }, [vertices]);
+
+  // ─── Area & perimeter (curve-aware) ─────────────────────────────────────
+  const area = useMemo(
+    () => closed ? computeArea(vertices, edgeCurves, centroid.x, centroid.y) : 0,
+    [vertices, edgeCurves, closed, centroid]
+  );
+  const perim = useMemo(
+    () => closed ? computePerimeter(vertices, edgeCurves, centroid.x, centroid.y) : 0,
+    [vertices, edgeCurves, closed, centroid]
+  );
 
   // Fire onShapeChange when closed shape updates
   useEffect(() => {
     if (closed && vertices.length >= 3) {
-      const area = shoelaceArea(vertices);
-      const perim = polyPerimeter(vertices);
-      onShapeChange(Math.round(area), Math.round(perim), vertices);
+      onShapeChange(Math.round(area), Math.round(perim), vertices, edgeCurves);
     }
-  }, [vertices, closed, onShapeChange]);
+  }, [vertices, edgeCurves, closed, area, perim, onShapeChange]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
@@ -204,7 +341,6 @@ export default function ShapeBuilder({
       const snapped = snapToGrid(raw.x, raw.y);
 
       if (dragging.type === "vertex") {
-        // Move the single vertex freely (clamped to grid bounds)
         const newX = Math.max(0, Math.min(GRID_W, snapped.x));
         const newY = Math.max(0, Math.min(GRID_H, snapped.y));
         setVertices((prev) => {
@@ -212,15 +348,13 @@ export default function ShapeBuilder({
           pts[dragging.index] = { x: newX, y: newY };
           return pts;
         });
-      } else {
-        // Edge drag — translate both endpoints by the same delta, snapped
+      } else if (dragging.type === "edge") {
         setVertices((prev) => {
           const pts = [...prev];
           const i = dragging.edge;
           const j = (i + 1) % pts.length;
           const newX = Math.max(0, Math.min(GRID_W, snapped.x));
           const newY = Math.max(0, Math.min(GRID_H, snapped.y));
-          // Move the midpoint to the new snapped position, preserving edge shape
           const oldMidX = (pts[i].x + pts[j].x) / 2;
           const oldMidY = (pts[i].y + pts[j].y) / 2;
           const dxSnap = Math.round((newX - oldMidX) / CELL) * CELL;
@@ -234,6 +368,28 @@ export default function ShapeBuilder({
             y: Math.max(0, Math.min(GRID_H, pts[j].y + dySnap)),
           };
           return pts;
+        });
+      } else if (dragging.type === "curve") {
+        // Project raw cursor movement onto the outward normal to get bulge delta
+        const { nx, ny } = dragging.perpAxis;
+        const i = dragging.edge;
+        const v = vertices[i];
+        const j = (i + 1) % vertices.length;
+        const next = vertices[j];
+        const midX = (v.x + next.x) / 2;
+        const midY = (v.y + next.y) / 2;
+        // Signed distance from midpoint along outward normal
+        const rawBulge = (raw.x - midX) * nx + (raw.y - midY) * ny;
+        // Snap bulge to 0.5ft increments, clamp to ±20ft
+        const snappedBulge = Math.round(rawBulge / 0.5) * 0.5;
+        const clampedBulge = Math.max(-20, Math.min(20, snappedBulge));
+        setEdgeCurves((prev) => {
+          if (Math.abs(clampedBulge) < 0.25) {
+            const next = { ...prev };
+            delete next[i];
+            return next;
+          }
+          return { ...prev, [i]: clampedBulge };
         });
       }
     };
@@ -250,10 +406,9 @@ export default function ShapeBuilder({
       window.removeEventListener("touchmove", handleMove);
       window.removeEventListener("touchend", handleUp);
     };
-  }, [dragging]);
+  }, [dragging, vertices]);
 
   // ─── Event handlers ─────────────────────────────────────────────────────────
-  // Helper: distance from point (px,py) to segment (ax,ay)-(bx,by)
   const distToSegment = useCallback((px: number, py: number, ax: number, ay: number, bx: number, by: number): number => {
     const dx = bx - ax, dy = by - ay;
     const lenSq = dx * dx + dy * dy;
@@ -273,8 +428,6 @@ export default function ShapeBuilder({
       return;
     }
 
-    // When shape is closed: detect if cursor is near an edge (within 1.5ft in SVG units)
-    // Use raw (unsnapped) coords for distance test, then project snapped point onto edge
     const EDGE_THRESHOLD = 1.5;
     let bestDist = Infinity;
     let bestPt: ShapePt | null = null;
@@ -284,7 +437,6 @@ export default function ShapeBuilder({
       const d = distToSegment(raw.x, raw.y, v.x, v.y, next.x, next.y);
       if (d < EDGE_THRESHOLD && d < bestDist) {
         bestDist = d;
-        // Project snapped point onto this edge
         const dx = next.x - v.x, dy = next.y - v.y;
         const lenSq = dx * dx + dy * dy;
         if (lenSq === 0) continue;
@@ -317,19 +469,16 @@ export default function ShapeBuilder({
       return;
     }
 
-    // Clamp to grid bounds
     const clamped: ShapePt = {
       x: Math.max(0, Math.min(GRID_W, snapped.x)),
       y: Math.max(0, Math.min(GRID_H, snapped.y)),
     };
 
-    // Check close gesture — use raw coords so snapping doesn't prevent closing
     if (vertices.length >= 3) {
       const first = vertices[0];
       const dx = raw.x - first.x;
       const dy = raw.y - first.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist <= CLOSE_RADIUS) {
+      if (Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS) {
         setClosed(true);
         setCandidate(null);
         setActivePreset(null);
@@ -352,11 +501,39 @@ export default function ShapeBuilder({
     tryAddVertex(touch.clientX, touch.clientY);
   }, [closed, tryAddVertex]);
 
-  const startEdgeDrag = useCallback((edgeIndex: number, axis: "x" | "y", e: React.MouseEvent | React.TouchEvent) => {
+  const startEdgeDrag = useCallback((edgeIndex: number, e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setDragging({ type: "edge", edge: edgeIndex, axis });
+    setDragging({ type: "edge", edge: edgeIndex });
   }, []);
+
+  /**
+   * Start a curve drag on an edge midpoint handle.
+   * We compute the outward normal once at drag start and store it in state
+   * so the drag handler doesn't need to recompute it from potentially stale vertices.
+   */
+  const startCurveDrag = useCallback((edgeIndex: number, e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const v = vertices[edgeIndex];
+    const j = (edgeIndex + 1) % vertices.length;
+    const next = vertices[j];
+    const dx = next.x - v.x, dy = next.y - v.y;
+    const edgeLen = Math.sqrt(dx * dx + dy * dy) || 1;
+    let nx = -dy / edgeLen;
+    let ny = dx / edgeLen;
+    // Flip so it points away from centroid
+    const midX = (v.x + next.x) / 2;
+    const midY = (v.y + next.y) / 2;
+    const toCx = centroid.x - midX, toCy = centroid.y - midY;
+    if (nx * toCx + ny * toCy > 0) { nx = -nx; ny = -ny; }
+    setDragging({
+      type: "curve",
+      edge: edgeIndex,
+      startBulge: edgeCurves[edgeIndex] ?? 0,
+      perpAxis: { nx, ny },
+    });
+  }, [vertices, edgeCurves, centroid]);
 
   const startVertexDrag = useCallback((index: number, e: React.MouseEvent | React.TouchEvent) => {
     if (!closed) return;
@@ -365,38 +542,42 @@ export default function ShapeBuilder({
     setDragging({ type: "vertex", index });
   }, [closed]);
 
-  // Insert a new vertex by clicking on an edge of the closed polygon
   const insertVertexOnEdge = useCallback((e: React.MouseEvent<SVGElement>) => {
     if (!closed || !svgRef.current) return;
     e.stopPropagation();
     const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
     const snapped = snapToGrid(raw.x, raw.y);
 
-    // Find the closest edge to the click point
     let bestEdge = -1;
     let bestDist = Infinity;
     vertices.forEach((v, i) => {
       const j = (i + 1) % vertices.length;
       const next = vertices[j];
-      // Distance from point to line segment
-      const dx = next.x - v.x;
-      const dy = next.y - v.y;
+      const dx = next.x - v.x, dy = next.y - v.y;
       const lenSq = dx * dx + dy * dy;
       if (lenSq === 0) return;
       const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
-      const projX = v.x + t * dx;
-      const projY = v.y + t * dy;
+      const projX = v.x + t * dx, projY = v.y + t * dy;
       const dist = Math.sqrt((snapped.x - projX) ** 2 + (snapped.y - projY) ** 2);
       if (dist < bestDist) { bestDist = dist; bestEdge = i; }
     });
 
-    // Only insert if click is reasonably close to an edge (within 2ft)
     if (bestEdge === -1 || bestDist > 2) return;
 
     setVertices((prev) => {
       const pts = [...prev];
       pts.splice(bestEdge + 1, 0, snapped);
       return pts;
+    });
+    // Shift curve indices after the inserted vertex
+    setEdgeCurves((prev) => {
+      const next: Record<number, number> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const ki = parseInt(k);
+        if (ki <= bestEdge) next[ki] = v;
+        else next[ki + 1] = v;
+      }
+      return next;
     });
     setActivePreset(null);
   }, [closed, vertices]);
@@ -406,13 +587,32 @@ export default function ShapeBuilder({
     setVertices((prev) => {
       const next = prev.filter((_, i) => i !== index);
       if (next.length < 3) {
-        // Too few points to stay closed — re-open for editing
         setClosed(false);
         onShapeChange(0, 0);
       }
       return next;
     });
+    // Remove curve for deleted edge and shift subsequent indices
+    setEdgeCurves((prev) => {
+      const next: Record<number, number> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const ki = parseInt(k);
+        if (ki < index) next[ki] = v;
+        else if (ki > index) next[ki - 1] = v;
+        // ki === index: deleted edge, drop it
+      }
+      return next;
+    });
   }, [onShapeChange]);
+
+  const resetEdgeCurve = useCallback((edgeIndex: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEdgeCurves((prev) => {
+      const next = { ...prev };
+      delete next[edgeIndex];
+      return next;
+    });
+  }, []);
 
   // ─── Presets & reset ────────────────────────────────────────────────────────
   const loadPreset = useCallback((presetId: string) => {
@@ -420,6 +620,7 @@ export default function ShapeBuilder({
     if (!preset) return;
     setVertices([...preset.vertices]);
     setClosed(true);
+    setEdgeCurves({});
     setActivePreset(presetId);
     setCandidate(null);
   }, []);
@@ -430,15 +631,35 @@ export default function ShapeBuilder({
     setCandidate(null);
     setDragging(null);
     setActivePreset(null);
+    setEdgeCurves({});
     onShapeChange(0, 0);
   }, [onShapeChange]);
 
   // ─── Derived render data ────────────────────────────────────────────────────
-  const area = useMemo(() => (closed ? shoelaceArea(vertices) : 0), [vertices, closed]);
-  const perim = useMemo(() => (closed ? polyPerimeter(vertices) : 0), [vertices, closed]);
 
-  // Polygon points string for SVG
-  const polygonPoints = useMemo(() => {
+  // Build SVG path string for the closed shape (supports curved edges via quadratic Bézier)
+  const shapePath = useMemo(() => {
+    if (vertices.length < 2) return "";
+    const parts: string[] = [];
+    parts.push(`M ${vertices[0].x} ${vertices[0].y}`);
+    for (let i = 0; i < vertices.length; i++) {
+      const j = (i + 1) % vertices.length;
+      const ax = vertices[i].x, ay = vertices[i].y;
+      const bx = vertices[j].x, by = vertices[j].y;
+      const bulge = edgeCurves[i] ?? 0;
+      if (bulge === 0) {
+        parts.push(`L ${bx} ${by}`);
+      } else {
+        const { cpx, cpy } = bezierControl(ax, ay, bx, by, bulge, centroid.x, centroid.y);
+        parts.push(`Q ${cpx} ${cpy} ${bx} ${by}`);
+      }
+    }
+    parts.push("Z");
+    return parts.join(" ");
+  }, [vertices, edgeCurves, centroid]);
+
+  // Polyline points string for drawing mode (no curves yet)
+  const polylinePoints = useMemo(() => {
     if (vertices.length < 2) return "";
     return vertices.map((v) => `${v.x},${v.y}`).join(" ");
   }, [vertices]);
@@ -446,103 +667,51 @@ export default function ShapeBuilder({
   // Edge midpoints and dimension labels
   const edges = useMemo(() => {
     if (!closed || vertices.length < 3) return [];
-    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
-    const cy = vertices.reduce((s, v) => s + v.y, 0) / vertices.length;
-    const LABEL_OFFSET = 2.2; // feet away from edge
-    const MARGIN = 1.5;       // min feet from grid boundary before flipping inward
+    const cx = centroid.x, cy = centroid.y;
+    const LABEL_OFFSET = 2.2;
+    const MARGIN = 1.5;
     return vertices.map((v, i) => {
       const j = (i + 1) % vertices.length;
       const next = vertices[j];
-      const midX = (v.x + next.x) / 2;
-      const midY = (v.y + next.y) / 2;
-      const isHoriz = v.y === next.y;
-      // True Euclidean length for diagonal edges
-      const dx = next.x - v.x;
-      const dy = next.y - v.y;
-      const len = Math.round(Math.sqrt(dx * dx + dy * dy));
-
-      // Edge normal pointing away from centroid (outward)
-      // Perpendicular to edge direction, normalised
+      const bulge = edgeCurves[i] ?? 0;
+      // For curved edges, place the label at the Bézier midpoint (t=0.5)
+      let midX: number, midY: number;
+      if (bulge !== 0) {
+        const { cpx, cpy } = bezierControl(v.x, v.y, next.x, next.y, bulge, cx, cy);
+        const t = 0.5;
+        midX = (1 - t) * (1 - t) * v.x + 2 * (1 - t) * t * cpx + t * t * next.x;
+        midY = (1 - t) * (1 - t) * v.y + 2 * (1 - t) * t * cpy + t * t * next.y;
+      } else {
+        midX = (v.x + next.x) / 2;
+        midY = (v.y + next.y) / 2;
+      }
+      const dx = next.x - v.x, dy = next.y - v.y;
       const edgeLen = Math.sqrt(dx * dx + dy * dy) || 1;
-      let nx = -dy / edgeLen; // left-hand normal
+      const len = Math.round(edgeLen);
+      let nx = -dy / edgeLen;
       let ny = dx / edgeLen;
-      // Flip if it points toward centroid instead of away
-      const toCx = cx - midX;
-      const toCy = cy - midY;
+      const toCx = cx - (v.x + next.x) / 2;
+      const toCy = cy - (v.y + next.y) / 2;
       if (nx * toCx + ny * toCy > 0) { nx = -nx; ny = -ny; }
-
       let labelX = midX + nx * LABEL_OFFSET;
       let labelY = midY + ny * LABEL_OFFSET;
-      // Clamp to grid boundary
       if (labelX < MARGIN) labelX = midX + Math.abs(nx) * LABEL_OFFSET;
       if (labelX > VB_W - MARGIN) labelX = midX - Math.abs(nx) * LABEL_OFFSET;
       if (labelY < MARGIN) labelY = midY + Math.abs(ny) * LABEL_OFFSET;
       if (labelY > VB_H - MARGIN) labelY = midY - Math.abs(ny) * LABEL_OFFSET;
-
-      return { midX, midY, isHoriz, len, i, labelX, labelY };
+      // Outward normal (for curve drag)
+      const outNx = nx, outNy = ny;
+      const isCurved = Math.abs(bulge) >= 0.25;
+      return { midX, midY, len, i, labelX, labelY, outNx, outNy, isCurved, bulge };
     });
-  }, [vertices, closed]);
+  }, [vertices, edgeCurves, closed, centroid]);
 
-  // Centroid for area badge
-  // Pole of inaccessibility — the interior point farthest from all edges.
-  // Gives a visually stable label position in the largest "room" of the shape.
-  const centroid = useMemo(() => {
-    if (vertices.length < 3) return { x: VB_W / 2, y: VB_H / 2 };
-
-    // Helper: is point (px,py) inside the polygon? (ray casting)
-    function pointInPoly(px: number, py: number): boolean {
-      let inside = false;
-      for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-        const xi = vertices[i].x, yi = vertices[i].y;
-        const xj = vertices[j].x, yj = vertices[j].y;
-        if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
-          inside = !inside;
-        }
-      }
-      return inside;
-    }
-
-    // Helper: min distance from point to any polygon edge
-    function distToEdges(px: number, py: number): number {
-      let minD = Infinity;
-      for (let i = 0; i < vertices.length; i++) {
-        const j = (i + 1) % vertices.length;
-        const ax = vertices[i].x, ay = vertices[i].y;
-        const bx = vertices[j].x, by = vertices[j].y;
-        const dx = bx - ax, dy = by - ay;
-        const lenSq = dx * dx + dy * dy;
-        const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-        const nearX = ax + t * dx, nearY = ay + t * dy;
-        const d = Math.sqrt((px - nearX) ** 2 + (py - nearY) ** 2);
-        if (d < minD) minD = d;
-      }
-      return minD;
-    }
-
-    // Sample on a coarse grid, keep the interior point with the largest clearance
-    const STEP = CELL; // 2ft steps
-    let bestX = vertices[0].x, bestY = vertices[0].y, bestD = -1;
-    const xs = vertices.map((v) => v.x);
-    const ys = vertices.map((v) => v.y);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    for (let sx = minX + STEP / 2; sx < maxX; sx += STEP) {
-      for (let sy = minY + STEP / 2; sy < maxY; sy += STEP) {
-        if (!pointInPoly(sx, sy)) continue;
-        const d = distToEdges(sx, sy);
-        if (d > bestD) { bestD = d; bestX = sx; bestY = sy; }
-      }
-    }
-    return { x: bestX, y: bestY };
-  }, [vertices]);
-
-  // Can-close detection for visual hint
+  // Can-close detection
   const canClose = useMemo(() => {
     if (closed || vertices.length < 3 || !candidate) return false;
     const first = vertices[0];
     const dx = candidate.x - first.x;
     const dy = candidate.y - first.y;
-    // Use a slightly larger visual threshold so the ring appears before the click zone
     return Math.sqrt(dx * dx + dy * dy) <= CLOSE_RADIUS + 1;
   }, [closed, vertices, candidate]);
 
@@ -602,41 +771,24 @@ export default function ShapeBuilder({
 
           {/* Ruler labels — bottom edge */}
           {Array.from({ length: Math.floor(GRID_W / 10) + 1 }, (_, i) => i === 0 ? null : (
-            <text
-              key={`rx${i}`}
-              x={i * 10}
-              y={VB_H - 0.5}
-              className="fill-white/25"
-              style={{ fontSize: "1.8px", fontFamily: "monospace" }}
-            >
-              {i * 10}'
-            </text>
+            <text key={`rx${i}`} x={i * 10} y={VB_H - 0.5} className="fill-white/25"
+              style={{ fontSize: "1.8px", fontFamily: "monospace" }}>{i * 10}'</text>
           ))}
           {/* Ruler labels — left edge */}
           {Array.from({ length: Math.floor(GRID_H / 10) + 1 }, (_, i) => i === 0 ? null : (
-            <text
-              key={`ry${i}`}
-              x={0.5}
-              y={i * 10 + 1.5}
-              className="fill-white/25"
-              style={{ fontSize: "1.8px", fontFamily: "monospace" }}
-            >
-              {i * 10}'
-            </text>
+            <text key={`ry${i}`} x={0.5} y={i * 10 + 1.5} className="fill-white/25"
+              style={{ fontSize: "1.8px", fontFamily: "monospace" }}>{i * 10}'</text>
           ))}
 
-          {/* Filled polygon */}
+          {/* Filled polygon (closed) */}
           {closed && vertices.length >= 3 && (
-            <polygon
-              points={polygonPoints}
-              className="fill-amber-500/15 stroke-none"
-            />
+            <path d={shapePath} className="fill-amber-500/15 stroke-none" />
           )}
 
           {/* Drawing polyline (while building) */}
           {!closed && vertices.length >= 2 && (
             <polyline
-              points={polygonPoints}
+              points={polylinePoints}
               fill="none"
               className="stroke-amber-400/70"
               strokeWidth={0.5}
@@ -647,8 +799,8 @@ export default function ShapeBuilder({
 
           {/* Closed outline */}
           {closed && vertices.length >= 3 && (
-            <polygon
-              points={polygonPoints}
+            <path
+              d={shapePath}
               fill="none"
               className="stroke-amber-400"
               strokeWidth={0.5}
@@ -677,9 +829,7 @@ export default function ShapeBuilder({
             const len = Math.round(Math.sqrt(dx * dx + dy * dy));
             const midX = (prev.x + candidate.x) / 2;
             const midY = (prev.y + candidate.y) / 2;
-            // Perpendicular offset for the label (push it off the line)
             const lineLen = Math.sqrt(dx * dx + dy * dy) || 1;
-            // Left-hand normal, normalised
             let nx = -dy / lineLen;
             let ny = dx / lineLen;
             const OFFSET = 1.5;
@@ -689,32 +839,15 @@ export default function ShapeBuilder({
             const padW = lenLabel.length * 1.1 + 0.8;
             return (
               <g className="pointer-events-none">
-                <line
-                  x1={prev.x} y1={prev.y}
-                  x2={candidate.x} y2={candidate.y}
-                  className="stroke-amber-400/40"
-                  strokeWidth={0.2}
-                  strokeDasharray="0.5 0.4"
-                />
+                <line x1={prev.x} y1={prev.y} x2={candidate.x} y2={candidate.y}
+                  className="stroke-amber-400/40" strokeWidth={0.2} strokeDasharray="0.5 0.4" />
                 {len > 0 && (
                   <>
-                    <rect
-                      x={labelX - padW / 2}
-                      y={labelY - 1.2}
-                      width={padW}
-                      height={2.2}
-                      rx={0.35}
-                      className="fill-slate-900"
-                      opacity={0.85}
-                    />
-                    <text
-                      x={labelX}
-                      y={labelY}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
+                    <rect x={labelX - padW / 2} y={labelY - 1.2} width={padW} height={2.2} rx={0.35}
+                      className="fill-slate-900" opacity={0.85} />
+                    <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle"
                       className="fill-amber-400"
-                      style={{ fontSize: "1.3px", fontFamily: "monospace", fontWeight: 600 }}
-                    >
+                      style={{ fontSize: "1.3px", fontFamily: "monospace", fontWeight: 600 }}>
                       {lenLabel}
                     </text>
                   </>
@@ -723,50 +856,32 @@ export default function ShapeBuilder({
             );
           })()}
 
-          {/* Edge dimension labels — always outside the shape, clamped at grid boundary */}
+          {/* Edge dimension labels */}
           {edges.map((edge) => {
             if (edge.len < 2) return null;
             return (
-              <text
-                key={`dim-${edge.i}`}
-                x={edge.labelX}
-                y={edge.labelY}
-                textAnchor="middle"
-                dominantBaseline="middle"
+              <text key={`dim-${edge.i}`} x={edge.labelX} y={edge.labelY}
+                textAnchor="middle" dominantBaseline="middle"
                 className="fill-slate-400 pointer-events-none"
-                style={{ fontSize: "1.2px", fontFamily: "monospace" }}
-              >
+                style={{ fontSize: "1.2px", fontFamily: "monospace" }}>
                 {edge.len}'
               </text>
             );
           })}
 
-          {/* Area badge at centroid — rendered last so it sits on top */}
+          {/* Area badge at centroid */}
           {closed && area > 0 && (() => {
             const displayArea = Math.round(area * 2 / 3);
             const label = `${displayArea} ft²`;
-            // Approximate badge width: ~1.1 SVG units per character at fontSize 1.6px
             const badgeW = label.length * 1.1 + 1.2;
             const badgeH = 2.6;
             return (
               <>
-                <rect
-                  x={centroid.x - badgeW / 2}
-                  y={centroid.y - badgeH / 2}
-                  width={badgeW}
-                  height={badgeH}
-                  rx={0.45}
-                  className="fill-slate-900"
-                  opacity={0.88}
-                />
-                <text
-                  x={centroid.x}
-                  y={centroid.y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
+                <rect x={centroid.x - badgeW / 2} y={centroid.y - badgeH / 2}
+                  width={badgeW} height={badgeH} rx={0.45} className="fill-slate-900" opacity={0.88} />
+                <text x={centroid.x} y={centroid.y} textAnchor="middle" dominantBaseline="middle"
                   className="fill-amber-300 pointer-events-none"
-                  style={{ fontSize: "1.6px", fontFamily: "monospace", fontWeight: 700 }}
-                >
+                  style={{ fontSize: "1.6px", fontFamily: "monospace", fontWeight: 700 }}>
                   {label}
                 </text>
               </>
@@ -778,66 +893,82 @@ export default function ShapeBuilder({
             const j = (i + 1) % vertices.length;
             const next = vertices[j];
             return (
-              <line
-                key={`edge-hit-${i}`}
+              <line key={`edge-hit-${i}`}
                 x1={v.x} y1={v.y} x2={next.x} y2={next.y}
-                stroke="transparent"
-                strokeWidth={2}
+                stroke="transparent" strokeWidth={2}
                 style={{ cursor: "cell" }}
                 onClick={insertVertexOnEdge}
               />
             );
           })}
 
-
-
-          {/* Ghost dot on edge hover — indicates edge can be split, no label */}
+          {/* Ghost dot on edge hover */}
           {edgeHoverPt && (
             <g className="pointer-events-none">
-              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7} className="fill-emerald-400/30 stroke-emerald-400" strokeWidth={0.15} />
+              <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.7}
+                className="fill-emerald-400/30 stroke-emerald-400" strokeWidth={0.15} />
               <circle cx={edgeHoverPt.x} cy={edgeHoverPt.y} r={0.25} className="fill-emerald-300" />
             </g>
           )}
 
-          {/* Drag handles at edge midpoints */}
+          {/* Edge midpoint handles — left-click drag = translate edge, right-click drag = curve */}
           {edges.map((edge) => {
             if (edge.len < 2) return null;
+            const isCurving = dragging?.type === "curve" && dragging.edge === edge.i;
+            const isMoving = dragging?.type === "edge" && dragging.edge === edge.i;
             return (
-              <circle
-                key={`handle-${edge.i}`}
-                cx={edge.midX}
-                cy={edge.midY}
-                r={0.5}
-                className={cn(
-                  "fill-slate-800 stroke-amber-400 cursor-move transition-colors",
-                  dragging?.type === "edge" && dragging.edge === edge.i ? "fill-amber-500/30" : "hover:fill-amber-500/20"
-                )}
-                strokeWidth={0.15}
-                style={{ cursor: "move" }}
-                onMouseDown={(e) => startEdgeDrag(edge.i, "x", e)}
-                onTouchStart={(e) => startEdgeDrag(edge.i, "x", e as unknown as React.MouseEvent)}
-              />
+              <g key={`handle-${edge.i}`}>
+                {/* Main handle circle */}
+                <circle
+                  cx={edge.midX}
+                  cy={edge.midY}
+                  r={0.5}
+                  className={cn(
+                    "stroke-amber-400 transition-colors",
+                    isCurving ? "fill-sky-400/50 stroke-sky-300" :
+                    isMoving ? "fill-amber-500/30" :
+                    edge.isCurved ? "fill-sky-500/20 stroke-sky-400" :
+                    "fill-slate-800 hover:fill-amber-500/20"
+                  )}
+                  strokeWidth={0.15}
+                  style={{ cursor: "move" }}
+                  onMouseDown={(e) => {
+                    if (e.button === 2) return; // ignore right-click
+                    startEdgeDrag(edge.i, e);
+                  }}
+                  onTouchStart={(e) => startEdgeDrag(edge.i, e as unknown as React.MouseEvent)}
+                />
+                {/* Curve drag handle — small perpendicular arrow indicator */}
+                <circle
+                  cx={edge.midX + edge.outNx * 1.2}
+                  cy={edge.midY + edge.outNy * 1.2}
+                  r={0.35}
+                  className={cn(
+                    "transition-colors",
+                    isCurving ? "fill-sky-300 stroke-sky-200" :
+                    edge.isCurved ? "fill-sky-400/60 stroke-sky-300" :
+                    "fill-slate-700 stroke-sky-400/50 hover:fill-sky-400/40"
+                  )}
+                  strokeWidth={0.12}
+                  style={{ cursor: "ns-resize" }}
+                  onMouseDown={(e) => { e.stopPropagation(); startCurveDrag(edge.i, e); }}
+                  onTouchStart={(e) => { e.stopPropagation(); startCurveDrag(edge.i, e as unknown as React.MouseEvent); }}
+                  onDoubleClick={(e) => resetEdgeCurve(edge.i, e)}
+                />
+              </g>
             );
           })}
 
-          {/* Vertex dots — double-click to delete when shape is closed */}
+          {/* Vertex dots */}
           {vertices.map((v, i) => (
             <g key={`v-${i}`}>
-              {/* Invisible wider hit area — drag to move, double-click to delete */}
-              <circle
-                cx={v.x}
-                cy={v.y}
-                r={1.5}
-                fill="transparent"
+              <circle cx={v.x} cy={v.y} r={1.5} fill="transparent"
                 style={{ cursor: closed ? "move" : "default" }}
                 onMouseDown={closed ? (e) => startVertexDrag(i, e) : undefined}
                 onTouchStart={closed ? (e) => startVertexDrag(i, e as unknown as React.MouseEvent) : undefined}
                 onDoubleClick={closed ? (e) => deleteVertex(i, e) : undefined}
               />
-              {/* Visible dot */}
-              <circle
-                cx={v.x}
-                cy={v.y}
+              <circle cx={v.x} cy={v.y}
                 r={i === 0 && !closed ? 0.6 : 0.4}
                 className={cn(
                   "pointer-events-none transition-colors",
@@ -858,31 +989,44 @@ export default function ShapeBuilder({
           {dragging?.type === "vertex" && (() => {
             const v = vertices[dragging.index];
             if (!v) return null;
-            // Offset the tooltip so it doesn't overlap the dot
-            // Push right by default; flip left if near right boundary
             const tipX = v.x > VB_W - 8 ? v.x - 1.5 : v.x + 1.5;
             const tipY = v.y > VB_H - 4 ? v.y - 2 : v.y - 1.5;
             const label = `${v.x}', ${v.y}'`;
             const padW = label.length * 1.05 + 1;
             return (
               <g className="pointer-events-none">
-                <rect
-                  x={tipX - padW / 2}
-                  y={tipY - 1.4}
-                  width={padW}
-                  height={2.6}
-                  rx={0.4}
-                  className="fill-slate-900"
-                  opacity={0.9}
-                />
-                <text
-                  x={tipX}
-                  y={tipY}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
+                <rect x={tipX - padW / 2} y={tipY - 1.4} width={padW} height={2.6} rx={0.4}
+                  className="fill-slate-900" opacity={0.9} />
+                <text x={tipX} y={tipY} textAnchor="middle" dominantBaseline="middle"
                   className="fill-amber-300"
-                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}
-                >
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}>
+                  {label}
+                </text>
+              </g>
+            );
+          })()}
+
+          {/* Live bulge tooltip while curving an edge */}
+          {dragging?.type === "curve" && (() => {
+            const i = dragging.edge;
+            const bulge = edgeCurves[i] ?? 0;
+            const v = vertices[i];
+            const j = (i + 1) % vertices.length;
+            const next = vertices[j];
+            const midX = (v.x + next.x) / 2;
+            const midY = (v.y + next.y) / 2;
+            const { nx, ny } = dragging.perpAxis;
+            const tipX = midX + nx * 4;
+            const tipY = midY + ny * 4;
+            const label = `curve ${bulge >= 0 ? "+" : ""}${bulge.toFixed(1)}'`;
+            const padW = label.length * 1.05 + 1;
+            return (
+              <g className="pointer-events-none">
+                <rect x={tipX - padW / 2} y={tipY - 1.4} width={padW} height={2.6} rx={0.4}
+                  className="fill-slate-900" opacity={0.9} />
+                <text x={tipX} y={tipY} textAnchor="middle" dominantBaseline="middle"
+                  className="fill-sky-300"
+                  style={{ fontSize: "1.4px", fontFamily: "monospace", fontWeight: 600 }}>
                   {label}
                 </text>
               </g>
@@ -891,14 +1035,9 @@ export default function ShapeBuilder({
 
           {/* Close indicator ring */}
           {canClose && !closed && vertices.length >= 3 && (
-            <circle
-              cx={vertices[0].x}
-              cy={vertices[0].y}
-              r={1}
+            <circle cx={vertices[0].x} cy={vertices[0].y} r={1}
               className="fill-none stroke-emerald-400 animate-pulse"
-              strokeWidth={0.15}
-              strokeDasharray="0.4 0.25"
-            />
+              strokeWidth={0.15} strokeDasharray="0.4 0.25" />
           )}
         </svg>
 
@@ -912,8 +1051,6 @@ export default function ShapeBuilder({
             </div>
           </div>
         )}
-
-        {/* Drawing progress hint */}
         {!closed && vertices.length > 0 && vertices.length < 3 && (
           <div className="absolute bottom-2 left-2 text-[10px] text-slate-500 bg-slate-900/80 px-2 py-1 rounded">
             {vertices.length}/3 min. points — click to add more
@@ -926,7 +1063,7 @@ export default function ShapeBuilder({
         )}
         {closed && (
           <div className="absolute bottom-2 left-2 text-[10px] text-slate-400 bg-slate-900/80 px-2 py-1 rounded space-y-0.5">
-            <div>Click an edge to add a point &nbsp;·&nbsp; Double-click a corner to remove it</div>
+            <div>Click edge to add point · Double-click corner to remove · Drag <span className="text-sky-400">◉</span> to curve edge</div>
           </div>
         )}
       </div>

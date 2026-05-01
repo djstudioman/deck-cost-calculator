@@ -64,6 +64,7 @@ export interface EstimateSnapshot {
   engineerCostMode?: "preset" | "custom";
   notes?: string;           // optional free-text context
   shapeVertices?: ShapePt[]; // custom shape polygon vertices (feet)
+  shapeEdgeCurves?: Record<number, number>; // per-edge Bézier bulge values (feet)
   // result snapshot (for display in the saved list)
   totalLow: number;
   totalHigh: number;
