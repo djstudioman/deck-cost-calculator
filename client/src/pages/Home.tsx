@@ -152,6 +152,7 @@ export default function Home() {
   const [shapePerimeter, setShapePerimeter] = useState<number>(0);
   const [shapeVertices, setShapeVertices] = useState<ShapePt[]>([]);
   const [shapeEdgeCurves, setShapeEdgeCurves] = useState<Record<number, number>>({});
+  const [shapeBuilderKey, setShapeBuilderKey] = useState(0);
   // Framing system (contractor only)
   const [framingId, setFramingId] = useState("pt");
   const [joistSpacingIn, setJoistSpacingIn] = useState<12 | 16 | 24>(16);
@@ -429,6 +430,7 @@ export default function Home() {
       setShapeVertices(snap.shapeVertices);
     }
     setShapeEdgeCurves(snap.shapeEdgeCurves ?? {});
+    setShapeBuilderKey((k) => k + 1);
     // Jump straight to results
     setShowResults(true);
   });
@@ -484,6 +486,7 @@ export default function Home() {
       setShapeVertices([]);
     }
     setShapeEdgeCurves(snap.shapeEdgeCurves ?? {});
+    setShapeBuilderKey((k) => k + 1);
     setStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
@@ -1400,6 +1403,7 @@ export default function Home() {
                           {sizeId === "shape" && (
                             <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                               <ShapeBuilder
+                                key={shapeBuilderKey}
                                 initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
                                 initialEdgeCurves={shapeEdgeCurves}
                                 onShapeChange={(area, perimeter, vertices, edgeCurves) => {

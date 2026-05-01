@@ -243,15 +243,6 @@ export default function ShapeBuilder({
   const onShapeChangeRef = useRef(onShapeChange);
   useEffect(() => { onShapeChangeRef.current = onShapeChange; });
 
-  // Sync restored vertices from saved estimates
-  useEffect(() => {
-    if (initialVertices && initialVertices.length >= 3) {
-      setVertices(initialVertices);
-      setClosed(true);
-      setEdgeCurves(initialEdgeCurves ?? {});
-    }
-  }, [initialVertices, initialEdgeCurves]);
-
   // ─── Centroid (simple, for outward normal direction) ─────────────────────
   const centroid = useMemo(() => {
     if (vertices.length < 3) return { x: VB_W / 2, y: VB_H / 2 };
