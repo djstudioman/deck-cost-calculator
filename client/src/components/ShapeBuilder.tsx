@@ -178,10 +178,10 @@ function getSVGCoords(
 }
 
 /** Snap to nearest grid point (multiples of CELL) */
-function snapToGrid(x: number, y: number): ShapePt {
+function snapToGrid(x: number, y: number, snapSize: number = CELL): ShapePt {
   return {
-    x: Math.round(x / CELL) * CELL,
-    y: Math.round(y / CELL) * CELL,
+    x: Math.round(x / snapSize) * snapSize,
+    y: Math.round(y / snapSize) * snapSize,
   };
 }
 
@@ -238,6 +238,7 @@ export default function ShapeBuilder({
   >(null);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [edgeHoverPt, setEdgeHoverPt] = useState<ShapePt | null>(null);
+  const [snapTo1ft, setSnapTo1ft] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   // Store callback in ref so it never causes useEffect re-runs
   const onShapeChangeRef = useRef(onShapeChange);
@@ -342,7 +343,8 @@ export default function ShapeBuilder({
       const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
       const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
       const raw = getSVGCoords(svgRef.current, clientX, clientY);
-      const snapped = snapToGrid(raw.x, raw.y);
+      const snapSize = snapTo1ft ? 1 : CELL;
+      const snapped = snapToGrid(raw.x, raw.y, snapSize);
 
       if (dragging.type === "vertex") {
         const newX = Math.max(0, Math.min(GRID_W, snapped.x));
@@ -361,8 +363,8 @@ export default function ShapeBuilder({
           const newY = Math.max(0, Math.min(GRID_H, snapped.y));
           const oldMidX = (pts[i].x + pts[j].x) / 2;
           const oldMidY = (pts[i].y + pts[j].y) / 2;
-          const dxSnap = Math.round((newX - oldMidX) / CELL) * CELL;
-          const dySnap = Math.round((newY - oldMidY) / CELL) * CELL;
+          const dxSnap = Math.round((newX - oldMidX) / snapSize) * snapSize;
+          const dySnap = Math.round((newY - oldMidY) / snapSize) * snapSize;
           pts[i] = {
             x: Math.max(0, Math.min(GRID_W, pts[i].x + dxSnap)),
             y: Math.max(0, Math.min(GRID_H, pts[i].y + dySnap)),
@@ -414,7 +416,7 @@ export default function ShapeBuilder({
       window.removeEventListener("touchmove", handleMove);
       window.removeEventListener("touchend", handleUp);
     };
-  }, [dragging, vertices]);
+  }, [dragging, vertices, snapTo1ft]);
 
   // ─── Event handlers ─────────────────────────────────────────────────────────
   const distToSegment = useCallback((px: number, py: number, ax: number, ay: number, bx: number, by: number): number => {
@@ -428,7 +430,7 @@ export default function ShapeBuilder({
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
     const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
-    const snapped = snapToGrid(raw.x, raw.y);
+    const snapped = snapToGrid(raw.x, raw.y, snapTo1ft ? 1 : CELL);
 
     if (!closed) {
       setCandidate(snapped);
@@ -450,26 +452,27 @@ export default function ShapeBuilder({
         if (lenSq === 0) continue;
         const t = Math.max(0, Math.min(1, ((snapped.x - v.x) * dx + (snapped.y - v.y) * dy) / lenSq));
         const edgeLen = Math.sqrt(lenSq);
-        const tSnapped = Math.round(t * edgeLen / CELL) * CELL / edgeLen;
+        const snapSz = snapTo1ft ? 1 : CELL;
+        const tSnapped = Math.round(t * edgeLen / snapSz) * snapSz / edgeLen;
         const tClamped = Math.max(0, Math.min(1, tSnapped));
         bestPt = { x: v.x + tClamped * dx, y: v.y + tClamped * dy };
       }
     }
     setEdgeHoverPt(bestPt);
-  }, [closed, vertices, distToSegment]);
+  }, [closed, vertices, distToSegment, snapTo1ft]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<SVGSVGElement>) => {
     if (closed || !svgRef.current) return;
     const touch = e.touches[0];
     const raw = getSVGCoords(svgRef.current, touch.clientX, touch.clientY);
-    const snapped = snapToGrid(raw.x, raw.y);
+    const snapped = snapToGrid(raw.x, raw.y, snapTo1ft ? 1 : CELL);
     setCandidate(snapped);
-  }, [closed]);
+  }, [closed, snapTo1ft]);
 
   const tryAddVertex = useCallback((clientX: number, clientY: number) => {
     if (closed || !svgRef.current) return;
     const raw = getSVGCoords(svgRef.current, clientX, clientY);
-    const snapped = snapToGrid(raw.x, raw.y);
+    const snapped = snapToGrid(raw.x, raw.y, snapTo1ft ? 1 : CELL);
 
     if (vertices.length === 0) {
       setVertices([snapped]);
@@ -496,7 +499,7 @@ export default function ShapeBuilder({
 
     setVertices((prev) => [...prev, clamped]);
     setActivePreset(null);
-  }, [closed, vertices]);
+  }, [closed, vertices, snapTo1ft]);
 
   const handleClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (closed) return;
@@ -559,7 +562,7 @@ export default function ShapeBuilder({
     if (!closed || !svgRef.current) return;
     e.stopPropagation();
     const raw = getSVGCoords(svgRef.current, e.clientX, e.clientY);
-    const snapped = snapToGrid(raw.x, raw.y);
+    const snapped = snapToGrid(raw.x, raw.y, snapTo1ft ? 1 : CELL);
 
     let bestEdge = -1;
     let bestDist = Infinity;
@@ -593,7 +596,7 @@ export default function ShapeBuilder({
       return next;
     });
     setActivePreset(null);
-  }, [closed, vertices]);
+  }, [closed, vertices, snapTo1ft]);
 
   const deleteVertex = useCallback((index: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1090,7 +1093,7 @@ export default function ShapeBuilder({
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center text-slate-500 text-xs">
               <div className="text-sm mb-1">Click to place corners</div>
-              <div>Lines snap to 2ft grid points</div>
+              <div>Lines snap to {snapTo1ft ? "1ft" : "2ft"} grid points</div>
               <div className="mt-1 text-[10px]">Or choose a preset above</div>
             </div>
           </div>
@@ -1165,6 +1168,19 @@ export default function ShapeBuilder({
               ↩ Undo
             </button>
           )}
+          {/* Snap precision toggle */}
+          <button
+            onClick={() => setSnapTo1ft((v) => !v)}
+            title={snapTo1ft ? "1ft snap active — click for 2ft" : "2ft snap active — click for 1ft"}
+            className={cn(
+              "text-xs transition-colors px-2 py-1 rounded border font-mono",
+              snapTo1ft
+                ? "text-amber-300 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20"
+                : "text-slate-400 border-white/10 bg-white/[0.03] hover:border-white/20 hover:text-white"
+            )}
+          >
+            {snapTo1ft ? "⊞ 1ft" : "⊞ 2ft"}
+          </button>
           <button
             onClick={reset}
             className="text-xs text-slate-500 hover:text-red-400 transition-colors px-2 py-1 rounded border border-white/5 hover:border-red-400/30"
