@@ -860,7 +860,7 @@ export default function Home() {
             backgroundPosition: "center 75%",
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/30 via-[#0B1120]/15 to-[#0B1120]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/20 via-[#0B1120]/5 to-[#0B1120]" />
           <div className="relative z-10 h-full flex flex-col justify-end px-4 sm:px-6 pb-6 max-w-6xl mx-auto w-full">
             <p className={`text-xs font-semibold tracking-widest ${ac.text} uppercase mb-1`} style={{textShadow: "0 1px 6px rgba(0,0,0,0.9)"}}>
               2026 Pricing Data
