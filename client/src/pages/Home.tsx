@@ -860,15 +860,15 @@ export default function Home() {
             backgroundPosition: "center 75%",
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/50 via-[#0B1120]/30 to-[#0B1120]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/30 via-[#0B1120]/15 to-[#0B1120]" />
           <div className="relative z-10 h-full flex flex-col justify-end px-4 sm:px-6 pb-6 max-w-6xl mx-auto w-full">
-            <p className={`text-xs font-semibold tracking-widest ${ac.text} uppercase mb-1`}>
+            <p className={`text-xs font-semibold tracking-widest ${ac.text} uppercase mb-1`} style={{textShadow: "0 1px 6px rgba(0,0,0,0.9)"}}>
               2026 Pricing Data
             </p>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight" style={{textShadow: "0 2px 12px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9)"}}>
               Deck Building Cost Calculator
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-xl">
+            <p className="text-sm text-slate-200 mt-1 max-w-xl" style={{textShadow: "0 1px 6px rgba(0,0,0,0.9)"}}>
               Localized estimates from real 2026 pricing data — materials, labor, regional rates, and tariff impacts.
             </p>
           </div>
