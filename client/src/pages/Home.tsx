@@ -852,16 +852,26 @@ export default function Home() {
 
       {/* ── HERO ── */}
       {!showResults && step === 0 && (
-        <div className="px-4 sm:px-6 pt-8 pb-4 max-w-6xl mx-auto w-full">
-          <p className={`text-xs font-semibold tracking-widest ${ac.text} uppercase mb-1`}>
-            2026 Pricing Data
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-            Deck Building Cost Calculator
-          </h1>
-          <p className="text-sm text-slate-300 mt-1 max-w-xl">
-            Localized estimates from real 2026 pricing data — materials, labor, regional rates, and tariff impacts.
-          </p>
+        <div
+          className="relative h-52 sm:h-64 overflow-hidden"
+          style={{
+            backgroundImage: `url(https://d2xsxph8kpxj0f.cloudfront.net/310519663066822338/Axndupm86CWsSZU8jNMGcP/header_2a6445da.webp)`,
+            backgroundSize: "cover",
+            backgroundPosition: "center 75%",
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/50 via-[#0B1120]/30 to-[#0B1120]" />
+          <div className="relative z-10 h-full flex flex-col justify-end px-4 sm:px-6 pb-6 max-w-6xl mx-auto w-full">
+            <p className={`text-xs font-semibold tracking-widest ${ac.text} uppercase mb-1`}>
+              2026 Pricing Data
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+              Deck Building Cost Calculator
+            </h1>
+            <p className="text-sm text-slate-300 mt-1 max-w-xl">
+              Localized estimates from real 2026 pricing data — materials, labor, regional rates, and tariff impacts.
+            </p>
+          </div>
         </div>
       )}
 
