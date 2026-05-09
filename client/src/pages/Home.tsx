@@ -884,7 +884,7 @@ export default function Home() {
 
       {/* ── PROGRESS BAR ── */}
       {!showResults && !showTakeoff && (
-        <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4">
+        <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 mt-4 pb-2">
           {(() => {
             // For DIY/homeowner, step 5 is a hidden skip slot — exclude it from the visible count
             const visibleLabels = stepLabels.filter((l) => l !== "");
@@ -923,7 +923,7 @@ export default function Home() {
                       const isCompleted = i + 1 < visibleIndex;
                       const isCurrent = i + 1 === visibleIndex;
                       return (
-                        <div key={i} className="group relative flex flex-col items-center">
+                        <div key={i} className="group relative flex flex-col items-center cursor-pointer" onClick={() => { if (i + 1 < visibleIndex) { const targetStep = stepLabels.indexOf(visibleLabels[i]); if (targetStep >= 0) setStep(targetStep); } }}>
                           {/* Tick */}
                           <motion.div
                             className={cn(
@@ -955,7 +955,7 @@ export default function Home() {
       )}
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 pt-5 pb-10">
         <AnimatePresence mode="wait">
           {showTakeoff ? (
             <motion.div
@@ -1071,7 +1071,7 @@ export default function Home() {
                   nextLabel="Continue"
                   accentBtnClass={ac.btnClass}
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                       {
                         id: "homeowner" as AudienceType,
@@ -1102,7 +1102,7 @@ export default function Home() {
                         key={opt.id}
                         onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
                         className={cn(
-                          "text-left p-4 rounded-lg border transition-all",
+                          "text-left p-5 rounded-xl border transition-all min-h-[140px] flex flex-col",
                           audience === opt.id
                             ? opt.color === "emerald"
                               ? "border-emerald-500 bg-emerald-500/10"
@@ -1112,9 +1112,9 @@ export default function Home() {
                             : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
-                        <div className="mb-2 text-slate-300"><DynIcon name={opt.icon} className="w-5 h-5" /></div>
+                        <div className="mb-3 text-slate-300"><DynIcon name={opt.icon} className="w-5 h-5" /></div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
-                        <div className="text-xs text-slate-400 mt-1">{opt.desc}</div>
+                        <div className="text-xs text-slate-400 mt-1 flex-1">{opt.desc}</div>
                         <div className={cn(
                           "text-xs mt-2 font-medium",
                           audience === opt.id
@@ -1256,7 +1256,7 @@ export default function Home() {
                   accentBtnClass={ac.btnClass}
                 >
                   <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {DECK_SIZES.map((s) => {
                       const baseInstalled: Record<string, { low: number; high: number }> = {
                         "100": { low: 2500, high: 4000 },

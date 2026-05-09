@@ -27,12 +27,12 @@ export default function StepCard({
 }: StepCardProps) {
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-5">
-        <h2 className="text-xl font-bold text-white">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-400 mt-1">{subtitle}</p>}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-white tracking-tight">{title}</h2>
+        {subtitle && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">{subtitle}</p>}
       </div>
 
-      <div className="mb-6">{children}</div>
+      <div className="mb-8">{children}</div>
 
       <div className="flex items-center gap-3">
         {onBack && (
