@@ -64,6 +64,7 @@ import {
 import type { CalculatorResult } from "@/lib/deckData";
 import { formatCurrency } from "@/lib/deckData";
 import { exportTakeoffCSV } from "@/lib/exportTakeoffCSV";
+import { Check, TrendingUp, TrendingDown } from "lucide-react";
 import { STATE_TAX_RATES, NO_TAX_STATE, type StateTaxEntry } from "@/lib/stateTaxData";
 
 interface Props {
@@ -639,7 +640,13 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
                     : isAbove ? 'bg-amber-500/20 text-amber-400'
                     : 'bg-blue-500/20 text-blue-400'
                   }`}>
-                    {isInRange ? '✓ On track' : isAbove ? '↑ Over estimate' : '↓ Under estimate'}
+                    <span className="inline-flex items-center gap-1">
+                      {isInRange
+                        ? <><Check className="w-3 h-3" /> On track</>
+                        : isAbove
+                          ? <><TrendingUp className="w-3 h-3" /> Over estimate</>
+                          : <><TrendingDown className="w-3 h-3" /> Under estimate</>}
+                    </span>
                   </span>
                   {!isInRange && (
                     <span className="text-xs text-slate-500">{pctDiff}% {isAbove ? 'over' : 'under'}</span>
@@ -2435,7 +2442,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               onClick={onFinish}
               className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-all"
             >
-              Done ✓
+              <span className="inline-flex items-center gap-1.5">Done <Check className="w-4 h-4" /></span>
             </button>
           )}
         </div>
