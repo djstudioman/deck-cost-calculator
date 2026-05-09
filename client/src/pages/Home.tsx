@@ -741,7 +741,7 @@ export default function Home() {
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
               <span className="text-sm font-semibold text-white">Saved Estimates</span>
-              <button onClick={() => setShowSavedPanel(false)} className="text-slate-500 hover:text-white text-lg leading-none">×</button>
+              <button onClick={() => setShowSavedPanel(false)} aria-label="Close saved estimates" className="text-slate-500 hover:text-white text-lg leading-none transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded">×</button>
             </div>
 
             {/* Save current estimate */}
@@ -1103,17 +1103,24 @@ export default function Home() {
                         key={opt.id}
                         onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
                         className={cn(
-                          "text-left p-5 rounded-xl border transition-all min-h-[140px] flex flex-col",
+                          "text-left p-5 rounded-xl border transition-all min-h-[140px] flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
                           audience === opt.id
                             ? opt.color === "emerald"
-                              ? "border-emerald-500 bg-emerald-500/10"
+                              ? "border-emerald-500 bg-emerald-500/10 focus-visible:ring-emerald-400"
                               : opt.color === "blue"
-                              ? "border-blue-500 bg-blue-500/10"
-                              : "border-amber-500 bg-amber-500/10"
-                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                              ? "border-blue-500 bg-blue-500/10 focus-visible:ring-blue-400"
+                              : "border-amber-500 bg-amber-500/10 focus-visible:ring-amber-400"
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                         )}
                       >
-                        <div className="mb-3 text-slate-300"><DynIcon name={opt.icon} className="w-5 h-5" /></div>
+                        <div className={cn(
+                          "mb-3 transition-colors",
+                          audience === opt.id
+                            ? opt.color === "emerald" ? "text-emerald-400"
+                              : opt.color === "blue" ? "text-blue-400"
+                              : "text-amber-400"
+                            : "text-slate-400"
+                        )}><DynIcon name={opt.icon} className="w-5 h-5" /></div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
                         <div className="text-xs text-slate-400 mt-1 flex-1">{opt.desc}</div>
                         <div className={cn(
