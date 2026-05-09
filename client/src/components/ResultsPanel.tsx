@@ -28,6 +28,8 @@ import {
   CONTRACTOR_MARKUP_TIERS,
 } from "@/lib/deckData";
 import { cn } from "@/lib/utils";
+import * as LucideIcons from "lucide-react";
+import React from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -210,7 +212,7 @@ function Warnings({ warnings }: { warnings: string[] }) {
       transition={{ duration: 0.4, delay: 0.3 }}
       className="bg-amber-500/[0.06] border border-amber-500/20 rounded-xl p-4 space-y-2"
     >
-      <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase">⚠ Pricing Alerts</div>
+      <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase flex items-center gap-1.5"><LucideIcons.AlertTriangle className="w-3 h-3" /> Pricing Alerts</div>
       {warnings.map((w, i) => (
         <p key={i} className="text-xs text-amber-200/70">{w}</p>
       ))}
@@ -526,7 +528,7 @@ function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-white/[0.06]">
-            <div className="text-xs text-amber-500/80">⚠ Tariff Note</div>
+            <div className="text-xs text-amber-500/80 flex items-center gap-1"><LucideIcons.AlertTriangle className="w-3 h-3" /> Tariff Note</div>
             <div className="text-xs text-slate-500 mt-1">{result.tier.tariffImpact}</div>
           </div>
         </div>
@@ -575,7 +577,7 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
         {d.savingsVsHiring > 0 && (
           <div className="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
             <div className="text-xs text-emerald-400 font-semibold">
-              💰 Estimated savings vs. hiring a contractor: <span className="font-mono text-lg text-emerald-300">{formatCurrency(d.savingsVsHiring)}</span>
+              <LucideIcons.DollarSign className="w-3 h-3 inline-block mr-1" />Estimated savings vs. hiring a contractor: <span className="font-mono text-lg text-emerald-300">{formatCurrency(d.savingsVsHiring)}</span>
             </div>
             <div className="text-xs text-slate-500 mt-1">
               Based on typical contractor quote range for the same project.
@@ -739,7 +741,7 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-white/[0.06]">
-            <div className="text-xs text-amber-500/80">⚠ Tariff Note</div>
+            <div className="text-xs text-amber-500/80 flex items-center gap-1"><LucideIcons.AlertTriangle className="w-3 h-3" /> Tariff Note</div>
             <div className="text-xs text-slate-500 mt-1">{result.tier.tariffImpact}</div>
           </div>
         </div>
@@ -762,7 +764,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
     {
       id: "extra-railing",
       label: "Additional Railing",
-      icon: "🔩",
+      icon: "Bolt",
       unit: "LF",
       unitLabel: "linear feet",
       defaultQty: 20,
@@ -778,7 +780,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
     {
       id: "extra-stairs",
       label: "Add Stair Section",
-      icon: "🪜",
+      icon: "ArrowUpFromLine",
       unit: "steps",
       unitLabel: "steps",
       defaultQty: 4,
@@ -794,7 +796,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
     {
       id: "deck-lighting",
       label: "Deck Lighting",
-      icon: "💡",
+      icon: "Lightbulb",
       unit: "fixtures",
       unitLabel: "fixtures",
       defaultQty: 6,
@@ -810,7 +812,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
     {
       id: "built-in-seating",
       label: "Built-In Bench Seating",
-      icon: "🪑",
+      icon: "Armchair",
       unit: "LF",
       unitLabel: "linear feet",
       defaultQty: 12,
@@ -826,7 +828,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
     {
       id: "pergola",
       label: "Pergola / Shade Structure",
-      icon: "⛱️",
+      icon: "Umbrella",
       unit: "sq ft",
       unitLabel: "sq ft of coverage",
       defaultQty: 100,
@@ -842,7 +844,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
     {
       id: "privacy-screen",
       label: "Privacy Screen / Lattice",
-      icon: "🏗️",
+      icon: "LayoutGrid",
       unit: "panels",
       unitLabel: "4×8 panels",
       defaultQty: 3,
@@ -1419,7 +1421,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             </div>
           </div>
           <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-2">
-            <div className="text-xs text-blue-400/80">📊 Sanity Check — Bid vs. Market</div>
+            <div className="text-xs text-blue-400/80 flex items-center gap-1"><LucideIcons.BarChart2 className="w-3 h-3" /> Sanity Check — Bid vs. Market</div>
             <div className="flex justify-between text-xs">
               <span className="text-slate-500">Homeowner installed estimate</span>
               <span className="font-mono text-slate-300">{formatRange(result.totalLow, result.totalHigh)}</span>
@@ -1462,10 +1464,10 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
         {(() => {
           const pct = c.grossMarginPct;
           const tier =
-            pct >= 35 ? { label: "Strong Margin", icon: "🟢", color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" }
-            : pct >= 25 ? { label: "Target Margin", icon: "🟡", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" }
-            : pct >= 15 ? { label: "Thin Margin", icon: "🟠", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" }
-            : { label: "Below Floor", icon: "🔴", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" };
+            pct >= 35 ? { label: "Strong Margin", icon: "TrendingUp", color: "text-green-400", bg: "bg-green-500/10 border-green-500/20" }
+            : pct >= 25 ? { label: "Target Margin", icon: "Target", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" }
+            : pct >= 15 ? { label: "Thin Margin", icon: "TrendingDown", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" }
+            : { label: "Below Floor", icon: "AlertCircle", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" };
           const advice =
             pct >= 35 ? "Healthy margin. Room to sharpen pencil on competitive bids or invest in materials upgrade upsell."
             : pct >= 25 ? "On target. Protect this margin — scope creep and change orders are your biggest risk."
@@ -1473,7 +1475,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             : "This job is below most contractors' floor. Revisit markup or pass on the bid.";
           return (
             <div className={cn("flex items-start gap-3 p-3 rounded-lg border mb-4", tier.bg)}>
-              <span className="text-lg mt-0.5">{tier.icon}</span>
+              <span className="mt-0.5">{(() => { const I = LucideIcons[tier.icon as keyof typeof LucideIcons] as React.ComponentType<{className?: string}> | undefined; return I ? <I className="w-4 h-4" /> : null; })()}</span>
               <div>
                 <div className={cn("font-semibold text-sm", tier.color)}>{tier.label} — {pct}% gross margin</div>
                 <div className="text-xs text-slate-400 mt-1">{advice}</div>
@@ -1623,7 +1625,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
           </table>
         </div>
         <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-slate-600">
-          💡 Bid ranges include your current markup tier ({c.markupTier.label}). Labor costs held constant — only material cost changes.
+          Bid ranges include your current markup tier ({c.markupTier.label}). Labor costs held constant — only material cost changes.
         </div>
       </motion.div>
 
@@ -1665,7 +1667,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                   onClick={() => toggleItem(item.id)}
                   className="w-full flex items-center gap-3 p-3 text-left"
                 >
-                  <span className="text-base shrink-0">{item.icon}</span>
+                  <span className="shrink-0 text-slate-400">{(() => { const I = LucideIcons[item.icon as keyof typeof LucideIcons] as React.ComponentType<{className?: string}> | undefined; return I ? <I className="w-4 h-4" /> : null; })()}</span>
                   <div className="flex-1 min-w-0">
                     <div className={cn("text-xs font-semibold", isOn ? "text-white" : "text-slate-300")}>
                       {item.label}
@@ -1746,7 +1748,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
               {customItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-base shrink-0">✏️</span>
+                    <LucideIcons.Pencil className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                     <span className="text-xs text-slate-300 truncate">{item.label}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -1771,13 +1773,13 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             <div className="space-y-1.5 mb-3">
               {coLineItems.map((item) => (
                 <div key={item.id} className="flex justify-between text-xs">
-                  <span className="text-slate-400">{item.icon} {item.label} × {item.qty} {item.unit}</span>
+                    <span className="text-slate-400">{item.label} × {item.qty} {item.unit}</span>
                   <span className="font-mono text-blue-300">{formatRange(item.totalLow, item.totalHigh)}</span>
                 </div>
               ))}
               {customItems.map((item) => (
                 <div key={item.id} className="flex justify-between text-xs">
-                  <span className="text-slate-400">✏️ {item.label}</span>
+                  <span className="text-slate-400 flex items-center gap-1"><LucideIcons.Pencil className="w-3 h-3" /> {item.label}</span>
                   <span className="font-mono text-blue-300">{formatCurrency(item.amount)}</span>
                 </div>
               ))}
@@ -1828,7 +1830,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase">Job Costing &amp; Scheduling</div>
             <div className="text-xs text-slate-500 mt-0.5">Timeline, cash flow, and consumables</div>
           </div>
-          <span className="text-lg">📅</span>
+          <LucideIcons.Calendar className="w-4 h-4 text-blue-400" />
         </div>
 
         {/* ── SECTION 1: PROJECT TIMELINE ── */}
@@ -2314,9 +2316,9 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
   const rows = Math.ceil(footingCount / cols);
 
   const tabs = [
-    { id: "takeoff" as const,  label: "Qty Takeoff",    icon: "📋" },
-    { id: "pricechk" as const, label: "Price Check",    icon: "🏪" },
-    { id: "footings" as const, label: "Footing Layout", icon: "📐" },
+    { id: "takeoff" as const,  label: "Qty Takeoff",    icon: "ClipboardList" },
+    { id: "pricechk" as const, label: "Price Check",    icon: "Tag" },
+    { id: "footings" as const, label: "Footing Layout", icon: "Ruler" },
   ];
 
   return (
@@ -2332,7 +2334,7 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
           <div className="text-xs font-semibold tracking-wider text-amber-400 uppercase">Job Site Tools</div>
           <div className="text-xs text-slate-500 mt-0.5">Quantity takeoff, price check & footing layout</div>
         </div>
-        <span className="text-lg">🔧</span>
+        <LucideIcons.Wrench className="w-4 h-4 text-amber-400" />
       </div>
 
       {/* Tab bar */}
@@ -2348,7 +2350,7 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
                 : "text-slate-500 hover:text-slate-300"
             )}
           >
-            <span>{t.icon}</span>
+            {(() => { const I = LucideIcons[t.icon as keyof typeof LucideIcons] as React.ComponentType<{className?: string}> | undefined; return I ? <I className="w-3.5 h-3.5" /> : null; })()}
             <span className="hidden sm:inline">{t.label}</span>
           </button>
         ))}
@@ -2445,8 +2447,8 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
                   variance > 0 ? "text-red-300 bg-red-500/10" : "text-green-300 bg-green-500/10"
                 )}>
                   {variance > 0
-                    ? `⚠ Your quote is ${variancePct}% above estimate — consider adjusting your bid or sourcing alternative suppliers.`
-                    : `✓ Your quote is ${Math.abs(variancePct)}% below estimate — you have room to tighten margin or improve competitiveness.`}
+                    ? `Your quote is ${variancePct}% above estimate — consider adjusting your bid or sourcing alternative suppliers.`
+                    : `Your quote is ${Math.abs(variancePct)}% below estimate — you have room to tighten margin or improve competitiveness.`}
                 </div>
               )}
             </div>

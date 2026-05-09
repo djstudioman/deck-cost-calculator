@@ -39,6 +39,13 @@ import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
 import ShapeBuilder, { type ShapePt } from "@/components/ShapeBuilder";
 import { cn } from "@/lib/utils";
+import * as LucideIcons from "lucide-react";
+// Dynamic Lucide icon renderer — accepts icon name string from data layer
+function DynIcon({ name, className = "" }: { name: string; className?: string }) {
+  const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[name];
+  if (!Icon) return <span className={className}>{name}</span>;
+  return <Icon className={className} />;
+}
 import { toast } from "sonner";
 import {
   saveEstimate,
@@ -789,14 +796,14 @@ export default function Home() {
                           onClick={() => handleCopyLink(snap)}
                           className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
                           title="Copy shareable link"
-                        >{copiedId === snap.id ? "✓" : "🔗"}</button>
+                        >{copiedId === snap.id ? <LucideIcons.Check className="w-3 h-3" /> : <LucideIcons.Link2 className="w-3 h-3" />}</button>
                         <button
                           onClick={() => handleOpenNotes(snap)}
                           className={`px-2 py-1 rounded text-[10px] transition-colors ${
                             snap.notes ? "bg-white/10 text-slate-300 hover:text-white" : "bg-white/[0.06] text-slate-500 hover:text-slate-300"
                           }`}
                           title={snap.notes ? "Edit notes" : "Add notes"}
-                        >✎</button>
+                        ><LucideIcons.Pencil className="w-3 h-3" /></button>
                         <button
                           onClick={() => handleDeleteEstimate(snap.id)}
                           className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
@@ -1068,7 +1075,7 @@ export default function Home() {
                     {[
                       {
                         id: "homeowner" as AudienceType,
-                        icon: "🏡",
+                        icon: "Home",
                         label: "Homeowner",
                         desc: "Hiring a contractor. See full installed costs.",
                         extra: "7 questions",
@@ -1076,7 +1083,7 @@ export default function Home() {
                       },
                       {
                         id: "diy" as AudienceType,
-                        icon: "🔨",
+                        icon: "Hammer",
                         label: "DIYer",
                         desc: "Doing it yourself. Materials + tool rental + permit.",
                         extra: "9 questions",
@@ -1084,7 +1091,7 @@ export default function Home() {
                       },
                       {
         id: "contractor" as AudienceType,
-              icon: "📋",
+              icon: "ClipboardList",
               label: "Contractor",
               desc: "Bidding a project. Full markup, crew, and margin analysis.",
               extra: "9 questions",
@@ -1105,7 +1112,7 @@ export default function Home() {
                             : "border-white/20 bg-white/[0.03] hover:border-white/30"
                         )}
                       >
-                        <div className="text-2xl mb-2">{opt.icon}</div>
+                        <div className="mb-2 text-slate-300"><DynIcon name={opt.icon} className="w-5 h-5" /></div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
                         <div className="text-xs text-slate-400 mt-1">{opt.desc}</div>
                         <div className={cn(
@@ -1218,7 +1225,7 @@ export default function Home() {
                                 : "border-white/20 bg-white/[0.03] hover:border-white/30"
                             )}
                           >
-                            <div className="text-lg mb-1">{m.icon}</div>
+                            <div className="mb-1 text-slate-300"><DynIcon name={m.icon} className="w-4 h-4" /></div>
                             <div className="font-semibold text-xs text-white leading-tight">{m.shortLabel}</div>
                             <div className={cn(
                               "text-xs font-mono font-bold mt-1",
@@ -1411,7 +1418,7 @@ export default function Home() {
                                         : "border-white/15 bg-white/[0.04] text-slate-300 hover:border-white/25"
                                     )}
                                   >
-                                    <span>{shapeArea > 0 ? `✓ Shape drawn — ${Math.round(shapeArea)} sq ft` : "✏ Draw Custom Shape"}</span>
+                                    <span>{shapeArea > 0 ? `Shape drawn — ${Math.round(shapeArea)} sq ft` : "Draw Custom Shape"}</span>
                                     <span className="text-slate-500 text-xs">{shapeArea > 0 ? "Tap to edit" : "Opens full screen"}</span>
                                   </button>
                                   {/* Full-screen shape drawing overlay */}
@@ -1661,8 +1668,8 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="mt-2 flex gap-4 text-xs text-slate-500">
-                          <span>⏳ {t.lifespan}</span>
-                          <span>🔧 {t.maintenance}</span>
+                          <span className="flex items-center gap-1"><LucideIcons.Clock className="w-3 h-3" /> {t.lifespan}</span>
+                          <span className="flex items-center gap-1"><LucideIcons.Wrench className="w-3 h-3" /> {t.maintenance}</span>
                         </div>
                       </button>
                     ))}
@@ -1909,7 +1916,7 @@ export default function Home() {
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xl">{f.icon}</span>
+                                <DynIcon name={f.icon} className="w-4 h-4 text-slate-300" />
                                 <div>
                                   <div className="font-semibold text-sm text-white">{f.label}</div>
                                   {f.badge && (
@@ -2029,8 +2036,10 @@ export default function Home() {
                         : "bg-emerald-950/30 border-emerald-600/40"
                     }`}>
                       <span className="text-lg leading-none mt-0.5">
-                        {result.joistSpanWarning.exceeded ? "⚠️" : "✅"}
-                      </span>
+        {result.joistSpanWarning.exceeded
+          ? <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-400" />
+          : <LucideIcons.CheckCircle className="w-4 h-4 text-emerald-400" />}
+      </span>
                       <div className="flex-1">
                         <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${
                           result.joistSpanWarning.exceeded ? "text-amber-400" : "text-emerald-400"
@@ -2209,7 +2218,7 @@ export default function Home() {
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-xl">{f.icon}</span>
+                                <DynIcon name={f.icon} className="w-4 h-4 text-slate-300" />
                                 <div>
                                   <div className="font-semibold text-sm text-white">{f.label}</div>
                                   {f.badge && (
@@ -2434,7 +2443,7 @@ export default function Home() {
                     {deckHeightIn < 30 && (
                       <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3">
                         <div className="flex items-start gap-2">
-                          <span className="text-amber-400 text-base shrink-0">⚠️</span>
+                          <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <div>
                             <div className="text-xs font-semibold text-amber-300">Railing not required by code at this height</div>
                             <div className="text-xs text-slate-400 mt-0.5">IRC requires guardrails on decks 30" or more above grade. You can still add railing for aesthetics or resale value.</div>
@@ -2819,7 +2828,7 @@ export default function Home() {
                         )}
                       >
                         <div className="flex items-start gap-3">
-                          <span className="text-xl">🚫</span>
+                          <LucideIcons.Ban className="w-5 h-5 text-slate-400" />
                           <div className="flex-1">
                             <div className="font-semibold text-sm text-white">No permit needed</div>
                             <div className="text-xs text-slate-400 mt-1">
@@ -2833,10 +2842,10 @@ export default function Home() {
 
                       {/* Jurisdiction cards */}
                       {[
-{ label: "Rural / Small town", desc: "Low-density areas, rural counties", range: "$200–$500", value: 350, icon: "🌾" },
-                         { label: "Suburban", desc: "Most metro suburbs and mid-size cities", range: "$500–$1,000", value: 700, icon: "🏘️" },
-                         { label: "Urban / Major metro", desc: "Dense cities, strict code enforcement", range: "$1,000–$2,000", value: 1500, icon: "🏙️" },
-                         { label: "California / High-cost", desc: "CA jurisdictions, NYC, Seattle, etc.", range: "$2,000–$4,000+", value: 3000, icon: "💰" },
+{ label: "Rural / Small town", desc: "Low-density areas, rural counties", range: "$200–$500", value: 350, icon: "MapPin" },
+                         { label: "Suburban", desc: "Most metro suburbs and mid-size cities", range: "$500–$1,000", value: 700, icon: "MapPin" },
+                         { label: "Urban / Major metro", desc: "Dense cities, strict code enforcement", range: "$1,000–$2,000", value: 1500, icon: "Building2" },
+                         { label: "California / High-cost", desc: "CA jurisdictions, NYC, Seattle, etc.", range: "$2,000–$4,000+", value: 3000, icon: "Sun" },
                       ].map((p) => (
                         <button
                           key={p.label}
@@ -2849,7 +2858,7 @@ export default function Home() {
                           )}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-base">{p.icon}</span>
+                            <DynIcon name={p.icon} className="w-3.5 h-3.5 text-slate-400" />
                             <div className="text-xs font-semibold text-white">{p.label}</div>
                           </div>
                           <div className="text-xs text-slate-400">{p.desc}</div>
@@ -2938,7 +2947,7 @@ export default function Home() {
                         )}
                       >
                         <div className="flex items-start gap-3">
-                          <span className="text-lg">🚫</span>
+                          <LucideIcons.Ban className="w-4 h-4 text-slate-400" />
                           <div className="flex-1">
                             <div className="font-semibold text-sm text-white">No permit needed</div>
                             <div className="text-xs text-slate-400 mt-1">Ground-level decks under 30" high, or decks under 200 sq ft, are exempt from permits in many jurisdictions. Verify with your local building department.</div>
@@ -2947,7 +2956,7 @@ export default function Home() {
                           {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
                         </div>
                       </button>
-                      {[{ label: "Rural / Small town", value: 300, range: "$150–$500", icon: "🏘️" }, { label: "Suburban", value: 700, range: "$400–$1,000", icon: "🏡" }, { label: "Urban / Major metro", value: 1200, range: "$800–$1,600", icon: "🏙️" }, { label: "California / High-cost", value: 2000, range: "$1,200–$3,000+", icon: "☀️" }].map((p) => (
+                      {[{ label: "Rural / Small town", value: 300, range: "$150–$500", icon: "MapPin" }, { label: "Suburban", value: 700, range: "$400–$1,000", icon: "MapPin" }, { label: "Urban / Major metro", value: 1200, range: "$800–$1,600", icon: "Building2" }, { label: "California / High-cost", value: 2000, range: "$1,200–$3,000+", icon: "Sun" }].map((p) => (
                         <button
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
@@ -2956,7 +2965,7 @@ export default function Home() {
                             includePermit && permitCost === p.value ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
                           )}
                         >
-                          <div className="text-lg mb-1">{p.icon}</div>
+                          <div className="mb-1 text-slate-400"><DynIcon name={p.icon} className="w-4 h-4" /></div>
                           <div className="font-semibold text-xs text-white">{p.label}</div>
                           <div className={`text-sm font-mono ${ac.text} mt-2`}>{p.range}</div>
                           {includePermit && permitCost === p.value && <div className={`text-xs ${ac.textSelected} mt-1`}>✓ Selected</div>}
@@ -3055,7 +3064,7 @@ export default function Home() {
                       </div>
                       {!includeMarkup && (
                         <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 mb-3">
-                          <span className="text-amber-400 text-sm mt-0.5">⚠</span>
+                          <LucideIcons.AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <div className="text-xs text-amber-300">
                             <span className="font-semibold">Markup disabled.</span> Your bid will reflect cost-only pricing — no profit margin, overhead recovery, or contingency. This will produce a below-market bid. Only use this for internal cost estimates.
                           </div>
@@ -3256,7 +3265,7 @@ export default function Home() {
                         )}
                       >
                         <div className="flex items-start gap-3">
-                          <span className="text-lg">🚫</span>
+                          <LucideIcons.Ban className="w-4 h-4 text-slate-400" />
                           <div className="flex-1">
                             <div className="font-semibold text-sm text-white">No permit needed</div>
                             <div className="text-xs text-slate-400 mt-1">Ground-level decks under 30" high, or decks under 200 sq ft, are exempt from permits in many jurisdictions. Verify with your local building department.</div>
@@ -3265,7 +3274,7 @@ export default function Home() {
                           {!includePermit && <div className="text-xs text-slate-300 shrink-0">✓ Selected</div>}
                         </div>
                       </button>
-                      {[{ label: "Rural / Small town", value: 300, range: "$150–$500", icon: "🏘️" }, { label: "Suburban", value: 700, range: "$400–$1,000", icon: "🏡" }, { label: "Urban / Major metro", value: 1200, range: "$800–$1,600", icon: "🏙️" }, { label: "California / High-cost", value: 2000, range: "$1,200–$3,000+", icon: "☀️" }].map((p) => (
+                      {[{ label: "Rural / Small town", value: 300, range: "$150–$500", icon: "MapPin" }, { label: "Suburban", value: 700, range: "$400–$1,000", icon: "MapPin" }, { label: "Urban / Major metro", value: 1200, range: "$800–$1,600", icon: "Building2" }, { label: "California / High-cost", value: 2000, range: "$1,200–$3,000+", icon: "Sun" }].map((p) => (
                         <button
                           key={p.label}
                           onClick={() => selectOrAdvance(includePermit && permitCost === p.value, () => { setIncludePermit(true); setPermitCost(p.value); })}
@@ -3274,7 +3283,7 @@ export default function Home() {
                             includePermit && permitCost === p.value ? `${sel.border} ${sel.bg}` : "border-white/20 bg-white/[0.03] hover:border-white/30"
                           )}
                         >
-                          <div className="text-lg mb-1">{p.icon}</div>
+                          <div className="mb-1 text-slate-400"><DynIcon name={p.icon} className="w-4 h-4" /></div>
                           <div className="font-semibold text-xs text-white">{p.label}</div>
                           <div className={`text-sm font-mono ${ac.text} mt-2`}>{p.range}</div>
                           {includePermit && permitCost === p.value && <div className={`text-xs ${ac.textSelected} mt-1`}>✓ Selected</div>}

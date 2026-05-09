@@ -623,7 +623,7 @@ export const FRAMING_OPTIONS = [
     laborMultiplier: 1.00,
     installDaysAdder: 0,
     lifespan: "15–30 years with maintenance",
-    icon: "🪵",
+    icon: "Layers",
     badge: null,
   },
   {
@@ -637,7 +637,7 @@ export const FRAMING_OPTIONS = [
     laborMultiplier: 1.05,  // slightly heavier, same skill set
     installDaysAdder: 0,
     lifespan: "25–40 years with maintenance",
-    icon: "🌲",
+    icon: "TreePine",
     badge: "Coastal / Wet Zones",
   },
   {
@@ -651,7 +651,7 @@ export const FRAMING_OPTIONS = [
     laborMultiplier: 1.30,  // drilling, specialized connectors, layout
     installDaysAdder: 1,
     lifespan: "40–50+ years",
-    icon: "⚙️",
+    icon: "Settings2",
     badge: "Premium",
   },
   {
@@ -665,7 +665,7 @@ export const FRAMING_OPTIONS = [
     laborMultiplier: 1.45,  // proprietary connectors, layout, learning curve
     installDaysAdder: 2,
     lifespan: "50+ years",
-    icon: "🔩",
+    icon: "Bolt",
     badge: "Rooftop / Waterproof",
   },
 ] as const;
@@ -687,7 +687,7 @@ export const MARKET_TIERS = [
     description: "Limited labor pool, lower cost of living, lower overhead. Typical for projects outside metro areas.",
     laborMultiplier: 0.82,
     examples: "Population under 50K, 30+ min from major city",
-    icon: "🌾",
+    icon: "MapPin",
     badge: "Lower labor rates",
     badgeColor: "emerald" as const,
   },
@@ -698,7 +698,7 @@ export const MARKET_TIERS = [
     description: "National baseline. Typical residential contractor market with standard labor availability.",
     laborMultiplier: 1.00,
     examples: "Suburbs of mid-size or major cities",
-    icon: "🏘️",
+    icon: "MapPin",
     badge: "National baseline",
     badgeColor: "blue" as const,
   },
@@ -709,7 +709,7 @@ export const MARKET_TIERS = [
     description: "Union presence, higher wages, parking/access costs, high contractor demand. Major metro areas.",
     laborMultiplier: 1.28,
     examples: "NYC, LA, Chicago, Boston, Seattle, SF, DC",
-    icon: "🏙️",
+    icon: "Building2",
     badge: "Higher labor rates",
     badgeColor: "amber" as const,
   },
