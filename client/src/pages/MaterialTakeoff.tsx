@@ -729,7 +729,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 1: DECK BOARDS ══ */}
       {activePhase === 1 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 1</span>
@@ -865,7 +865,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           </div>
 
           {/* ── Takeoff Summary Table ── */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
               Takeoff Summary — {selectedSku.name}
             </div>
@@ -955,7 +955,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 2: FASTENERS ══ */}
       {activePhase === 2 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 2</span>
@@ -1232,7 +1232,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           </div>
 
           {/* ── Phase 2 Grand Total ── */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="divide-y divide-slate-700/50">
               <div className="grid grid-cols-3 px-4 py-2.5 text-sm">
                 <span className="text-slate-400">Subtotal (all fastener lines)</span>
@@ -1257,7 +1257,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 3: FRAMING LUMBER ══ */}
       {activePhase === 3 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 3</span>
@@ -1396,7 +1396,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           </div>
 
           {/* Takeoff Table */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
               Framing Takeoff
             </div>
@@ -1472,7 +1472,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 4: CONCRETE & FOOTINGS ══ */}
       {activePhase === 4 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 4</span>
@@ -1668,7 +1668,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           </div>
 
           {/* Takeoff table */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
               Footings Takeoff
             </div>
@@ -1743,7 +1743,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 5: RAILING ══ */}
       {activePhase === 5 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 5</span>
@@ -1876,7 +1876,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           })}
 
           {/* Takeoff table */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">
               Railing Takeoff
             </div>
@@ -1995,7 +1995,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 6: STAIRS ══ */}
       {activePhase === 6 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 6</span>
@@ -2120,7 +2120,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           })}
 
           {/* Takeoff table */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">Stair Takeoff</div>
             <div className="grid grid-cols-3 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-700">
               <span>Item</span><span className="text-center">Qty</span><span className="text-right">Amount</span>
@@ -2212,7 +2212,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
 
       {/* ══ PHASE 7: HARDWARE & MISC ══ */}
       {activePhase === 7 && (
-      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/60 border border-slate-600 rounded-xl overflow-x-auto">
         <div className="bg-slate-700/60 px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Phase 7</span>
@@ -2302,7 +2302,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
           })}
 
           {/* Takeoff table */}
-          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl overflow-x-auto">
             <div className="px-4 py-2 bg-slate-700/40 text-xs font-bold tracking-widest uppercase text-slate-400">Hardware Takeoff</div>
             <div className="grid grid-cols-3 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-700">
               <span>Item</span><span className="text-center">Qty</span><span className="text-right">Amount</span>

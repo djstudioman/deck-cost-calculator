@@ -1214,7 +1214,7 @@ export default function Home() {
                       <div className="text-xs text-slate-400 mb-3">
                         Adjust for your local labor market — affects labor cost only, not materials.
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {MARKET_TIERS.map((m) => (
                           <button
                             key={m.id}
@@ -2102,7 +2102,7 @@ export default function Home() {
                       {!useHelicalPiers && (
                         <div>
                           <div className="text-xs text-slate-400 mb-2">Tube Footing Diameter</div>
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {([8, 10, 12, 16] as const).map((d) => {
                               const costs: Record<8|10|12|16, [number,number]> = {
                                 8:  [55,  90],
@@ -3177,7 +3177,7 @@ export default function Home() {
                           {/* Existing material type */}
                           <div>
                             <div className="text-xs text-slate-400 mb-2">Existing deck material</div>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               {(["wood", "composite", "other"] as const).map((mat) => (
                                 <button
                                   key={mat}

@@ -1861,7 +1861,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                 )}
               </div>
               {/* Summary row — working days card is now editable */}
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
                 <div className="rounded-lg bg-white/[0.03] border border-white/[0.08] p-2.5 text-center">
                   <div className="flex items-center justify-center gap-1 mb-0.5">
                     <button
@@ -2422,7 +2422,7 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
           {actualTotalMaterial > 0 && (
             <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
               <div className="text-xs font-semibold text-slate-300 mb-2">Variance Summary</div>
-              <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="grid grid-cols-3 gap-2 text-center overflow-x-auto">
                 <div>
                   <div className="font-mono text-sm font-bold text-slate-300">{formatCurrency(estMaterialCost)}</div>
                   <div className="text-[10px] text-slate-500">Calculator est.</div>
