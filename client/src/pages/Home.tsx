@@ -37,6 +37,7 @@ import {
 import ResultsPanel from "@/components/ResultsPanel";
 import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
+import InfoTip from "@/components/InfoTip";
 import ShapeBuilder, { type ShapePt } from "@/components/ShapeBuilder";
 import { cn } from "@/lib/utils";
 import * as LucideIcons from "lucide-react";
@@ -1193,11 +1194,11 @@ export default function Home() {
                             )}>
                               {r.laborMultiplier.toFixed(2)}×
                             </div>
-                            <div className="text-xs text-slate-600">labor</div>
+                            <div className="text-xs text-slate-600 flex items-center gap-1">labor <InfoTip left text="Labor cost multiplier for this region. 1.00× is the national average. Higher values mean local contractors charge more." /></div>
                           </div>
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          Frost: {r.frostDepthLabel}
+                        <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                          Frost: {r.frostDepthLabel} <InfoTip text="How deep the ground freezes in winter. Deeper frost means footings must be dug deeper, which increases foundation cost." />
                         </div>
                       </button>
                     ))}
@@ -1286,7 +1287,7 @@ export default function Home() {
                               <div className={`text-xs font-mono ${ac.text}`}>
                                 {formatRange(est.low, est.high)}
                               </div>
-                              <div className="text-xs text-slate-600">PT installed est.</div>
+                              <div className="text-xs text-slate-600 flex items-center gap-1">PT installed est. <InfoTip left text="Pressure-treated (PT) lumber is the most common deck material. This is a rough installed cost estimate — your final price depends on material choice, region, and complexity." /></div>
                             </div>
                           </div>
                         </button>
@@ -1532,7 +1533,7 @@ export default function Home() {
                                       <div className={`text-xs font-mono ${ac.text}`}>
                                         {formatRange(est.low, est.high)}
                                       </div>
-                                      <div className="text-xs text-slate-600">PT installed est.</div>
+                                      <div className="text-xs text-slate-600 flex items-center gap-1">PT installed est. <InfoTip left text="Pressure-treated (PT) lumber is the most common deck material. This is a rough installed cost estimate — your final price depends on material choice, region, and complexity." /></div>
                                     </div>
                                   </div>
                                 </button>
@@ -2614,7 +2615,7 @@ export default function Home() {
                         {/* Post count summary */}
                         <div className="text-xs text-slate-400 border-t border-white/10 pt-3">
                           <span className="text-slate-300 font-medium">{result.railingPostCount} posts</span>
-                          {" "}estimated · {postSpacingFt}' OC · {postMountId === "fascia" ? "Fascia mount" : "Surface mount"} · {railingHeightIn}" height
+                          {" "}estimated · {postSpacingFt}' <InfoTip text="OC = On Center. The distance between the center of one post and the center of the next." />OC · {postMountId === "fascia" ? <>Fascia mount <InfoTip text="Post is bolted through the outer rim board (fascia). Cleaner look — posts don't extend below the deck frame." /></> : <>Surface mount <InfoTip text="Post is bolted to the top of the deck frame. Easier to install, slightly more visible hardware." /></>} · {railingHeightIn}" height
                           {result.railingDetailCostLow > 0 && (
                             <span className={`ml-2 font-mono ${ac.text}`}>
                               +{formatCurrency(result.railingDetailCostLow)}–{formatCurrency(result.railingDetailCostHigh)} spec upcharge
