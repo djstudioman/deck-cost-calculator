@@ -58,9 +58,12 @@ const TIER_COLORS: Record<string, string> = {
   pvc: "#60A5FA",
 };
 
-const CATEGORY_COLORS = ["#F59E0B", "#60A5FA", "#34D399", "#A78BFA", "#F87171", "#FB923C"];
-const DIY_COLORS = ["#34D399", "#6EE7B7", "#A7F3D0", "#D1FAE5", "#F87171", "#FCD34D"];
-const CONTRACTOR_COLORS = ["#60A5FA", "#93C5FD", "#BFDBFE", "#A78BFA", "#F87171", "#FB923C"];
+// Homeowner — amber monochromatic scale (bright → deep)
+const CATEGORY_COLORS = ["#F59E0B", "#D97706", "#B45309", "#92400E", "#78350F", "#FCD34D"];
+// DIYer — emerald monochromatic scale (bright → deep)
+const DIY_COLORS = ["#34D399", "#10B981", "#059669", "#047857", "#065F46", "#6EE7B7"];
+// Contractor — sky-blue monochromatic scale (bright → deep)
+const CONTRACTOR_COLORS = ["#60A5FA", "#3B82F6", "#2563EB", "#1D4ED8", "#1E40AF", "#93C5FD"];
 
 const CustomTooltip = ({ active, payload, accent }: any) => {
   if (active && payload && payload.length) {
