@@ -105,6 +105,8 @@ function getTotalSteps(audience: AudienceType): number {
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Home() {
   const [step, setStep] = useState(0);
+  // Tracks the highest step the user has ever reached — enables clickable back-navigation
+  const [furthestStep, setFurthestStep] = useState(0);
   const [showResults, setShowResults] = useState(false);
   const [showTakeoff, setShowTakeoff] = useState(false);
   const [changeOrderDelta, setChangeOrderDelta] = useState<{ low: number; high: number }>({ low: 0, high: 0 });
@@ -310,8 +312,13 @@ export default function Home() {
 
   const goNext = useCallback(() => {
     setConfirmedStep(null); // reset confirmation for the next step
-    if (step < totalSteps - 1) setStep((s) => s + 1);
-    else setShowResults(true);
+    if (step < totalSteps - 1) {
+      const next = step + 1;
+      setStep(next);
+      setFurthestStep((f) => Math.max(f, next));
+    } else {
+      setShowResults(true);
+    }
   }, [step, totalSteps]);
 
   // Call this from every single-select card handler.
@@ -339,12 +346,18 @@ export default function Home() {
       goNext();
     } else if (audience === "diy") {
       // Skip contractor-only step 5, land on DIY Framing at step 6
-      if (step + 2 < totalSteps) setStep((s) => s + 2);
-      else setShowResults(true);
+      if (step + 2 < totalSteps) {
+        const next = step + 2;
+        setStep(next);
+        setFurthestStep((f) => Math.max(f, next));
+      } else setShowResults(true);
     } else {
       // Homeowner: skip both framing steps (5 & 6), land on Railing at step 7
-      if (step + 3 < totalSteps) setStep((s) => s + 3);
-      else setShowResults(true);
+      if (step + 3 < totalSteps) {
+        const next = step + 3;
+        setStep(next);
+        setFurthestStep((f) => Math.max(f, next));
+      } else setShowResults(true);
     }
   }, [audience, step, totalSteps, goNext]);
 
@@ -387,6 +400,7 @@ export default function Home() {
   const restart = useCallback(() => {
     // Full wizard reset — all inputs return to defaults
     setStep(0);
+    setFurthestStep(0);
     setShowResults(false);
     setShowTakeoff(false);
     setConfirmedStep(null);
@@ -593,6 +607,7 @@ export default function Home() {
     setShapeEdgeCurves(snap.shapeEdgeCurves ?? {});
     setShapeBuilderKey((k) => k + 1);
     setStep(0);
+    setFurthestStep(0);
     setShowResults(true);
     setShowSavedPanel(false);
     setConfirmedStep(null);
@@ -1030,35 +1045,69 @@ export default function Home() {
                     transition={{ duration: 0.35, ease: "easeOut" }}
                   />
                   {/* Tick marks */}
-                  <div className="relative flex justify-between items-center w-full">
-                    {visibleLabels.map((label, i) => {
-                      const isCompleted = i + 1 < visibleIndex;
-                      const isCurrent = i + 1 === visibleIndex;
-                      return (
-                        <div key={i} className="group relative flex flex-col items-center cursor-pointer" onClick={() => { if (i + 1 < visibleIndex) { const targetStep = stepLabels.indexOf(visibleLabels[i]); if (targetStep >= 0) setStep(targetStep); } }}>
-                          {/* Tick */}
-                          <motion.div
-                            className={cn(
-                              "rounded-full transition-all duration-200",
-                              isCurrent
-                                ? cn("w-3.5 h-3.5 ring-2 ring-offset-1 ring-offset-[oklch(0.10_0.025_250)]", ac.progressBar, ac.progressBar.replace("bg-", "ring-"))
-                                : isCompleted
-                                  ? cn("w-2.5 h-2.5", ac.progressBar, "opacity-70")
-                                  : "w-2 h-2 bg-white/[0.15]"
-                            )}
-                            animate={isCurrent ? { scale: [1, 1.15, 1] } : {}}
-                            transition={isCurrent ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}}
-                          />
-                          {/* Tooltip on hover */}
-                          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <span className="text-[10px] text-slate-400 bg-slate-900/90 px-1.5 py-0.5 rounded">
-                              {label}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {(() => {
+                    // Map furthestStep (raw step index) to a visible index
+                    const furthestVisibleIndex = stepLabels.slice(0, furthestStep + 1).filter((l) => l !== "").length;
+                    return (
+                      <div className="relative flex justify-between items-center w-full">
+                        {visibleLabels.map((label, i) => {
+                          const dotVisibleIndex = i + 1; // 1-based
+                          const isCompleted = dotVisibleIndex < visibleIndex;
+                          const isCurrent = dotVisibleIndex === visibleIndex;
+                          const isFurthest = dotVisibleIndex === furthestVisibleIndex && !isCurrent;
+                          // A dot is clickable if the user has already been to that step (or past it)
+                          const isClickable = dotVisibleIndex <= furthestVisibleIndex && !isCurrent;
+                          const isUnreached = dotVisibleIndex > furthestVisibleIndex;
+                          const handleDotClick = () => {
+                            if (!isClickable) return;
+                            const targetStep = stepLabels.indexOf(visibleLabels[i]);
+                            if (targetStep >= 0) setStep(targetStep);
+                          };
+                          return (
+                            <div
+                              key={i}
+                              className={cn(
+                                "group relative flex flex-col items-center",
+                                isClickable ? "cursor-pointer" : "cursor-default"
+                              )}
+                              onClick={handleDotClick}
+                              title={isClickable ? `Go back to: ${label}` : isUnreached ? label : undefined}
+                              aria-label={isClickable ? `Go back to step ${dotVisibleIndex}: ${label}` : undefined}
+                              role={isClickable ? "button" : undefined}
+                              tabIndex={isClickable ? 0 : undefined}
+                              onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") handleDotClick(); } : undefined}
+                            >
+                              {/* Tick */}
+                              <motion.div
+                                className={cn(
+                                  "rounded-full transition-all duration-200",
+                                  isCurrent
+                                    ? cn("w-3.5 h-3.5 ring-2 ring-offset-1 ring-offset-[oklch(0.10_0.025_250)]", ac.progressBar, ac.progressBar.replace("bg-", "ring-"))
+                                    : isCompleted
+                                      ? cn("w-2.5 h-2.5", ac.progressBar, isClickable ? "opacity-100 hover:scale-125" : "opacity-70")
+                                      : isFurthest
+                                        // "You were here" marker — slightly dimmed amber with a dashed ring
+                                        ? cn("w-2.5 h-2.5", ac.progressBar, "opacity-50 ring-1 ring-offset-1 ring-offset-[oklch(0.10_0.025_250)]", ac.progressBar.replace("bg-", "ring-"))
+                                        : "w-2 h-2 bg-white/[0.12]"
+                                )}
+                                animate={isCurrent ? { scale: [1, 1.15, 1] } : {}}
+                                transition={isCurrent ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : {}}
+                              />
+                              {/* Tooltip on hover */}
+                              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                <span className={cn(
+                                  "text-[10px] bg-slate-900/90 px-1.5 py-0.5 rounded",
+                                  isUnreached ? "text-slate-600" : isClickable ? "text-amber-300" : "text-slate-400"
+                                )}>
+                                  {isClickable ? `↩ ${label}` : isFurthest ? `⬡ ${label}` : isUnreached ? label : label}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </>
             );
