@@ -6,7 +6,8 @@
  * DIYer:     Materials cost + waste + tool rental + permit, savings vs hiring, weekend estimate
  * Contractor: Bid range, markup breakdown, gross margin, crew days, subcontracting note
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useCountUp } from "@/hooks/useCountUp";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -297,6 +298,13 @@ function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false
     : 1;
   const displayLow = homeownerShowMarkup ? Math.round(result.totalLow * markupMultiplierLow) : result.totalLow;
   const displayHigh = homeownerShowMarkup ? Math.round(result.totalHigh * markupMultiplierHigh) : result.totalHigh;
+
+  // Count-up animation — fires once on first mount (estimate reveal)
+  const mountedRef = useRef(false);
+  const [countTrigger] = useState(() => Date.now());
+  const animLow = useCountUp(displayLow, 900, mountedRef.current ? undefined : countTrigger);
+  const animHigh = useCountUp(displayHigh, 900, mountedRef.current ? undefined : countTrigger);
+  useEffect(() => { mountedRef.current = true; }, []);
   const displayPerSqFtLow = Math.round(displayLow / result.size.sqFt);
   const displayPerSqFtHigh = Math.round(displayHigh / result.size.sqFt);
   return (
@@ -313,7 +321,7 @@ function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false
               {homeownerShowMarkup && activeTier ? `With ${activeTier.label} Markup` : "Contractor Quote Range"}
             </div>
             <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
-              {formatRange(displayLow, displayHigh)}
+              {formatRange(animLow || displayLow, animHigh || displayHigh)}
             </div>
             {homeownerShowMarkup && (
               <div className="text-xs text-slate-500 mt-0.5">

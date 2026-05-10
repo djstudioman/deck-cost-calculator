@@ -704,8 +704,8 @@ export default function Home() {
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-2"
               >
-                <span className="text-xs text-slate-500 hidden sm:block">{liveLabel}</span>
-                <span className={`font-mono text-sm font-semibold ${ac.text}`}>{liveRange}</span>
+                <span className="text-xs text-slate-500 hidden sm:block">{justSaved ? "Saved!" : liveLabel}</span>
+                <span className={`font-mono text-sm font-semibold transition-colors duration-300 ${justSaved ? "text-emerald-400" : ac.text}`}>{justSaved ? <span className="flex items-center gap-1"><DynIcon name="Check" className="w-3 h-3" />Saved</span> : liveRange}</span>
               </motion.div>
             </AnimatePresence>
 
@@ -741,7 +741,7 @@ export default function Home() {
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
               <span className="text-sm font-semibold text-white">Saved Estimates</span>
-              <button onClick={() => setShowSavedPanel(false)} aria-label="Close saved estimates" className="text-slate-500 hover:text-white text-lg leading-none transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded">×</button>
+              <button onClick={() => setShowSavedPanel(false)} aria-label="Close saved estimates" className="text-slate-500 hover:text-white text-lg leading-none transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded"><DynIcon name="X" className="w-4 h-4" /></button>
             </div>
 
             {/* Save current estimate */}
@@ -751,7 +751,7 @@ export default function Home() {
                   onClick={() => setShowSaveInput(true)}
                   className={`w-full py-2 rounded-lg text-xs font-semibold ${ac.btnClass} transition-all`}
                 >
-                  {justSaved ? "✓ Saved!" : "+ Save current estimate"}
+                  {justSaved ? <span className="flex items-center gap-1"><DynIcon name="Check" className="w-3 h-3" />Saved!</span> : "+ Save current estimate"}
                 </button>
               ) : (
                 <div className="flex gap-2">
@@ -999,7 +999,7 @@ export default function Home() {
                 } p-4 transition-colors duration-500`} style={{borderRadius: '15px', marginTop: '17px'}}>
                   {justSaved ? (
                     <div className="flex items-center gap-3">
-                      <span className="text-emerald-400 text-lg">✓</span>
+                      <DynIcon name="Check" className="w-5 h-5 text-emerald-400" />
                       <div>
                         <div className="text-sm font-semibold text-emerald-300">Estimate saved!</div>
                         <div className="text-xs text-slate-400 mt-0.5">Find it anytime using the Save button in the header.</div>
@@ -1102,11 +1102,14 @@ export default function Home() {
                         color: "blue",
                       },
                     ].map((opt) => (
-                      <button
+                      <motion.button
                         key={opt.id}
                         onClick={() => selectOrAdvance(audience === opt.id, () => setAudience(opt.id as AudienceType))}
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: 1.01 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
                         className={cn(
-                          "text-left p-5 rounded-xl border transition-all min-h-[140px] flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
+                          "text-left p-5 rounded-xl border transition-colors min-h-[140px] flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
                           audience === opt.id
                             ? opt.color === "emerald"
                               ? "border-emerald-500 bg-emerald-500/10 focus-visible:ring-emerald-400"
@@ -1146,9 +1149,9 @@ export default function Home() {
                               : "text-amber-400"
                             : "text-slate-600"
                         )}>
-                          {audience === opt.id ? "✓ Selected" : <span className="flex items-center gap-1"><svg className="w-3 h-3" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2"/><path d="M6 3.5v2.5l1.5 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>{opt.extra}</span>}
+                          {audience === opt.id ? <span className="flex items-center gap-1"><DynIcon name="Check" className="w-3 h-3" />Selected</span> : <span className="flex items-center gap-1"><svg className="w-3 h-3" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2"/><path d="M6 3.5v2.5l1.5 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>{opt.extra}</span>}
                         </div>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </StepCard>
