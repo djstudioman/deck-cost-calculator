@@ -269,7 +269,7 @@ function ActionButtons({
       </button>
       <button
         onClick={() => { toast.info("Opening print dialog…", { description: "Use your browser's Print function (Ctrl+P / Cmd+P) to save as PDF." }); setTimeout(() => window.print(), 150); }}
-        className="ml-auto flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors"
+        className="flex items-center gap-2 px-5 py-2.5 font-semibold text-sm rounded-lg border transition-colors"
         style={{ borderColor: `${accent}66`, color: accent }}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1035,9 +1035,9 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
         </div>
         <div className="space-y-0">
           {/* Header */}
-          <div className="grid grid-cols-3 gap-2 text-xs text-slate-500 pb-2 border-b border-white/[0.06]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-slate-500 pb-2 border-b border-white/[0.06]">
             <div>Line Item</div>
-            <div className="text-right">Cost Basis</div>
+            <div className="text-right hidden sm:block">Cost Basis</div>
             <div className="text-right">With Markup</div>
           </div>
 
@@ -1091,7 +1091,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                 }]
               : []),
           ].map((row) => (
-            <div key={row.label} className="grid grid-cols-3 gap-2 py-2.5 border-b border-white/[0.04] text-xs">
+            <div key={row.label} className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2.5 border-b border-white/[0.04] text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full shrink-0" style={{ background: row.color }} />
                 <div>
@@ -1099,7 +1099,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                   <div className="text-slate-400 text-[10px]">{row.note}</div>
                 </div>
               </div>
-              <div className="text-right font-mono text-slate-400">
+              <div className="text-right font-mono text-slate-400 hidden sm:block">
                 {row.basis > 0 ? formatCurrency(row.basis) : "—"}
               </div>
               <div className="text-right font-mono text-blue-300 font-semibold">
@@ -1109,9 +1109,9 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
           ))}
 
           {/* Total row */}
-          <div className="grid grid-cols-3 gap-2 pt-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3 text-xs">
             <div className="font-semibold text-white">Total Bid</div>
-            <div className="text-right font-mono text-slate-400">
+            <div className="text-right font-mono text-slate-400 hidden sm:block">
               {formatCurrency(c.materialCostRaw + c.laborCostRaw)}
             </div>
             <div className="text-right font-mono text-blue-400 font-bold text-sm">
@@ -1582,8 +1582,8 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                 <th className="text-left text-slate-500 font-semibold pb-2 pr-3">Material</th>
                 <th className="text-right text-slate-500 font-semibold pb-2 px-2">Total Bid Range</th>
                 <th className="text-right text-slate-500 font-semibold pb-2 px-2">Per Sq Ft</th>
-                <th className="text-right text-slate-500 font-semibold pb-2 px-2">Lifespan</th>
-                <th className="text-right text-slate-500 font-semibold pb-2 pl-2">Maintenance/yr</th>
+                <th className="text-right text-slate-500 font-semibold pb-2 px-2 hidden sm:table-cell">Lifespan</th>
+                <th className="text-right text-slate-500 font-semibold pb-2 pl-2 hidden sm:table-cell">Maintenance/yr</th>
               </tr>
             </thead>
             <tbody>
@@ -1627,8 +1627,8 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                       </span>
                     </td>
                     <td className="text-right font-mono py-2.5 px-2 text-slate-400">${perSqFt}/sf</td>
-                    <td className="text-right py-2.5 px-2 text-slate-400">{tier.lifespan.split(" ")[0]}</td>
-                    <td className="text-right py-2.5 pl-2 text-slate-400">{maintenanceCost}</td>
+                    <td className="text-right py-2.5 px-2 text-slate-400 hidden sm:table-cell">{tier.lifespan.split(" ")[0]}</td>
+                    <td className="text-right py-2.5 pl-2 text-slate-400 hidden sm:table-cell">{maintenanceCost}</td>
                   </tr>
                 );
               })}
@@ -2147,7 +2147,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             Material Takeoff
           </button>
         )}
-        <div className="ml-auto flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* Customer Proposal — prints the clean customer-facing view */}
           <button
             onClick={() => {
@@ -2433,23 +2433,25 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
           {actualTotalMaterial > 0 && (
             <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
               <div className="text-xs font-semibold text-slate-300 mb-2">Variance Summary</div>
-              <div className="grid grid-cols-3 gap-2 text-center overflow-x-auto">
-                <div>
-                  <div className="font-mono text-sm font-bold text-slate-300">{formatCurrency(estMaterialCost)}</div>
-                  <div className="text-[10px] text-slate-500">Calculator est.</div>
-                </div>
-                <div>
-                  <div className="font-mono text-sm font-bold text-white">{formatCurrency(actualTotalMaterial)}</div>
-                  <div className="text-[10px] text-slate-500">Your quote</div>
-                </div>
-                <div>
-                  <div className={cn(
-                    "font-mono text-sm font-bold",
-                    variance > 0 ? "text-red-400" : "text-green-400"
-                  )}>
-                    {variance > 0 ? "+" : ""}{formatCurrency(variance)} ({variancePct > 0 ? "+" : ""}{variancePct}%)
+              <div className="overflow-x-auto">
+                <div className="grid grid-cols-3 gap-2 text-center min-w-[240px]">
+                  <div>
+                    <div className="font-mono text-sm font-bold text-slate-300">{formatCurrency(estMaterialCost)}</div>
+                    <div className="text-[10px] text-slate-500">Calculator est.</div>
                   </div>
-                  <div className="text-[10px] text-slate-500">Variance</div>
+                  <div>
+                    <div className="font-mono text-sm font-bold text-white">{formatCurrency(actualTotalMaterial)}</div>
+                    <div className="text-[10px] text-slate-500">Your quote</div>
+                  </div>
+                  <div>
+                    <div className={cn(
+                      "font-mono text-sm font-bold",
+                      variance > 0 ? "text-red-400" : "text-green-400"
+                    )}>
+                      {variance > 0 ? "+" : ""}{formatCurrency(variance)} ({variancePct > 0 ? "+" : ""}{variancePct}%)
+                    </div>
+                    <div className="text-[10px] text-slate-500">Variance</div>
+                  </div>
                 </div>
               </div>
               {Math.abs(variancePct) > 15 && (
