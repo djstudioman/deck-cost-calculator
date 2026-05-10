@@ -782,6 +782,10 @@ export default function Home() {
 
           {/* Live estimate ticker + Save button */}
           <div className="flex items-center gap-3">
+            {/* aria-live region: screen readers announce cost range updates as user makes selections */}
+            <div aria-live="polite" aria-atomic="true" className="sr-only">
+              {liveLabel}: {liveRange}
+            </div>
             <AnimatePresence mode="wait">
               <motion.div
                 key={liveRange}
@@ -790,6 +794,7 @@ export default function Home() {
                 exit={{ opacity: 0, y: 6 }}
                 transition={{ duration: 0.2 }}
                 className="flex items-center gap-2"
+                aria-hidden="true"
               >
                 <span className="text-xs text-slate-500 hidden sm:block">{justSaved ? "Saved!" : liveLabel}</span>
                 <span className={`font-mono text-sm font-semibold transition-colors duration-300 ${justSaved ? "text-emerald-400" : ac.text}`}>{justSaved ? <span className="flex items-center gap-1"><DynIcon name="Check" className="w-3 h-3" />Saved</span> : liveRange}</span>
@@ -988,6 +993,10 @@ export default function Home() {
             return (
               <>
                 {/* Step label + audience badge */}
+                {/* sr-only aria-live: announces step transitions to screen readers */}
+                <div aria-live="assertive" aria-atomic="true" className="sr-only">
+                  Step {visibleIndex} of {visibleLabels.length}: {currentLabel}
+                </div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs text-slate-500 font-mono">
                     Step {visibleIndex}/{visibleLabels.length}

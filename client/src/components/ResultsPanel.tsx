@@ -320,7 +320,12 @@ function HomeownerPanel({ result, onBack, onRestart, homeownerShowMarkup = false
             <div className="text-xs font-semibold tracking-widest text-slate-500 uppercase mb-1">
               {homeownerShowMarkup && activeTier ? `With ${activeTier.label} Markup` : "Contractor Quote Range"}
             </div>
-            <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
+            <div
+              className="font-mono text-3xl sm:text-4xl font-bold text-white"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={`Estimated cost range: ${formatRange(displayLow, displayHigh)}`}
+            >
               {formatRange(animLow || displayLow, animHigh || displayHigh)}
             </div>
             {homeownerShowMarkup && (
@@ -571,7 +576,12 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
             <div className="text-xs font-semibold tracking-widest text-emerald-500/70 uppercase mb-1">
               DIY Materials + Extras Estimate
             </div>
-            <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
+            <div
+              className="font-mono text-3xl sm:text-4xl font-bold text-white"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={`DIY estimate: ${formatRange(d.totalWithExtrasLow, d.totalWithExtrasHigh)}`}
+            >
               {formatRange(d.totalWithExtrasLow, d.totalWithExtrasHigh)}
             </div>
             <div className="text-sm text-slate-400 mt-1">
@@ -993,7 +1003,12 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             <div className="text-xs font-semibold tracking-widest text-blue-400/70 uppercase mb-1">
               {coGrandLow > 0 ? "Bid + Change Orders" : "Bid Range Estimate"}
             </div>
-            <div className="font-mono text-3xl sm:text-4xl font-bold text-white">
+            <div
+              className="font-mono text-3xl sm:text-4xl font-bold text-white"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={`Bid estimate: ${formatRange(c.totalBidLow + coGrandLow, c.totalBidHigh + coGrandHigh)}`}
+            >
               {formatRange(c.totalBidLow + coGrandLow, c.totalBidHigh + coGrandHigh)}
             </div>
             {coGrandLow > 0 && (
