@@ -655,7 +655,12 @@ function DIYPanel({ result, onBack, onRestart }: ResultsPanelProps) {
                   label: "Stair materials",
                   low: result.stairsLow,
                   high: result.stairsHigh,
-                  note: "Stringers, treads, hardware",
+                  note: (() => {
+                    const steps = result.stairSteps;
+                    const baseLow  = result.tier.id === "pt" ? 25 : result.tier.id === "composite" ? 50 : 65;
+                    const baseHigh = result.tier.id === "pt" ? 50 : result.tier.id === "composite" ? 90 : 110;
+                    return `${steps} steps · $${baseLow}–$${baseHigh}/step materials only`;
+                  })(),
                   color: "#FCD34D",
                 }]
               : []),
@@ -1255,7 +1260,19 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             rows: [
               { label: "Railing system",    note: result.railing.label + " — " + result.railingLow + "–" + result.railingHigh, ...col(railLow, railMid, railHigh) },
               { label: "Footings",           note: `${result.footingCount} footings · ${result.region.frostDepthLabel} frost depth · based on deck size`, ...col(footLow, footMid, footHigh) },
-              ...(stairMid > 0 ? [{ label: "Stairs", note: "Stringers, treads, risers", ...col(stairLow, stairMid, stairHigh) }] : []),
+              ...(stairMid > 0 ? [{ label: "Stairs", note: (() => {
+                  const steps = result.stairSteps;
+                  const w = result.stairWidthFt;
+                  const baseLow  = result.tier.id === "pt" ? 100 : result.tier.id === "composite" ? 150 : 200;
+                  const baseHigh = result.tier.id === "pt" ? 175 : result.tier.id === "composite" ? 250 : 400;
+                  const widthPrem = Math.max(0, w - 4) * 150;
+                  const perStepLow  = baseLow  + widthPrem;
+                  const perStepHigh = baseHigh + widthPrem;
+                  const widthNote = widthPrem > 0
+                    ? ` (incl. +$${widthPrem}/step for ${w}ft width)`
+                    : ` · 4ft wide base`;
+                  return `${steps} steps · $${perStepLow}–$${perStepHigh}/step installed${widthNote}`;
+                })(), ...col(stairLow, stairMid, stairHigh) }] : []),
               ...(permitVal > 0 ? [{ label: "Permit & inspection", note: "Pass-through at cost", ...col(permitVal, permitVal, permitVal) }] : []),
               ...(result.engineerCost > 0 ? [{ label: "Structural engineer fee", note: "Pass-through at cost", ...col(result.engineerCost, result.engineerCost, result.engineerCost) }] : []),
               ...(demoMid > 0 ? [

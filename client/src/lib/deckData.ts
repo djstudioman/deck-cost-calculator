@@ -880,6 +880,7 @@ export interface CalculatorResult {
   railingLF: number;
   includeStairs: boolean;
   stairSteps: number;
+  stairWidthFt: number;  // 4–8 ft; echoed for per-step breakdown display
   deckHeightIn: number;  // inches above grade (defaults to 24 if not provided)
   // DIY extras
   diy?: {
@@ -1409,7 +1410,24 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
             pctOfTotal: 0,
             low: stairsLow,
             high: stairsHigh,
-            note: `${inputs.stairSteps}-step staircase`,
+            note: (() => {
+              const steps = inputs.stairSteps;
+              const w = stairWidthFt;
+              const widthPrem = widthPremiumPerStep;
+              if (isDIY) {
+                const baseLow  = tier.id === "pt" ? 25 : tier.id === "composite" ? 50 : 65;
+                const baseHigh = tier.id === "pt" ? 50 : tier.id === "composite" ? 90 : 110;
+                return `${steps} steps · $${baseLow}–$${baseHigh}/step materials only`;
+              }
+              const baseLow  = tier.id === "pt" ? 100 : tier.id === "composite" ? 150 : 200;
+              const baseHigh = tier.id === "pt" ? 175 : tier.id === "composite" ? 250 : 400;
+              const perStepLow  = baseLow  + widthPrem;
+              const perStepHigh = baseHigh + widthPrem;
+              const widthNote = widthPrem > 0
+                ? ` (incl. +$${widthPrem}/step for ${w}ft width)`
+                : ` · 4ft wide base`;
+              return `${steps} steps · $${perStepLow}–$${perStepHigh}/step installed${widthNote}`;
+            })(),
           },
         ]
       : []),
@@ -1737,6 +1755,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     railingLF: inputs.railingLF,
     includeStairs: inputs.includeStairs,
     stairSteps: inputs.stairSteps,
+    stairWidthFt: inputs.stairWidthFt ?? 4,
     deckHeightIn: inputs.deckHeightIn ?? 24,
     diy: diyExtras,
     contractor: contractorExtras,
