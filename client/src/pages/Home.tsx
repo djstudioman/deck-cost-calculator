@@ -877,7 +877,7 @@ export default function Home() {
               Deck Building Cost Calculator
             </h1>
             <p className="text-sm text-slate-200 mt-1 max-w-xl" style={{textShadow: "0 1px 6px rgba(0,0,0,0.9)"}}>
-              Localized estimates from real 2026 pricing data — materials, labor, regional rates, and tariff impacts.
+              Answer a few questions. Get a localized cost estimate in under 2 minutes — materials, labor, regional rates, and 2026 tariff impacts included.
             </p>
           </div>
         </div>
@@ -1078,24 +1078,27 @@ export default function Home() {
                         id: "homeowner" as AudienceType,
                         icon: "Home",
                         label: "Homeowner",
-                        desc: "Hiring a contractor. See full installed costs.",
-                        extra: "7 questions",
+                        desc: "Hiring a contractor. Get a full installed cost range with regional labor rates and permit costs.",
+                        chips: ["Cost range", "Permit cost", "What to expect"],
+                        extra: "~2 min",
                         color: "amber",
                       },
                       {
                         id: "diy" as AudienceType,
                         icon: "Hammer",
                         label: "DIYer",
-                        desc: "Doing it yourself. Materials + tool rental + permit.",
-                        extra: "9 questions",
+                        desc: "Building it yourself. Get a materials list, tool rental estimate, and permit cost.",
+                        chips: ["Materials list", "Tool rental", "Permit cost"],
+                        extra: "~2 min",
                         color: "emerald",
                       },
                       {
-        id: "contractor" as AudienceType,
-              icon: "ClipboardList",
-              label: "Contractor",
-              desc: "Bidding a project. Full markup, crew, and margin analysis.",
-              extra: "9 questions",
+                        id: "contractor" as AudienceType,
+                        icon: "ClipboardList",
+                        label: "Contractor",
+                        desc: "Bidding a project. Get a full bid with markup, crew cost, and material takeoff.",
+                        chips: ["Bid range", "Markup tiers", "Material takeoff"],
+                        extra: "~2 min",
                         color: "blue",
                       },
                     ].map((opt) => (
@@ -1122,7 +1125,19 @@ export default function Home() {
                             : "text-slate-400"
                         )}><DynIcon name={opt.icon} className="w-5 h-5" /></div>
                         <div className="font-semibold text-sm text-white">{opt.label}</div>
-                        <div className="text-xs text-slate-400 mt-1 flex-1">{opt.desc}</div>
+                        <div className="text-xs text-slate-400 mt-1">{opt.desc}</div>
+                        <div className="flex flex-wrap gap-1 mt-2 flex-1">
+                          {(opt as typeof opt & { chips?: string[] }).chips?.map((chip) => (
+                            <span key={chip} className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                              audience === opt.id
+                                ? opt.color === "emerald" ? "bg-emerald-500/15 text-emerald-300"
+                                  : opt.color === "blue" ? "bg-blue-500/15 text-blue-300"
+                                  : "bg-amber-500/15 text-amber-300"
+                                : "bg-white/[0.06] text-slate-500"
+                            )}>{chip}</span>
+                          ))}
+                        </div>
                         <div className={cn(
                           "text-xs mt-2 font-medium",
                           audience === opt.id
@@ -1131,7 +1146,7 @@ export default function Home() {
                               : "text-amber-400"
                             : "text-slate-600"
                         )}>
-                          {audience === opt.id ? "✓ Selected" : opt.extra}
+                          {audience === opt.id ? "✓ Selected" : <span className="flex items-center gap-1"><svg className="w-3 h-3" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2"/><path d="M6 3.5v2.5l1.5 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>{opt.extra}</span>}
                         </div>
                       </button>
                     ))}
