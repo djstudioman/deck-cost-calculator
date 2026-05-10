@@ -1608,11 +1608,10 @@ export default function Home() {
                               </div>
                             </div>
                           </button>
-                          {sizeId === "shape" && (
+                          {sizeId === "shape" && isMobile && (
                             <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                              {isMobile ? (
-                                <>
-                                  {/* Mobile: button that opens full-screen overlay */}
+                              {/* Mobile: button that opens full-screen overlay */}
+                              <>
                                   <button
                                     onClick={() => setShapeOverlayOpen(true)}
                                     className={cn(
@@ -1664,23 +1663,34 @@ export default function Home() {
                                     </SheetContent>
                                   </Sheet>
                                 </>
-                              ) : (
-                                /* Desktop: inline as before */
-                                <ShapeBuilder
-                                  key={shapeBuilderKey}
-                                  initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
-                                  initialEdgeCurves={shapeEdgeCurves}
-                                  onShapeChange={handleShapeChange}
-                                  accentColor={ac.text}
-                                  accentBg={ac.btnClass}
-                                />
-                              )}
                             </div>
                           )}
                         </div>
                       </>
                     )}
                   </div>{/* end main size grid */}
+
+                  {/* Desktop full-width ShapeBuilder — expands below the grid when Custom Shape is selected */}
+                  {audience === "contractor" && sizeId === "shape" && !isMobile && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Shape Editor</div>
+                        <div className="text-xs text-slate-500">Click to place corners · Click near start to close · Drag edges to curve</div>
+                      </div>
+                      <div className="rounded-xl border border-white/10 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <ShapeBuilder
+                          key={shapeBuilderKey}
+                          initialVertices={shapeVertices.length >= 3 ? shapeVertices : undefined}
+                          initialEdgeCurves={shapeEdgeCurves}
+                          onShapeChange={handleShapeChange}
+                          accentColor={ac.text}
+                          accentBg={ac.btnClass}
+                          canvasHeight={700}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Multi-level toggle — contractor only */}
                   {audience === "contractor" && (
                     <div className="mt-4 space-y-3">

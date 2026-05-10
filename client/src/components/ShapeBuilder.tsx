@@ -32,6 +32,8 @@ interface ShapeBuilderProps {
   mobileFullscreen?: boolean;
   /** When provided, a Confirm button appears once the shape is closed */
   onConfirm?: (area: number, perimeter: number, vertices: ShapePt[], edgeCurves: Record<number, number>) => void;
+  /** Override the max canvas height in non-fullscreen mode (default 520) */
+  canvasHeight?: number;
 }
 
 // ─── Grid constants ──────────────────────────────────────────────────────────
@@ -231,6 +233,7 @@ export default function ShapeBuilder({
   accentBg = "bg-amber-500",
   mobileFullscreen = false,
   onConfirm,
+  canvasHeight,
 }: ShapeBuilderProps) {
   // ─── State ──────────────────────────────────────────────────────────────────
   const [vertices, setVertices] = useState<ShapePt[]>(initialVertices ?? []);
@@ -950,7 +953,7 @@ export default function ShapeBuilder({
             "cursor-crosshair select-none",
             mobileFullscreen ? "w-full h-full" : "w-full h-auto"
           )}
-          style={mobileFullscreen ? { touchAction: "none", display: "block" } : { maxHeight: "520px" }}
+          style={mobileFullscreen ? { touchAction: "none", display: "block" } : { maxHeight: `${canvasHeight ?? 520}px` }}
           preserveAspectRatio="xMidYMid meet"
           onClick={handleClick}
           onMouseMove={handleMouseMove}
