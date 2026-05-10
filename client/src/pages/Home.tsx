@@ -130,7 +130,7 @@ export default function Home() {
   const [audience, setAudience] = useState<AudienceType>("homeowner");
   const [regionId, setRegionId] = useState("mid-atlantic");
   const [sizeId, setSizeId] = useState("320");
-  const [tierId, setTierId] = useState("composite");
+  const [tierId, setTierId] = useState("pt");
   const [complexityId, setComplexityId] = useState("standard");
   const [railingId, setRailingId] = useState<string | null>("pt-wood");
   const [confirmedRailing, setConfirmedRailing] = useState(false);
@@ -396,7 +396,7 @@ export default function Home() {
     setAudience("homeowner");
     setRegionId("mid-atlantic");
     setSizeId("320");
-    setTierId("composite");
+    setTierId("pt");
     setComplexityId("standard");
     setRailingId("pt-wood");
     setRailingLF(Math.round(Math.sqrt(320) * 3));
