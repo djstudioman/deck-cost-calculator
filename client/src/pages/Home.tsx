@@ -886,20 +886,23 @@ export default function Home() {
                         >Load</button>
                         <button
                           onClick={() => handleCopyLink(snap)}
-                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-white/10 text-slate-300 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
                           title="Copy shareable link"
+                          aria-label={copiedId === snap.id ? "Link copied" : "Copy shareable link"}
                         >{copiedId === snap.id ? <LucideIcons.Check className="w-3 h-3" /> : <LucideIcons.Link2 className="w-3 h-3" />}</button>
                         <button
                           onClick={() => handleOpenNotes(snap)}
-                          className={`px-2 py-1 rounded text-[10px] transition-colors ${
+                          className={`px-2 py-1 rounded text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 ${
                             snap.notes ? "bg-white/10 text-slate-300 hover:text-white" : "bg-white/[0.06] text-slate-500 hover:text-slate-300"
                           }`}
                           title={snap.notes ? "Edit notes" : "Add notes"}
+                          aria-label={snap.notes ? "Edit notes" : "Add notes"}
                         ><LucideIcons.Pencil className="w-3 h-3" /></button>
                         <button
                           onClick={() => setDeleteConfirmId(snap.id)}
-                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
+                          className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-400/60"
                           title="Delete estimate"
+                          aria-label="Delete estimate"
                         ><LucideIcons.Trash2 className="w-3 h-3" /></button>
                       </div>
                     </div>
@@ -1000,7 +1003,15 @@ export default function Home() {
                   )}
                 </div>
                 {/* Ruler-style tick-mark stepper */}
-                <div className="relative flex items-center w-full h-6">
+                <div
+                  className="relative flex items-center w-full h-6"
+                  role="progressbar"
+                  aria-label="Wizard progress"
+                  aria-valuenow={visibleIndex}
+                  aria-valuemin={1}
+                  aria-valuemax={visibleLabels.length}
+                  aria-valuetext={`Step ${visibleIndex} of ${visibleLabels.length}: ${visibleLabels[visibleIndex - 1] ?? ""}`}
+                >
                   {/* Baseline ruler track */}
                   <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-white/[0.08] -translate-y-1/2" />
                   {/* Completed track fill */}
@@ -1106,8 +1117,10 @@ export default function Home() {
                         <div className="flex gap-2 items-center">
                           <input
                             autoFocus
+                            id="save-estimate-label"
                             type="text"
                             placeholder="Label (optional)"
+                            aria-label="Estimate label (optional)"
                             value={saveLabel}
                             onChange={(e) => setSaveLabel(e.target.value)}
                             onKeyDown={(e) => { if (e.key === "Enter") handleSaveEstimate(); if (e.key === "Escape") setShowSaveInput(false); }}
@@ -1290,11 +1303,12 @@ export default function Home() {
                       <button
                         key={r.id}
                         onClick={() => { setRegionId(r.id); setConfirmedStep(step); }}
+                        aria-pressed={regionId === r.id}
                         className={cn(
-                          "text-left p-3 rounded-lg border transition-all",
+                          "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                           regionId === r.id
-                            ? `${sel.border} ${sel.bg}`
-                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -1336,11 +1350,12 @@ export default function Home() {
                           <button
                             key={m.id}
                             onClick={() => setMarketTierId(m.id)}
+                            aria-pressed={marketTierId === m.id}
                             className={cn(
-                              "text-left p-3 rounded-lg border transition-all",
+                              "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               marketTierId === m.id
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="mb-1 text-slate-300"><DynIcon name={m.icon} className="w-4 h-4" /></div>
@@ -1388,11 +1403,12 @@ export default function Home() {
                         <button
                           key={s.id}
                           onClick={() => selectOrAdvance(sizeId === s.id, () => setSizeId(s.id))}
+                          aria-pressed={sizeId === s.id}
                           className={cn(
-                            "text-left p-3 rounded-lg border transition-all",
+                            "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                             sizeId === s.id
-                              ? `${sel.border} ${sel.bg}`
-                              : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                              ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                              : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                           )}
                         >
                           <div className="flex items-start justify-between">
@@ -1443,13 +1459,15 @@ export default function Home() {
                         {sizeId === "custom" && (
                           <div className="mt-3 grid grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
                             <div>
-                              <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Width (ft)</label>
+                              <label htmlFor="custom-width-input" className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Width (ft)</label>
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => setCustomWidth((w) => Math.max(4, w - 1))}
-                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+                                  aria-label="Decrease width"
+                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
                                 >−</button>
                                 <input
+                                  id="custom-width-input"
                                   type="number"
                                   min={4} max={100}
                                   value={customWidth}
@@ -1463,13 +1481,15 @@ export default function Home() {
                               </div>
                             </div>
                             <div>
-                              <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Length (ft)</label>
+                              <label htmlFor="custom-length-input" className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Length (ft)</label>
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => setCustomLength((l) => Math.max(4, l - 1))}
-                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors"
+                                  aria-label="Decrease length"
+                                  className="w-7 h-7 rounded bg-white/[0.06] border border-white/10 text-white text-sm font-bold hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
                                 >−</button>
                                 <input
+                                  id="custom-length-input"
                                   type="number"
                                   min={4} max={200}
                                   value={customLength}
@@ -1750,11 +1770,12 @@ export default function Home() {
                             }
                           }
                         })}
+                        aria-pressed={tierId === t.id}
                         className={cn(
-                          "text-left p-4 rounded-lg border transition-all",
+                          "text-left p-4 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                           tierId === t.id
-                            ? `${sel.border} ${sel.bg}`
-                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                         )}
                         style={{ backgroundImage:
                           t.id === "pt"
@@ -1982,11 +2003,12 @@ export default function Home() {
                       <button
                         key={c.id}
                         onClick={() => selectOrAdvanceFromComplexity(complexityId === c.id, () => setComplexityId(c.id))}
+                        aria-pressed={complexityId === c.id}
                         className={cn(
-                          "text-left p-3 rounded-lg border transition-all",
+                          "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                           complexityId === c.id
-                            ? `${sel.border} ${sel.bg}`
-                            : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                            ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                            : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                         )}
                       >
                         <div className="font-semibold text-sm text-white">{c.label}</div>
@@ -2033,11 +2055,12 @@ export default function Home() {
                           <button
                             key={f.id}
                             onClick={() => selectOrAdvance(framingId === f.id, () => setFramingId(f.id))}
+                            aria-pressed={isSelected}
                             className={cn(
-                              "text-left p-4 rounded-lg border transition-all",
+                              "text-left p-4 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               isSelected
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
@@ -2335,11 +2358,12 @@ export default function Home() {
                           <button
                             key={f.id}
                             onClick={() => selectOrAdvance(framingId === f.id, () => setFramingId(f.id))}
+                            aria-pressed={isSelected}
                             className={cn(
-                              "text-left p-4 rounded-lg border transition-all",
+                              "text-left p-4 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               isSelected
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
@@ -2518,6 +2542,8 @@ export default function Home() {
                           <div className="flex items-center gap-3">
                             <input type="range" min={2} max={18} step={1} value={stairSteps}
                               onChange={(e) => setStairSteps(Number(e.target.value))}
+                              aria-label={`Number of stair steps: ${stairSteps}`}
+                              aria-valuenow={stairSteps} aria-valuemin={2} aria-valuemax={18}
                               className={`flex-1 ${ac.accent}`} />
                             <span className={`font-mono text-sm ${ac.text} w-20 text-right shrink-0`}>
                               {stairSteps} {stairSteps === 1 ? "step" : "steps"}
@@ -2557,6 +2583,8 @@ export default function Home() {
                             // If raised above 30", railing becomes required — force it on
                             if (h >= 30) setIncludeRailing(true);
                           }}
+                          aria-label={`Deck height off ground: ${deckHeightIn} inches`}
+                          aria-valuenow={deckHeightIn} aria-valuemin={6} aria-valuemax={120}
                           className={`flex-1 ${ac.accent}`} />
                         <span className={`font-mono text-sm ${ac.text} w-20 text-right shrink-0`}>
                           {deckHeightIn < 12 ? `${deckHeightIn}"` : `${Math.floor(deckHeightIn / 12)}' ${deckHeightIn % 12 > 0 ? `${deckHeightIn % 12}"` : ''}`.trim()}
@@ -2615,11 +2643,12 @@ export default function Home() {
                                 selectOrAdvance(railingId === r.id, () => setRailingId(r.id));
                               }
                             }}
+                            aria-pressed={railingId === r.id}
                             className={cn(
-                              "text-left p-3 rounded-lg border transition-all",
+                              "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               railingId === r.id
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{r.label}</div>
@@ -2642,6 +2671,8 @@ export default function Home() {
                         <input type="range" min={10} max={200} step={2} value={railingLF}
                           id={`railing-lf-slider-${audience}`}
                           onChange={(e) => setRailingLF(Number(e.target.value))}
+                          aria-label={`Railing length: ${railingLF} linear feet`}
+                          aria-valuenow={railingLF} aria-valuemin={10} aria-valuemax={200}
                           className={`flex-1 ${ac.accent}`} />
                         <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>{railingLF} LF</span>
                       </div>
@@ -2771,6 +2802,8 @@ export default function Home() {
                              <span className="text-xs text-slate-400 w-16 shrink-0">Steps</span>
                              <input type="range" min={2} max={18} step={1} value={stairSteps}
                                onChange={(e) => setStairSteps(Number(e.target.value))}
+                               aria-label={`Number of stair steps: ${stairSteps}`}
+                               aria-valuenow={stairSteps} aria-valuemin={2} aria-valuemax={18}
                                className={`flex-1 ${ac.accent}`} />
                              <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>{stairSteps} steps</span>
                            </div>
@@ -2848,11 +2881,12 @@ export default function Home() {
                           <button
                             key={s.id}
                             onClick={() => selectOrAdvance(skillLevelId === s.id, () => setSkillLevelId(s.id))}
+                            aria-pressed={skillLevelId === s.id}
                             className={cn(
-                              "text-left p-3 rounded-lg border transition-all",
+                              "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               skillLevelId === s.id
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-emerald-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="font-semibold text-sm text-white">{s.label}</div>
@@ -3201,11 +3235,12 @@ export default function Home() {
                           <button
                             key={m.id}
                             onClick={() => selectOrAdvance(markupTierId === m.id, () => setMarkupTierId(m.id))}
+                            aria-pressed={markupTierId === m.id}
                             className={cn(
-                              "text-left p-4 rounded-lg border transition-all",
+                              "text-left p-4 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               markupTierId === m.id
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-blue-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -3255,11 +3290,12 @@ export default function Home() {
                           <button
                             key={c.id}
                             onClick={() => selectOrAdvance(crewSizeId === c.id, () => setCrewSizeId(c.id))}
+                            aria-pressed={crewSizeId === c.id}
                             className={cn(
-                              "text-left p-3 rounded-lg border transition-all",
+                              "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
                               crewSizeId === c.id
-                                ? `${sel.border} ${sel.bg}`
-                                : "border-white/20 bg-white/[0.03] hover:border-white/30"
+                                ? `${sel.border} ${sel.bg} focus-visible:ring-blue-400`
+                                : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                             )}
                           >
                             <div className="font-semibold text-xs text-white">{c.label}</div>
