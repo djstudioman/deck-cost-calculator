@@ -2865,6 +2865,8 @@ export default function Home() {
                                className={`flex-1 ${ac.accent}`} />
                              <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>{stairSteps} steps</span>
                            </div>
+                           {/* Stair width: only affects installed cost (contractor/homeowner), not DIY materials-only rates */}
+                           {audience !== "diy" && (
                            <div className="flex items-center gap-3">
                              <span className="text-xs text-slate-400 w-16 shrink-0">Width</span>
                              <div className="flex flex-1 gap-1">
@@ -2882,9 +2884,10 @@ export default function Home() {
                                ))}
                              </div>
                              <span className={`font-mono text-sm ${ac.text} w-16 text-right`}>
-                               {stairWidthFt === 4 ? 'base' : `+$${(stairWidthFt - 4) * 100}/step`}
+                               {stairWidthFt === 4 ? 'base' : `+$${(stairWidthFt - 4) * 150}/step`}
                              </span>
                            </div>
+                           )}
                          </div>
                          </>
                          )}
