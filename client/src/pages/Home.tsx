@@ -1673,8 +1673,24 @@ export default function Home() {
                   {/* Desktop full-width ShapeBuilder — expands below the grid when Custom Shape is selected */}
                   {audience === "contractor" && sizeId === "shape" && !isMobile && (
                     <div className="mt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Shape Editor</div>
+                      <div className="flex items-center justify-between mb-2 gap-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <div className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Shape Editor</div>
+                          {shapeArea > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className={`font-mono text-sm font-bold ${ac.text}`}>{Math.round(shapeArea)} sq ft</span>
+                              <span className="text-slate-600 text-xs">·</span>
+                              <span className="font-mono text-sm font-bold text-sky-400">{Math.round(shapePerimeter)} LF perimeter</span>
+                              <span className="text-slate-600 text-xs">·</span>
+                              <span className="text-xs text-slate-400">
+                                ~{Math.round(shapePerimeter * 0.75)} LF railing est.
+                              </span>
+                            </div>
+                          )}
+                          {shapeArea === 0 && (
+                            <span className="text-xs text-slate-500 italic">Draw your deck outline to see measurements</span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-500">Click to place corners · Click near start to close · Drag edges to curve</div>
                       </div>
                       <div className="rounded-xl border border-white/10 overflow-hidden" onClick={(e) => e.stopPropagation()}>
