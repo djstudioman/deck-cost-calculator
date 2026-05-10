@@ -12,6 +12,16 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useIsMobile } from "@/hooks/useMobile";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   REGIONS,
@@ -101,6 +111,10 @@ export default function Home() {
   // Tracks which step has had its selection "confirmed" (i.e. clicked once already).
   // First click on a card selects it; second click on the already-selected card advances.
   const [confirmedStep, setConfirmedStep] = useState<number | null>(null);
+
+  // Confirmation dialogs
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Save/load estimate state
   const [savedEstimates, setSavedEstimates] = useState<EstimateSnapshot[]>(() => loadAllEstimates());
@@ -371,13 +385,86 @@ export default function Home() {
   }, [step, audience, showResults, showTakeoff]);
 
   const restart = useCallback(() => {
+    // Full wizard reset — all inputs return to defaults
     setStep(0);
     setShowResults(false);
     setShowTakeoff(false);
     setConfirmedStep(null);
     setConfirmedRailing(false);
-    setIncludeMarkup(false); // default off
+    setChangeOrderDelta({ low: 0, high: 0 });
+    // Shared inputs
+    setAudience("homeowner");
+    setRegionId("mid-atlantic");
+    setSizeId("320");
+    setTierId("composite");
+    setComplexityId("standard");
+    setRailingId("pt-wood");
+    setRailingLF(Math.round(Math.sqrt(320) * 3));
+    setDeckHeightIn(24);
+    setIncludeRailing(true);
+    setIncludeStairs(true);
+    setStairSteps(4);
+    setStairWidthFt(4);
+    setIncludeStairRailing(false);
+    // DIY
+    setSkillLevelId("intermediate");
+    setSelectedTools(["circular-saw", "post-hole-digger", "impact-driver"]);
+    setIncludePermit(true);
+    setPermitCost(350);
+    // Engineer fee
+    setIncludeEngineer(false);
+    setEngineerCost(650);
+    setEngineerCostMode("preset");
+    setEngineerCustomInput("");
+    // Homeowner markup overlay
+    setHomeownerShowMarkup(false);
+    setHomeownerMarkupTierId("standard");
+    // Contractor
+    setMarkupTierId("standard");
     setIncludeCrew(true);
+    setCrewSizeId("two");
+    setIncludeMarkup(false);
+    setSubFootings(false);
+    // Custom size
+    setCustomWidth(20);
+    setCustomLength(20);
+    // Custom shape
+    setShapeArea(0);
+    setShapePerimeter(0);
+    setShapeVertices([]);
+    setShapeEdgeCurves({});
+    setShapeBuilderKey((k) => k + 1);
+    // Framing
+    setFramingId("pt");
+    setJoistSpacingIn(16);
+    // Market tier
+    setMarketTierId("suburban");
+    // Multi-level
+    setIsMultiLevel(false);
+    setLevel2SizeId("192");
+    setLevel2CustomWidth(16);
+    setLevel2CustomLength(12);
+    // Brand / fasteners
+    setBrandId(undefined);
+    setIncludeHiddenFasteners(false);
+    setFastenerSystemId("none");
+    setEdgeBoardType("solid");
+    // 3D
+    setRendering3dTier("none");
+    // Railing detail
+    setPostMountId("surface");
+    setPostSpacingFt(6);
+    setRailingHeightIn(36);
+    // Footing
+    setFootingDiameterIn(10);
+    setUseHelicalPiers(false);
+    // Demo
+    setIncludeDemoRemoval(false);
+    setDemoMaterialType("wood");
+    setDemoIncludeDisposal(true);
+    setDemoPermit(false);
+    // Close confirmation dialog
+    setShowRestartConfirm(false);
   }, []);
 
   const toggleTool = (id: string) => {
@@ -773,7 +860,11 @@ export default function Home() {
             {/* Saved list */}
             <div className="max-h-72 overflow-y-auto">
               {savedEstimates.length === 0 ? (
-                <div className="px-4 py-6 text-center text-xs text-slate-600">No saved estimates yet.</div>
+                <div className="px-4 py-8 flex flex-col items-center gap-2 text-center">
+                  <LucideIcons.BookmarkX className="w-7 h-7 text-slate-700" />
+                  <div className="text-xs font-semibold text-slate-500">No saved estimates yet</div>
+                  <div className="text-[10px] text-slate-600 max-w-[200px] leading-relaxed">Complete the wizard and tap "+ Save current estimate" to store a snapshot here.</div>
+                </div>
               ) : (
                 savedEstimates.map((snap) => (
                   <div key={snap.id} className="px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] group">
@@ -806,10 +897,10 @@ export default function Home() {
                           title={snap.notes ? "Edit notes" : "Add notes"}
                         ><LucideIcons.Pencil className="w-3 h-3" /></button>
                         <button
-                          onClick={() => handleDeleteEstimate(snap.id)}
+                          onClick={() => setDeleteConfirmId(snap.id)}
                           className="px-2 py-1 rounded text-[10px] bg-white/[0.06] hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors"
-                          title="Delete"
-                        >×</button>
+                          title="Delete estimate"
+                        ><LucideIcons.Trash2 className="w-3 h-3" /></button>
                       </div>
                     </div>
 
@@ -983,7 +1074,7 @@ export default function Home() {
               <ResultsPanel
                 result={result}
                 onBack={() => { setChangeOrderDelta({ low: 0, high: 0 }); goBack(); }}
-                onRestart={() => { setChangeOrderDelta({ low: 0, high: 0 }); restart(); }}
+                onRestart={() => setShowRestartConfirm(true)}
                 onChangeOrderUpdate={(low, high) => setChangeOrderDelta({ low, high })}
                 onShowTakeoff={audience === "contractor" ? () => setShowTakeoff(true) : undefined}
                 homeownerShowMarkup={homeownerShowMarkup}
@@ -1028,8 +1119,9 @@ export default function Home() {
                           >Save</button>
                           <button
                             onClick={() => setShowSaveInput(false)}
-                            className="text-xs text-slate-500 hover:text-white px-1"
-                          >✕</button>
+                            className="text-slate-500 hover:text-white px-1 flex items-center"
+                            aria-label="Cancel save"
+                          ><LucideIcons.X className="w-3.5 h-3.5" /></button>
                         </div>
                       ) : (
                         <div className="flex gap-2 shrink-0">
@@ -1394,6 +1486,14 @@ export default function Home() {
                               <span className={`font-mono text-base font-bold ${ac.text}`}>{customWidth} × {customLength} = {customSqFt} sq ft</span>
                               <div className="text-[10px] text-slate-500 mt-0.5">Live estimate updates as you type</div>
                             </div>
+                            {customSqFt > 1500 && (
+                              <div className="col-span-2 flex items-start gap-2 bg-amber-500/[0.08] border border-amber-500/20 rounded-lg px-3 py-2 mt-1">
+                                <LucideIcons.TriangleAlert className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                                <div className="text-[10px] text-amber-300/80 leading-relaxed">
+                                  <strong className="text-amber-300">Large deck advisory:</strong> At {customSqFt} sq ft this approaches commercial scale. Cost-per-sq-ft estimates may run low — structural engineering, permit complexity, and material lead times increase non-linearly above ~1,500 sq ft. Get a site-specific quote.
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -3481,6 +3581,60 @@ export default function Home() {
       </main>
 
       {/* ── FOOTER ── */}
+      {/* ── CONFIRMATION DIALOGS ── */}
+
+      {/* Start Over confirmation */}
+      <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
+        <AlertDialogContent className="bg-[#0f1929] border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Start a new estimate?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              This will clear all your current selections and return to step 1. Your saved estimates are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setShowRestartConfirm(false)}
+              className="bg-transparent border-white/20 text-slate-300 hover:bg-white/[0.06] hover:text-white"
+            >
+              Keep editing
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setChangeOrderDelta({ low: 0, high: 0 }); restart(); }}
+              className="bg-amber-500 text-slate-900 font-semibold hover:bg-amber-400"
+            >
+              Yes, start over
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete estimate confirmation */}
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent className="bg-[#0f1929] border-white/10 text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete this estimate?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              This estimate will be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setDeleteConfirmId(null)}
+              className="bg-transparent border-white/20 text-slate-300 hover:bg-white/[0.06] hover:text-white"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (deleteConfirmId) { handleDeleteEstimate(deleteConfirmId); setDeleteConfirmId(null); } }}
+              className="bg-red-600 text-white font-semibold hover:bg-red-500"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <footer className="border-t border-white/[0.06] py-4 px-4 sm:px-6 text-center">
         <p className="text-xs text-slate-600">
           Estimates based on{" "}
