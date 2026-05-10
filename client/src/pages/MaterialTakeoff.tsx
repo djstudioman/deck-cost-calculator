@@ -591,7 +591,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
             >
               <span>{tab.label}</span>
               <span className={`ml-1.5 text-[10px] font-mono ${
-                activePhase === tab.id ? "text-amber-400/70" : "text-slate-600"
+                activePhase === tab.id ? "text-amber-400/70" : "text-slate-400"
               }`}>
                 {formatTakeoffCurrency(phaseTotals[tab.id - 1])}
               </span>
@@ -1418,7 +1418,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(lumberTakeoff.joistSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{joistSku.nominalSize} × {joistLengthFt}' @ ${joistSku.contractorPricePerLF.toFixed(2)}/LF</span>
+              <span className="pl-2 text-slate-400">{joistSku.nominalSize} × {joistLengthFt}' @ ${joistSku.contractorPricePerLF.toFixed(2)}/LF</span>
               <span className="text-center">{lumberTakeoff.joistBoardFeet} BF</span>
               <span className="text-right">{formatTakeoffCurrency(lumberTakeoff.joistUnitPrice)}/pc</span>
             </div>
@@ -1436,7 +1436,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(lumberTakeoff.rimSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{joistSku.nominalSize} × {deckLengthFt}' @ ${joistSku.contractorPricePerLF.toFixed(2)}/LF</span>
+              <span className="pl-2 text-slate-400">{joistSku.nominalSize} × {deckLengthFt}' @ ${joistSku.contractorPricePerLF.toFixed(2)}/LF</span>
               <span className="text-center">{lumberTakeoff.rimBoardFeet} BF</span>
               <span className="text-right">{formatTakeoffCurrency(lumberTakeoff.rimUnitPrice)}/pc</span>
             </div>
@@ -1689,7 +1689,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(footingTakeoff.concreteSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{concreteSku.productLine} · {concreteSku.yieldCuFt} cu ft/bag</span>
+              <span className="pl-2 text-slate-400">{concreteSku.productLine} · {concreteSku.yieldCuFt} cu ft/bag</span>
               <span className="text-center">{footingTakeoff.bagsPerFooting} bags/footing</span>
               <span className="text-right">${footingTakeoff.concretePricePerBag.toFixed(2)}/bag</span>
             </div>
@@ -1707,7 +1707,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(footingTakeoff.postBaseSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{postBaseSku.name}</span>
+              <span className="pl-2 text-slate-400">{postBaseSku.name}</span>
               <span />
               <span className="text-right">${footingTakeoff.postBasePriceEach.toFixed(2)}/ea</span>
             </div>
@@ -1895,7 +1895,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.postSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{postRailSku.name}</span>
+              <span className="pl-2 text-slate-400">{postRailSku.name}</span>
               <span />
               <span className="text-right">${railingTakeoff.postUnitPrice.toFixed(2)}/ea</span>
             </div>
@@ -1911,7 +1911,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.topRailSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{topRailSku.name}</span>
+              <span className="pl-2 text-slate-400">{topRailSku.name}</span>
               <span />
               <span className="text-right">${railingTakeoff.topRailUnitPrice.toFixed(2)}/section</span>
             </div>
@@ -1927,7 +1927,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.bottomRailSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{bottomRailSku.name}</span>
+              <span className="pl-2 text-slate-400">{bottomRailSku.name}</span>
               <span />
               <span className="text-right">${railingTakeoff.bottomRailUnitPrice.toFixed(2)}/section</span>
             </div>
@@ -1943,8 +1943,8 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.balustrSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{balustrSku.name}</span>
-              <span className="text-center text-slate-600">~2 per LF</span>
+              <span className="pl-2 text-slate-400">{balustrSku.name}</span>
+              <span className="text-center text-slate-400">~2 per LF</span>
               <span className="text-right">${railingTakeoff.balustrUnitPrice.toFixed(2)}/ea</span>
             </div>
             {/* Post caps */}
@@ -1959,7 +1959,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(railingTakeoff.postCapSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{postCapRailSku.name}</span>
+              <span className="pl-2 text-slate-400">{postCapRailSku.name}</span>
               <span />
               <span className="text-right">${railingTakeoff.postCapUnitPrice.toFixed(2)}/ea</span>
             </div>
@@ -2137,7 +2137,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.treadSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{treadSku.name.split(" — ")[0]}</span>
+              <span className="pl-2 text-slate-400">{treadSku.name.split(" — ")[0]}</span>
               <span /><span className="text-right">${stairTakeoff.treadUnitPrice.toFixed(2)}/ea</span>
             </div>
             {/* Stringers */}
@@ -2152,7 +2152,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.stringerSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{stringerSku.name.split(" — ")[0]}</span>
+              <span className="pl-2 text-slate-400">{stringerSku.name.split(" — ")[0]}</span>
               <span /><span className="text-right">${stairTakeoff.stringerUnitPrice.toFixed(2)}/ea · ~{stairTakeoff.stringerLengthFt} ft ea</span>
             </div>
             {/* Stringer brackets */}
@@ -2167,7 +2167,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.stringerBracketSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{stringerBracketSku.name.split(" — ")[0]}</span>
+              <span className="pl-2 text-slate-400">{stringerBracketSku.name.split(" — ")[0]}</span>
               <span /><span className="text-right">${stairTakeoff.stringerBracketUnitPrice.toFixed(2)}/ea</span>
             </div>
             {/* Tread hardware */}
@@ -2182,7 +2182,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(stairTakeoff.treadHardwareSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{treadHardwareSku.name.split(" — ")[0]}</span>
+              <span className="pl-2 text-slate-400">{treadHardwareSku.name.split(" — ")[0]}</span>
               <span /><span className="text-right">${stairTakeoff.treadHardwareUnitPrice.toFixed(2)}/{treadHardwareSku.unit}</span>
             </div>
             {/* Subtotals */}
@@ -2319,7 +2319,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.joistHangerSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{joistHangerSku.name}</span>
+              <span className="pl-2 text-slate-400">{joistHangerSku.name}</span>
               <span /><span className="text-right">${hardwareTakeoff.joistHangerUnitPrice.toFixed(2)}/ea</span>
             </div>
             {/* Post caps */}
@@ -2334,7 +2334,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.postCapSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{hwPostCapSku.name}</span>
+              <span className="pl-2 text-slate-400">{hwPostCapSku.name}</span>
               <span /><span className="text-right">${hardwareTakeoff.postCapUnitPrice.toFixed(2)}/ea</span>
             </div>
             {/* Ledger flashing */}
@@ -2349,7 +2349,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.ledgerFlashingSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{ledgerFlashingSku.name}</span>
+              <span className="pl-2 text-slate-400">{ledgerFlashingSku.name}</span>
               <span /><span className="text-right">${hardwareTakeoff.ledgerFlashingUnitPrice.toFixed(2)}/{ledgerFlashingSku.unit}</span>
             </div>
             {/* Structural screws */}
@@ -2364,7 +2364,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.structuralScrewSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{structuralScrewSku.name}</span>
+              <span className="pl-2 text-slate-400">{structuralScrewSku.name}</span>
               <span /><span className="text-right">${hardwareTakeoff.structuralScrewUnitPrice.toFixed(2)}/{structuralScrewSku.unit}</span>
             </div>
             {/* Joist tape */}
@@ -2379,7 +2379,7 @@ export default function MaterialTakeoff({ result, onBack, onFinish }: Props) {
               <span className="text-right text-slate-300">{formatTakeoffCurrency(hardwareTakeoff.joistTapeSubtotal)}</span>
             </div>
             <div className="grid grid-cols-3 px-4 py-1.5 text-xs text-slate-500 border-b border-slate-700/30">
-              <span className="pl-2 text-slate-600">{joistTapeSku.name}</span>
+              <span className="pl-2 text-slate-400">{joistTapeSku.name}</span>
               <span /><span className="text-right">${hardwareTakeoff.joistTapeUnitPrice.toFixed(2)}/{joistTapeSku.unit}</span>
             </div>
             {/* Subtotals */}

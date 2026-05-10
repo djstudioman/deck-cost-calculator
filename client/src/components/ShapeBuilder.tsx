@@ -1412,7 +1412,7 @@ export default function ShapeBuilder({
         {closed && framing && (
           <div className={cn("flex gap-3 flex-wrap border-t border-white/[0.07] pt-2", mobileFullscreen ? "mb-2" : "mt-2")}>
             <div className="w-full">
-              <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-1.5">Framing est. · 2×8 @ 16″ OC</div>
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1.5">Framing est. · 2×8 @ 16″ OC</div>
             </div>
             <div title="Outer frame that follows the deck perimeter">
               <div className="text-[10px] text-slate-500 uppercase tracking-wider">Rim joists</div>

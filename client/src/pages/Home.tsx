@@ -861,9 +861,9 @@ export default function Home() {
             <div className="max-h-72 overflow-y-auto">
               {savedEstimates.length === 0 ? (
                 <div className="px-4 py-8 flex flex-col items-center gap-2 text-center">
-                  <LucideIcons.BookmarkX className="w-7 h-7 text-slate-700" />
+                  <LucideIcons.BookmarkX className="w-7 h-7 text-slate-500" />
                   <div className="text-xs font-semibold text-slate-500">No saved estimates yet</div>
-                  <div className="text-[10px] text-slate-600 max-w-[200px] leading-relaxed">Complete the wizard and tap "+ Save current estimate" to store a snapshot here.</div>
+                  <div className="text-[10px] text-slate-400 max-w-[200px] leading-relaxed">Complete the wizard and tap "+ Save current estimate" to store a snapshot here.</div>
                 </div>
               ) : (
                 savedEstimates.map((snap) => (
@@ -1325,7 +1325,7 @@ export default function Home() {
                             )}>
                               {r.laborMultiplier.toFixed(2)}×
                             </div>
-                            <div className="text-xs text-slate-600 flex items-center gap-1">labor <InfoTip left text="Labor cost multiplier for this region. 1.00× is the national average. Higher values mean local contractors charge more." /></div>
+                            <div className="text-xs text-slate-400 flex items-center gap-1">labor <InfoTip left text="Labor cost multiplier for this region. 1.00× is the national average. Higher values mean local contractors charge more." /></div>
                           </div>
                         </div>
                         <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
@@ -1420,7 +1420,7 @@ export default function Home() {
                               <div className={`text-xs font-mono ${ac.text}`}>
                                 {formatRange(est.low, est.high)}
                               </div>
-                              <div className="text-xs text-slate-600 flex items-center gap-1">PT installed est. <InfoTip left text="Pressure-treated (PT) lumber is the most common deck material. This is a rough installed cost estimate — your final price depends on material choice, region, and complexity." /></div>
+                              <div className="text-xs text-slate-400 flex items-center gap-1">PT installed est. <InfoTip left text="Pressure-treated (PT) lumber is the most common deck material. This is a rough installed cost estimate — your final price depends on material choice, region, and complexity." /></div>
                             </div>
                           </div>
                         </button>
@@ -1452,7 +1452,7 @@ export default function Home() {
                               {sizeId === "custom" && (
                                 <div className={`text-xs font-mono ${ac.text}`}>{customSqFt} sq ft</div>
                               )}
-                              <div className="text-xs text-slate-600">contractor only</div>
+                              <div className="text-xs text-slate-400">contractor only</div>
                             </div>
                           </div>
                         </button>
@@ -1546,7 +1546,7 @@ export default function Home() {
                                 {sizeId === "shape" && shapeArea > 0 && (
                                   <div className={`text-xs font-mono ${ac.text}`}>{Math.round(shapeArea)} sq ft</div>
                                 )}
-                                <div className="text-xs text-slate-600">contractor only</div>
+                                <div className="text-xs text-slate-400">contractor only</div>
                               </div>
                             </div>
                           </button>
@@ -1678,7 +1678,7 @@ export default function Home() {
                                       <div className={`text-xs font-mono ${ac.text}`}>
                                         {formatRange(est.low, est.high)}
                                       </div>
-                                      <div className="text-xs text-slate-600 flex items-center gap-1">PT installed est. <InfoTip left text="Pressure-treated (PT) lumber is the most common deck material. This is a rough installed cost estimate — your final price depends on material choice, region, and complexity." /></div>
+                                      <div className="text-xs text-slate-400 flex items-center gap-1">PT installed est. <InfoTip left text="Pressure-treated (PT) lumber is the most common deck material. This is a rough installed cost estimate — your final price depends on material choice, region, and complexity." /></div>
                                     </div>
                                   </div>
                                 </button>
@@ -1803,13 +1803,13 @@ export default function Home() {
                             <div className={`text-xs font-mono ${ac.text} font-semibold`}>
                               ${t.materialPerSqFtMin}–${t.materialPerSqFtMax}
                             </div>
-                            <div className="text-xs text-slate-600">materials/SF</div>
+                            <div className="text-xs text-slate-400">materials/SF</div>
                             {audience !== "diy" && (
                               <>
                                 <div className="text-xs font-mono text-slate-300 mt-1">
                                   ${t.installedPerSqFtMin}–${t.installedPerSqFtMax}
                                 </div>
-                                <div className="text-xs text-slate-600">installed/SF</div>
+                                <div className="text-xs text-slate-400">installed/SF</div>
                               </>
                             )}
                           </div>
@@ -1873,7 +1873,7 @@ export default function Home() {
                                       </span>
                                     </div>
                                     <div className="text-xs text-slate-500 mt-0.5">{b.description}</div>
-                                    <div className="text-xs text-slate-600 mt-0.5">Warranty: {b.warranty}</div>
+                                    <div className="text-xs text-slate-400 mt-0.5">Warranty: {b.warranty}</div>
                                   </button>
                                 );
                               })}
@@ -2946,7 +2946,7 @@ export default function Home() {
                                   <div className={`text-xs font-mono ${ac.text}`}>
                                     ${t.dailyRentLow}–${t.dailyRentHigh}/day
                                   </div>
-                                  <div className="text-xs text-slate-600">{t.daysNeeded}d needed</div>
+                                  <div className="text-xs text-slate-400">{t.daysNeeded}d needed</div>
                                   <div className="text-xs font-mono text-slate-400 mt-0.5">
                                     ≈ ${t.dailyRentLow * t.daysNeeded}–${t.dailyRentHigh * t.daysNeeded}
                                   </div>
@@ -3672,7 +3672,7 @@ export default function Home() {
       </AlertDialog>
 
       <footer className="border-t border-white/[0.06] py-4 px-4 sm:px-6 text-center">
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-slate-400">
           Estimates based on{" "}
           <em>The Complete Guide to Deck Building Costs in 2026</em>. Data sourced from HomeAdvisor, HomeGuide, Advantage Lumber, BLS, and regional retailers.{" "}
           <strong className="text-slate-500">For budgeting purposes only.</strong> Verify all pricing with local contractors and suppliers before committing.

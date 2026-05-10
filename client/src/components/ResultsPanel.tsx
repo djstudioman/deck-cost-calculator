@@ -1096,7 +1096,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                 <div className="w-2 h-2 rounded-full shrink-0" style={{ background: row.color }} />
                 <div>
                   <div className="text-slate-200">{row.label}</div>
-                  <div className="text-slate-600 text-[10px]">{row.note}</div>
+                  <div className="text-slate-400 text-[10px]">{row.note}</div>
                 </div>
               </div>
               <div className="text-right font-mono text-slate-400">
@@ -1311,7 +1311,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                       <div key={row.label} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 py-1.5 border-b border-white/[0.03] text-xs">
                         <div>
                           <div className="text-slate-300">{row.label}</div>
-                          <div className="text-[10px] text-slate-600 mt-0.5">{row.note}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{row.note}</div>
                         </div>
                         <div className="w-16 text-right font-mono text-green-400/80">{fmt(row.low)}</div>
                         <div className="w-16 text-right font-mono text-blue-300 font-semibold">{fmt(row.mid)}</div>
@@ -1336,7 +1336,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                   <div className="w-16 text-right font-mono text-amber-400 font-bold" style={{fontSize: '14px'}}>{fmt(bidHigh)}</div>
                 </div>
                 <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 mt-1">
-                  <div className="text-slate-600" style={{fontSize: '12px'}}>Per sq ft</div>
+                  <div className="text-slate-400" style={{fontSize: '12px'}}>Per sq ft</div>
                   <div className="w-16 text-right font-mono text-green-400/60 text-[10px]">${Math.round(bidLow / sqFt)}</div>
                   <div className="w-16 text-right font-mono text-blue-300/70 text-[10px]">${Math.round(bidMid / sqFt)}</div>
                   <div className="w-16 text-right font-mono text-amber-400/60 text-[10px]">${Math.round(bidHigh / sqFt)}</div>
@@ -1448,7 +1448,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                 c.totalBidLow > result.totalHigh ? "text-amber-400" : c.totalBidHigh < result.totalLow ? "text-red-400" : "text-green-400"
               )}>{formatRange(c.totalBidLow, c.totalBidHigh)}</span>
             </div>
-            <div className="text-xs text-slate-600 leading-relaxed">
+            <div className="text-xs text-slate-400 leading-relaxed">
               {c.totalBidLow > result.totalHigh
                 ? `Bid is above the homeowner estimate — the ${Math.round(c.markupTier.materialMarkup * 100)}% material + ${Math.round(c.markupTier.laborMarkup * 100)}% labor markup and ${Math.round(c.markupTier.overheadPct * 100)}% overhead account for the difference.`
                 : c.totalBidHigh < result.totalLow
@@ -1617,7 +1617,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                             {tier.shortLabel}
                             {isSelected && <span className="ml-1.5 text-[10px] text-blue-400 font-normal">(current)</span>}
                           </div>
-                          <div className="text-slate-600 text-[10px] mt-0.5">{tier.examples[0]}</div>
+                          <div className="text-slate-400 text-[10px] mt-0.5">{tier.examples[0]}</div>
                         </div>
                       </div>
                     </td>
@@ -1635,7 +1635,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
             </tbody>
           </table>
         </div>
-        <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-slate-600">
+        <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-slate-400">
           Bid ranges include your current markup tier ({c.markupTier.label}). Labor costs held constant — only material cost changes.
         </div>
       </motion.div>
@@ -1683,7 +1683,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                     <div className={cn("text-xs font-semibold", isOn ? "text-white" : "text-slate-300")}>
                       {item.label}
                     </div>
-                    <div className="text-[10px] text-slate-600 truncate mt-0.5">{item.note}</div>
+                    <div className="text-[10px] text-slate-400 truncate mt-0.5">{item.note}</div>
                   </div>
                   <div className="text-right shrink-0">
                     {isOn ? (
@@ -1694,7 +1694,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                         )}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-600">~{formatCurrency(previewMid)}</span>
+                      <span className="text-xs text-slate-400">~{formatCurrency(previewMid)}</span>
                     )}
                   </div>
                   <div className={cn(
@@ -1720,7 +1720,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                         className="w-6 h-6 rounded border border-white/20 text-slate-400 hover:text-white hover:border-white/40 text-sm flex items-center justify-center transition-colors"
                       >+</button>
                     </div>
-                    <span className="text-xs text-slate-600 ml-1">{item.unitLabel}</span>
+                    <span className="text-xs text-slate-400 ml-1">{item.unitLabel}</span>
                   </div>
                 )}
               </div>
@@ -1766,7 +1766,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                     <span className="font-mono text-xs text-blue-300 font-semibold">{formatCurrency(item.amount)}</span>
                     <button
                       onClick={() => removeCustomItem(item.id)}
-                      className="w-4 h-4 flex items-center justify-center text-slate-600 hover:text-red-400 transition-colors"
+                      className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
                       title="Remove"
                     >
                       <svg fill="none" viewBox="0 0 10 10" className="w-2.5 h-2.5"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -1799,7 +1799,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
               <div>
                 <div className="text-xs text-slate-500">Total Change Order</div>
                 <div className="font-mono text-lg font-bold text-white">{formatRange(coGrandLow, coGrandHigh)}</div>
-                <div className="text-[10px] text-slate-600 mt-0.5">
+                <div className="text-[10px] text-slate-400 mt-0.5">
                   Markup: {Math.round(c.markupTier.materialMarkup * 100)}% mat / {Math.round(c.markupTier.laborMarkup * 100)}% labor / {Math.round(c.markupTier.overheadPct * 100)}% overhead
                 </div>
               </div>
@@ -1823,7 +1823,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
         )}
 
         {coLineItems.length === 0 && customItems.length === 0 && (
-          <div className="mt-3 text-center text-xs text-slate-600 py-2">
+          <div className="mt-3 text-center text-xs text-slate-400 py-2">
             Select scope additions above or add a custom line item to generate a change order total.
           </div>
         )}
@@ -1923,7 +1923,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
                     <div className="flex-1 min-w-0">
                       <span className="text-xs text-slate-300">{p.label}</span>
-                      <span className="text-[10px] text-slate-600 ml-1.5">{p.note}</span>
+                      <span className="text-[10px] text-slate-400 ml-1.5">{p.note}</span>
                     </div>
                     <span className="font-mono text-xs text-slate-400 shrink-0">{p.days}d</span>
                   </div>
@@ -1949,11 +1949,11 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                       </span>
                     </div>
                   ) : (
-                    <span className="text-[10px] text-slate-600">Select a start date to see estimated completion</span>
+                    <span className="text-[10px] text-slate-400">Select a start date to see estimated completion</span>
                   )}
                 </div>
               </div>
-              <div className="mt-2 text-[10px] text-slate-600">+3 days concrete cure time included. Completion skips weekends. Adjust working days above to add weather delays.</div>
+              <div className="mt-2 text-[10px] text-slate-400">+3 days concrete cure time included. Completion skips weekends. Adjust working days above to add weather delays.</div>
             </div>
           );
         })()}
@@ -2025,13 +2025,13 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                       <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
                         <div className="h-full rounded-full bg-blue-500/50 transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <div className="text-[10px] text-slate-600 mt-1">{d.note}</div>
+                      <div className="text-[10px] text-slate-400 mt-1">{d.note}</div>
                     </div>
                   );
                 })}
               </div>
               <div className="mt-3 flex items-center justify-between">
-                <div className="text-[10px] text-slate-600">Adjust percentages to match your contract terms. Total must equal 100%.</div>
+                <div className="text-[10px] text-slate-400">Adjust percentages to match your contract terms. Total must equal 100%.</div>
                 <button
                   onClick={() => setDrawPcts([30, 35, 25, 10])}
                   className="text-[10px] text-slate-500 hover:text-slate-300 underline transition-colors shrink-0 ml-2"
@@ -2082,7 +2082,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                   <div key={item.label} className="flex items-center justify-between">
                     <div className="min-w-0">
                       <span className="text-xs text-slate-300">{item.label}</span>
-                      <span className="text-[10px] text-slate-600 ml-1.5">{item.note}</span>
+                      <span className="text-[10px] text-slate-400 ml-1.5">{item.note}</span>
                     </div>
                     <span className="font-mono text-xs text-slate-400 shrink-0 ml-2">{formatCurrency(item.amount)}</span>
                   </div>
@@ -2101,7 +2101,7 @@ function ContractorPanel({ result, onBack, onRestart, onChangeOrderUpdate, onSho
                   )}>{consumablesPct}%</div>
                 </div>
               </div>
-              <div className="mt-2 text-[10px] text-slate-600">Consumables are rough estimates — verify against your actual supplier pricing. These are not included in the bid total above.</div>
+              <div className="mt-2 text-[10px] text-slate-400">Consumables are rough estimates — verify against your actual supplier pricing. These are not included in the bid total above.</div>
             </div>
           );
         })()}
@@ -2381,12 +2381,12 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
                 <div className="font-mono text-sm font-bold text-amber-300 w-10 shrink-0 text-right">{item.qty}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs text-white truncate">{item.label}</div>
-                  <div className="text-[10px] text-slate-600">{item.note}</div>
+                  <div className="text-[10px] text-slate-400">{item.note}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-3 text-[10px] text-slate-600">Quantities are estimates based on standard span tables and 16" OC framing. Always verify against your actual site conditions and local code requirements.</div>
+          <div className="mt-3 text-[10px] text-slate-400">Quantities are estimates based on standard span tables and 16" OC framing. Always verify against your actual site conditions and local code requirements.</div>
         </div>
       )}
 
@@ -2412,7 +2412,7 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
                 <div className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-white">{field.label}</div>
-                    <div className="text-[10px] text-slate-600">{field.note}</div>
+                    <div className="text-[10px] text-slate-400">{field.note}</div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-slate-500 text-xs">$</span>
@@ -2465,7 +2465,7 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
             </div>
           )}
           {actualTotalMaterial === 0 && (
-            <div className="text-[10px] text-slate-600 text-center py-4">Enter at least one supplier price above to see variance analysis.</div>
+            <div className="text-[10px] text-slate-400 text-center py-4">Enter at least one supplier price above to see variance analysis.</div>
           )}
         </div>
       )}
@@ -2485,7 +2485,7 @@ function JobSiteToolsPanel({ result }: { result: CalculatorResult }) {
               <div key={item.label} className="rounded-lg bg-white/[0.02] border border-white/[0.04] p-2.5">
                 <div className="font-mono text-sm font-bold text-blue-300">{item.value}</div>
                 <div className="text-[10px] text-white mt-0.5">{item.label}</div>
-                <div className="text-[10px] text-slate-600">{item.note}</div>
+                <div className="text-[10px] text-slate-400">{item.note}</div>
               </div>
             ))}
           </div>
