@@ -95,8 +95,15 @@ function SummaryPills({ result }: { result: CalculatorResult }) {
     : "Face Screws"
     : null;
 
-  const brandPill = result.isContractor && result.deckingBrand
-    ? result.deckingBrand.name
+  // Use catalog product line name when available, fall back to legacy deckingBrand name
+  const brandPill = result.isContractor
+    ? (result.catalogDeckingLineName ?? (result.deckingBrand ? result.deckingBrand.name : null))
+    : null;
+  const railingProductLinePill = result.isContractor && result.catalogRailingLineName
+    ? result.catalogRailingLineName
+    : null;
+  const fastenerProductLinePill = result.isContractor && result.catalogFastenerLineName
+    ? result.catalogFastenerLineName
     : null;
 
   const basePills = [
@@ -116,11 +123,23 @@ function SummaryPills({ result }: { result: CalculatorResult }) {
       ))}
       {brandPill && (
         <div className="text-xs bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1">
-          <span className="text-slate-500">Brand: </span>
+          <span className="text-slate-500">Decking: </span>
           <span className="text-emerald-300">{brandPill}</span>
         </div>
       )}
-      {fastenerLabel && (
+      {railingProductLinePill && (
+        <div className="text-xs bg-sky-500/10 border border-sky-500/30 rounded-full px-3 py-1">
+          <span className="text-slate-500">Railing: </span>
+          <span className="text-sky-300">{railingProductLinePill}</span>
+        </div>
+      )}
+      {fastenerProductLinePill && (
+        <div className="text-xs bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1">
+          <span className="text-slate-500">Fasteners: </span>
+          <span className="text-amber-300">{fastenerProductLinePill}</span>
+        </div>
+      )}
+      {fastenerLabel && !fastenerProductLinePill && (
         <div className={`text-xs border rounded-full px-3 py-1 ${
           result.fastenerSystem === "cortex"
             ? "bg-amber-500/10 border-amber-500/30"

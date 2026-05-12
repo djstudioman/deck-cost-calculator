@@ -3,6 +3,7 @@
  * Design: Precision Engineering (dark navy, amber accent, wizard flow)
  * All data sourced from: "The Complete Guide to Deck Building Costs in 2026"
  */
+import { getDeckingBrand, getRailingBrand, getFastenerBrand } from "./brandCatalog";
 
 // ─── AUDIENCE TYPES ────────────────────────────────────────────────────────────
 export type AudienceType = "homeowner" | "diy" | "contractor";
@@ -790,6 +791,13 @@ export interface CalculatorInputs {
   includeEngineer?: boolean;       // toggle: include structural engineer fee
   engineerCost?: number;           // dollar amount (from preset or custom entry)
   engineerCostMode?: "preset" | "custom"; // contractor-only: which input mode
+  // Brand catalog product line selections (contractor only) — override generic tier pricing
+  prefDeckingProductLineId?: string | null;  // from brandCatalog.ts DeckingProductLine.id
+  prefRailingProductLineId?: string | null;  // from brandCatalog.ts RailingProductLine.id
+  prefFastenerProductLineId?: string | null; // from brandCatalog.ts FastenerProductLine.id
+  prefDeckingBrandId?: string;               // for label display in breakdown
+  prefRailingBrandId?: string;               // for label display in breakdown
+  prefFastenerBrandId?: string;              // for label display in breakdown
 }
 
 export interface CalculatorResult {
@@ -841,6 +849,10 @@ export interface CalculatorResult {
   deckingBrand: DeckingBrand | null;
   brandDeltaLow: number;
   brandDeltaHigh: number;
+  // Catalog product line labels (for display in breakdown and estimate summary)
+  catalogDeckingLineName: string | null;  // e.g. "Trex Enhance Naturals"
+  catalogRailingLineName: string | null;  // e.g. "Trex Transcend Railing"
+  catalogFastenerLineName: string | null; // e.g. "Camo EdgeClip Pro"
   fastenerSystem: "none" | "clip" | "cortex";
   hiddenFastenerCostLow: number;
   hiddenFastenerCostHigh: number;
@@ -976,16 +988,22 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   // Zero cost until user makes an explicit selection (hasRailingSelection)
   const railingLF = inputs.railingLF;
   const railingPremiumMultiplier = (railing.id === "cable" || railing.id === "glass") ? 1.0 : 1.25;
-  const railingLow = hasRailingSelection
+  // NOTE: catalogRailingLine is resolved later in the brand block below.
+  // We use a deferred approach: compute generic railing cost first, then override if catalog line selected.
+  const railingLowGeneric = hasRailingSelection
     ? (isDIY
         ? Math.round(railing.materialPerLFMin * railingLF * railingPremiumMultiplier)
         : Math.round(railing.installedPerLFMin * railingLF * railingPremiumMultiplier))
     : 0;
-  const railingHigh = hasRailingSelection
+  const railingHighGeneric = hasRailingSelection
     ? (isDIY
         ? Math.round(railing.materialPerLFMax * railingLF * railingPremiumMultiplier)
         : Math.round(railing.installedPerLFMax * railingLF * railingPremiumMultiplier))
     : 0;
+  // Catalog railing override is applied after the brand block resolves catalogRailingLine.
+  // Placeholder — will be reassigned after brand block.
+  let railingLow = railingLowGeneric;
+  let railingHigh = railingHighGeneric;
 
   // ── Railing Detail (all paths — contractor overrides defaults, homeowner/DIY use defaults) ────
   // Post count: railingLF / postSpacingFt + 1 corner posts (estimate)
@@ -1280,9 +1298,45 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   const deckingBrand: DeckingBrand | null = isContractor && inputs.brandId
     ? (DECKING_BRANDS.find(b => b.id === inputs.brandId) ?? null)
     : null;
-  const brandDeltaLow  = isContractor && deckingBrand ? Math.round(deckingBrand.materialDeltaLow  * size.sqFt) : 0;
-  const brandDeltaHigh = isContractor && deckingBrand ? Math.round(deckingBrand.materialDeltaHigh * size.sqFt) : 0;
-
+  // ── Brand Catalog product line override (contractor only) ──────────────────
+  // When a specific product line is selected from brandCatalog.ts, use its exact
+  // materialCostLow/High ($/SF boards only) instead of the generic tier delta.
+  const catalogDeckingLine = isContractor && inputs.prefDeckingProductLineId
+    ? getDeckingBrand(inputs.prefDeckingBrandId ?? "")?.productLines.find(
+        (pl) => pl.id === inputs.prefDeckingProductLineId
+      ) ?? null
+    : null;
+  // Tier baseline material costs (boards only, $/SF) — used to compute delta from catalog price
+  const TIER_MATERIAL_BASELINE: Record<string, { low: number; high: number }> = {
+    pt:        { low: 2.00, high: 3.00 },
+    composite: { low: 5.00, high: 7.00 },
+    pvc:       { low: 10.00, high: 13.00 },
+  };
+  const tierBaseline = TIER_MATERIAL_BASELINE[inputs.tierId] ?? { low: 0, high: 0 };
+  // If a catalog product line is selected, compute delta from tier baseline to that product line cost
+  // Otherwise fall back to legacy DECKING_BRANDS delta
+  const brandDeltaLow = isContractor
+    ? (catalogDeckingLine
+        ? Math.round((catalogDeckingLine.materialCostLow - tierBaseline.low) * size.sqFt)
+        : (deckingBrand ? Math.round(deckingBrand.materialDeltaLow * size.sqFt) : 0))
+    : 0;
+  const brandDeltaHigh = isContractor
+    ? (catalogDeckingLine
+        ? Math.round((catalogDeckingLine.materialCostHigh - tierBaseline.high) * size.sqFt)
+        : (deckingBrand ? Math.round(deckingBrand.materialDeltaHigh * size.sqFt) : 0))
+    : 0;
+  // ── Brand Catalog railing product line override (contractor only) ──────────
+  const catalogRailingLine = isContractor && inputs.prefRailingProductLineId
+    ? getRailingBrand(inputs.prefRailingBrandId ?? "")?.productLines.find(
+        (pl) => pl.id === inputs.prefRailingProductLineId
+      ) ?? null
+    : null;
+  // ── Brand Catalog fastener product line override (contractor only) ─────────
+  const catalogFastenerLine = isContractor && inputs.prefFastenerProductLineId
+    ? getFastenerBrand(inputs.prefFastenerBrandId ?? "")?.productLines.find(
+        (pl) => pl.id === inputs.prefFastenerProductLineId
+      ) ?? null
+    : null;
   // Hidden fasteners — system-specific pricing (contractor only, compatible boards only)
   // Generic clip system: +$1.50–$2.50/SF (hardware + snap-in labor)
   // Cortex by FastenMaster: +$0.50–$0.75/SF hardware + ~$0.75–$1.50/SF labor = $1.25–$2.25/SF
@@ -1297,13 +1351,27 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
   })();
   const useHiddenFasteners = fastenerSystem !== "none"
     && (deckingBrand === null || deckingBrand.hiddenFastenerCompatible);
+  // If a catalog fastener product line is selected, use its exact cost; otherwise use generic pricing
   const hiddenFastenerCostLow  = useHiddenFasteners
-    ? Math.round((fastenerSystem === "cortex" ? 1.25 : 1.50) * size.sqFt)
+    ? (catalogFastenerLine
+        ? Math.round(catalogFastenerLine.costPerSqFtLow * size.sqFt)
+        : Math.round((fastenerSystem === "cortex" ? 1.25 : 1.50) * size.sqFt))
     : 0;
   const hiddenFastenerCostHigh = useHiddenFasteners
-    ? Math.round((fastenerSystem === "cortex" ? 2.25 : 2.50) * size.sqFt)
+    ? (catalogFastenerLine
+        ? Math.round(catalogFastenerLine.costPerSqFtHigh * size.sqFt)
+        : Math.round((fastenerSystem === "cortex" ? 2.25 : 2.50) * size.sqFt))
     : 0;
 
+  // Apply catalog railing product line override if selected
+  if (catalogRailingLine && hasRailingSelection) {
+    railingLow  = isDIY
+      ? Math.round(catalogRailingLine.materialPerLFLow  * railingLF)
+      : Math.round(catalogRailingLine.installedPerLFLow * railingLF);
+    railingHigh = isDIY
+      ? Math.round(catalogRailingLine.materialPerLFHigh  * railingLF)
+      : Math.round(catalogRailingLine.installedPerLFHigh * railingLF);
+  }
   // Grooved edge boards: required for hidden fasteners; +$0.50–$1.00/sq ft for edge boards only
   // (~15–20% of total sq ft is edge boards; grooved boards cost ~$3–$5/LF more than solid)
   // Auto-selected when hidden fasteners are on. Only applies to compatible boards.
@@ -1390,11 +1458,13 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
           },
         ]),
     {
-      category: "Railing",
+      category: catalogRailingLine ? `${catalogRailingLine.name}` : "Railing",
       pctOfTotal: 0,
       low: railingLow,
       high: railingHigh,
-      note: `${railing.label} — ${railingLF} LF`,
+      note: catalogRailingLine
+        ? `${catalogRailingLine.name} — ${railingLF} LF @ $${catalogRailingLine.installedPerLFLow}–$${catalogRailingLine.installedPerLFHigh}/LF installed`
+        : `${railing.label} — ${railingLF} LF`,
     },
     {
       category: "Footings",
@@ -1456,11 +1526,13 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     ...(hiddenFastenerCostLow > 0
       ? [
           {
-            category: "Hidden Fasteners",
+            category: catalogFastenerLine ? catalogFastenerLine.name : "Hidden Fasteners",
             pctOfTotal: 0,
             low: hiddenFastenerCostLow,
             high: hiddenFastenerCostHigh,
-            note: fastenerSystem === "cortex"
+            note: catalogFastenerLine
+              ? `${catalogFastenerLine.name} — $${catalogFastenerLine.costPerSqFtLow.toFixed(2)}–$${catalogFastenerLine.costPerSqFtHigh.toFixed(2)}/SF × ${size.sqFt} sq ft`
+              : fastenerSystem === "cortex"
               ? `Cortex by FastenMaster (screw + color-matched plug) — ${size.sqFt} sq ft`
               : `Generic clip fastening system — ${size.sqFt} sq ft`,
           },
@@ -1495,11 +1567,15 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     ...(brandDeltaLow !== 0 || brandDeltaHigh !== 0
       ? [
           {
-            category: deckingBrand ? `${deckingBrand.name} Upgrade` : "Brand Adjustment",
+            category: catalogDeckingLine
+              ? `${catalogDeckingLine.name} (material delta)`
+              : deckingBrand ? `${deckingBrand.name} Upgrade` : "Brand Adjustment",
             pctOfTotal: 0,
             low: Math.min(brandDeltaLow, brandDeltaHigh),
             high: Math.max(brandDeltaLow, brandDeltaHigh),
-            note: deckingBrand ? `${deckingBrand.warranty} warranty` : "",
+            note: catalogDeckingLine
+              ? `$${catalogDeckingLine.materialCostLow.toFixed(2)}–$${catalogDeckingLine.materialCostHigh.toFixed(2)}/SF boards`
+              : deckingBrand ? `${deckingBrand.warranty} warranty` : "",
           },
         ]
       : []),
@@ -1717,6 +1793,9 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
     deckingBrand,
     brandDeltaLow,
     brandDeltaHigh,
+    catalogDeckingLineName: catalogDeckingLine?.name ?? null,
+    catalogRailingLineName: catalogRailingLine?.name ?? null,
+    catalogFastenerLineName: catalogFastenerLine?.name ?? null,
     fastenerSystem,
     hiddenFastenerCostLow,
     hiddenFastenerCostHigh,

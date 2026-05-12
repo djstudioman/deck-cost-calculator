@@ -311,6 +311,13 @@ export default function Home() {
       includeEngineer,
       engineerCost,
       engineerCostMode,
+      // Brand catalog product line selections (contractor only)
+      prefDeckingProductLineId: audience === "contractor" ? prefDeckingProductLineId : null,
+      prefRailingProductLineId: audience === "contractor" ? prefRailingProductLineId : null,
+      prefFastenerProductLineId: audience === "contractor" ? prefFastenerProductLineId : null,
+      prefDeckingBrandId: audience === "contractor" ? prefDeckingBrandId : undefined,
+      prefRailingBrandId: audience === "contractor" ? prefRailingBrandId : undefined,
+      prefFastenerBrandId: audience === "contractor" ? prefFastenerBrandId : undefined,
     }),
     [
       audience, regionId, sizeId, tierId, complexityId, railingId, includeRailing, railingLF,
@@ -322,6 +329,8 @@ export default function Home() {
       postMountId, postSpacingFt, railingHeightIn,
       footingDiameterIn, useHelicalPiers, deckHeightIn,
       includeEngineer, engineerCost, engineerCostMode,
+      prefDeckingProductLineId, prefRailingProductLineId, prefFastenerProductLineId,
+      prefDeckingBrandId, prefRailingBrandId, prefFastenerBrandId,
     ]
   );
 
