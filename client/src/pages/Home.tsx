@@ -45,6 +45,14 @@ import {
   type CalculatorResult,
 } from "@/lib/deckData";
 import ResultsPanel from "@/components/ResultsPanel";
+import {
+  DECKING_BRAND_CATALOG,
+  RAILING_BRAND_CATALOG,
+  FASTENER_BRAND_CATALOG,
+  getDeckingProductLinesForTier,
+  getRailingProductLines,
+  getFastenerProductLines,
+} from "@/lib/brandCatalog";
 import MaterialTakeoff from "@/pages/MaterialTakeoff";
 import StepCard from "@/components/StepCard";
 import InfoTip from "@/components/InfoTip";
@@ -72,10 +80,10 @@ import {
 } from "@/lib/estimateStorage";
 
 // ─── STEP DEFINITIONS ──────────────────────────────────────────────────────────
-// Shared steps 0–5 are the same for all audiences.
-// Steps 6–7 branch by audience.
-
-// Base shared steps (0–4): Audience, Region, Size, Material, Complexity
+// Shared steps 0–2 are the same for all audiences (Audience, Region, Size).
+// Step 3 branches: contractor gets Brand Preferences; others go straight to Material Tier.
+// Steps 4+ branch further by audience.
+// Base shared steps (0–2): Audience, Region, Size
 const SHARED_BASE_LABELS = [
   "Who are you?",
   "Your Region",
@@ -93,7 +101,8 @@ function getStepLabels(audience: AudienceType): string[] {
     // Step 5 empty (contractor-only framing slot), step 6 DIY Framing, step 7 Railing, step 8 Skill, step 9 Permit
     return [...SHARED_BASE_LABELS, "", "Framing System", "Railing & Extras", "Skill & Tools", "Permit & Fees"];
   if (audience === "contractor")
-    return [...SHARED_BASE_LABELS, "Framing System", "Railing & Extras", "Markup & Crew", "Permit & Fees"];
+    // Contractor gets an extra "Brand Preferences" step at index 3, shifting all subsequent steps by +1
+    return ["Who are you?", "Your Region", "Deck Size", "Brand Preferences", "Material Tier", "Complexity", "Framing System", "Railing & Extras", "Markup & Crew", "Permit & Fees"];
   // homeowner: step 5 empty, step 6 empty (DIY-only framing slot), step 7 Railing, step 8 Permit
   return [...SHARED_BASE_LABELS, "", "", "Railing & Extras", "Permit & Fees"];
 }
@@ -199,6 +208,14 @@ export default function Home() {
   const [level2CustomLength, setLevel2CustomLength] = useState<number>(12);
   const level2CustomSqFt = level2CustomWidth * level2CustomLength;
 
+  // Brand Preferences step (contractor only) — new step 3
+  const [prefDeckingBrandId, setPrefDeckingBrandId] = useState<string>("no-preference");
+  const [prefRailingBrandId, setPrefRailingBrandId] = useState<string>("no-preference");
+  const [prefFastenerBrandId, setPrefFastenerBrandId] = useState<string>("no-preference");
+  // Selected product line IDs from brand preferences (contractor only)
+  const [prefDeckingProductLineId, setPrefDeckingProductLineId] = useState<string | null>(null);
+  const [prefRailingProductLineId, setPrefRailingProductLineId] = useState<string | null>(null);
+  const [prefFastenerProductLineId, setPrefFastenerProductLineId] = useState<string | null>(null);
   // Decking brand / hidden fasteners / edge board (contractor only)
   const [brandId, setBrandId] = useState<string | undefined>(undefined);
   const [includeHiddenFasteners, setIncludeHiddenFasteners] = useState(false);
@@ -337,12 +354,14 @@ export default function Home() {
   );
 
   // After Complexity (step 4):
-  // - Contractor: step 4 → step 5 (Contractor Framing) — normal goNext
-  // - DIY: step 4 → step 6 (DIY Framing) — skip contractor-only step 5
-  // - Homeowner: step 4 → step 7 (Railing) — skip both framing steps (5 & 6)
+  // Complexity step skip logic:
+  // - Contractor: Complexity is step 5, next is Framing at step 6 — normal goNext
+  // - DIY: Complexity is step 4, skip contractor-only step 5, land on DIY Framing at step 6
+  // - Homeowner: Complexity is step 4, skip both framing steps (5 & 6), land on Railing at step 7
   const goNextFromComplexity = useCallback(() => {
     setConfirmedStep(null);
     if (audience === "contractor") {
+      // Contractor: Complexity at step 5, Framing at step 6 — normal advance
       goNext();
     } else if (audience === "diy") {
       // Skip contractor-only step 5, land on DIY Framing at step 6
@@ -389,8 +408,11 @@ export default function Home() {
     } else if (step === 6 && audience === "diy") {
       // DIY at Framing (step 6): skip back over contractor-only step 5 → Complexity (step 4)
       setStep(4);
+    } else if (step === 7 && audience === "contractor") {
+      // Contractor at Railing (step 7): go back to Contractor Framing (step 6) — normal
+      setStep(6);
     } else if (step === 6 && audience === "contractor") {
-      // Contractor at Railing (step 6): go back to Contractor Framing (step 5) — normal
+      // Contractor at Framing (step 6): go back to Complexity (step 5) — normal
       setStep(5);
     } else {
       setStep((s) => Math.max(0, s - 1));
@@ -458,6 +480,13 @@ export default function Home() {
     setLevel2SizeId("192");
     setLevel2CustomWidth(16);
     setLevel2CustomLength(12);
+    // Brand Preferences step
+    setPrefDeckingBrandId("no-preference");
+    setPrefRailingBrandId("no-preference");
+    setPrefFastenerBrandId("no-preference");
+    setPrefDeckingProductLineId(null);
+    setPrefRailingProductLineId(null);
+    setPrefFastenerProductLineId(null);
     // Brand / fasteners
     setBrandId(undefined);
     setIncludeHiddenFasteners(false);
@@ -1830,8 +1859,105 @@ export default function Home() {
                 </StepCard>
               )}
 
+              {/* ── CONTRACTOR STEP 3: BRAND PREFERENCES ── */}
+              {step === 3 && audience === "contractor" && (
+                <StepCard
+                  title="Brand preferences"
+                  subtitle="Select your preferred brands for each category. Downstream steps will show only that brand's products."
+                  onNext={goNext}
+                  showTapHint={false}
+                  onBack={goBack}
+                  accentBtnClass={ac.btnClass}
+                >
+                  <div className="space-y-6">
+                    {/* Decking Brand */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <DynIcon name="Layers" className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-semibold text-white">Decking Brand</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {DECKING_BRAND_CATALOG.map((brand) => (
+                          <button
+                            key={brand.id}
+                            onClick={() => setPrefDeckingBrandId(brand.id)}
+                            aria-pressed={prefDeckingBrandId === brand.id}
+                            className={cn(
+                              "text-left px-3 py-2.5 rounded-lg border text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
+                              prefDeckingBrandId === brand.id
+                                ? "border-amber-500 bg-amber-500/10 text-white"
+                                : "border-white/15 bg-white/[0.02] text-slate-300 hover:border-white/30 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            <div className="font-semibold text-[11px] leading-tight">{brand.name}</div>
+                            <div className="text-slate-500 text-[10px] mt-0.5 leading-tight">{brand.tagline}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Railing Brand */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <DynIcon name="Fence" className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-semibold text-white">Railing Brand</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {RAILING_BRAND_CATALOG.map((brand) => (
+                          <button
+                            key={brand.id}
+                            onClick={() => setPrefRailingBrandId(brand.id)}
+                            aria-pressed={prefRailingBrandId === brand.id}
+                            className={cn(
+                              "text-left px-3 py-2.5 rounded-lg border text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
+                              prefRailingBrandId === brand.id
+                                ? "border-amber-500 bg-amber-500/10 text-white"
+                                : "border-white/15 bg-white/[0.02] text-slate-300 hover:border-white/30 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            <div className="font-semibold text-[11px] leading-tight">{brand.name}</div>
+                            <div className="text-slate-500 text-[10px] mt-0.5 leading-tight">{brand.tagline}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Fastener Brand */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <DynIcon name="Wrench" className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-semibold text-white">Fasteners & Hardware</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {FASTENER_BRAND_CATALOG.map((brand) => (
+                          <button
+                            key={brand.id}
+                            onClick={() => setPrefFastenerBrandId(brand.id)}
+                            aria-pressed={prefFastenerBrandId === brand.id}
+                            className={cn(
+                              "text-left px-3 py-2.5 rounded-lg border text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
+                              prefFastenerBrandId === brand.id
+                                ? "border-amber-500 bg-amber-500/10 text-white"
+                                : "border-white/15 bg-white/[0.02] text-slate-300 hover:border-white/30 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            <div className="font-semibold text-[11px] leading-tight">{brand.name}</div>
+                            <div className="text-slate-500 text-[10px] mt-0.5 leading-tight">{brand.tagline}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Skip hint */}
+                    <p className="text-xs text-slate-500 text-center">
+                      All categories default to "No preference" — you can skip this step and set preferences later.
+                    </p>
+                  </div>
+                </StepCard>
+              )}
+
               {/* ── STEP 3: MATERIAL TIER ── */}
-              {step === 3 && (
+              {((step === 3 && audience !== "contractor") || (step === 4 && audience === "contractor")) && (
                 <StepCard
                   title="What material tier?"
                   subtitle="The single biggest driver of cost after labor."
@@ -1910,11 +2036,64 @@ export default function Home() {
                       const brandsForTier = DECKING_BRANDS.filter(b => b.tierIds.includes(tierId));
                       const selectedBrand = brandsForTier.find(b => b.id === brandId) ?? null;
                       const fastenerBlocked = selectedBrand !== null && !selectedBrand.hiddenFastenerCompatible;
+                      // Brand preference wiring: get product lines from brandCatalog when a preference is set
+                      const hasDeckingPref = prefDeckingBrandId !== "no-preference";
+                      const catalogProductLines = hasDeckingPref
+                        ? getDeckingProductLinesForTier(prefDeckingBrandId, tierId as "pt" | "composite" | "pvc")
+                        : [];
                       return (
                         <div className="mt-2 p-4 rounded-lg border border-amber-500/30 bg-amber-500/[0.04] space-y-4">
-                          <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Product Spec (Contractor)</div>
-
-                          {/* Brand selector */}
+                          <div className="flex items-center justify-between">
+                            <div className={`text-xs font-semibold ${ac.text} uppercase tracking-wider`}>Product Spec (Contractor)</div>
+                            {hasDeckingPref && (
+                              <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                                <DynIcon name="Tag" className="w-3 h-3" />
+                                <span>Filtered to {DECKING_BRAND_CATALOG.find(b => b.id === prefDeckingBrandId)?.name}</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Brand-specific product lines when preference is set */}
+                          {hasDeckingPref && catalogProductLines.length > 0 && (
+                            <div>
+                              <div className="text-xs text-slate-400 mb-2">Product Line</div>
+                              <div className="grid grid-cols-1 gap-2">
+                                {catalogProductLines.map((pl) => (
+                                  <button
+                                    key={pl.id}
+                                    onClick={() => {
+                                      setPrefDeckingProductLineId(pl.id);
+                                      // Sync to legacy brandId system for calculation engine
+                                      const legacyBrand = brandsForTier.find(b =>
+                                        b.name.toLowerCase().includes(pl.name.toLowerCase().split(" ")[0]) ||
+                                        pl.name.toLowerCase().includes((b as unknown as { brand?: string }).brand?.toLowerCase() ?? "")
+                                      );
+                                      if (legacyBrand) setBrandId(legacyBrand.id);
+                                    }}
+                                    aria-pressed={prefDeckingProductLineId === pl.id}
+                                    className={cn(
+                                      "text-left px-3 py-2 rounded-md border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
+                                      prefDeckingProductLineId === pl.id
+                                        ? `${sel.border} ${sel.bg}`
+                                        : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-xs font-semibold text-white">{pl.name}</span>
+                                      <span className="text-xs font-mono shrink-0 text-amber-400">
+                                        ${pl.materialCostLow.toFixed(2)}–${pl.materialCostHigh.toFixed(2)}/SF
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-slate-500 mt-0.5">{pl.description}</div>
+                                    {pl.grooved && (
+                                      <div className="mt-1 text-xs text-emerald-400">Hidden fastener compatible</div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Generic brand selector when no preference */}
+                          {!hasDeckingPref && (
                           <div>
                             <div className="text-xs text-slate-400 mb-2">Brand / Product Line</div>
                             <div className="grid grid-cols-1 gap-2">
@@ -1963,15 +2142,83 @@ export default function Home() {
                               })}
                             </div>
                           </div>
+                          )}
 
                           {/* Hidden fastener system selector */}
                           <div>
-                            <div className="text-xs font-semibold text-white mb-1.5">Fastening System</div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="text-xs font-semibold text-white">Fastening System</div>
+                              {prefFastenerBrandId !== "no-preference" && (
+                                <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                                  <DynIcon name="Tag" className="w-3 h-3" />
+                                  <span>{FASTENER_BRAND_CATALOG.find(b => b.id === prefFastenerBrandId)?.name}</span>
+                                </div>
+                              )}
+                            </div>
                             {fastenerBlocked && (
                               <div className="text-xs text-slate-500 mb-2">
                                 {selectedBrand?.name} uses solid boards — hidden fastener systems not compatible.
                               </div>
                             )}
+                            {/* Brand-specific fastener product lines when preference is set */}
+                            {prefFastenerBrandId !== "no-preference" && getFastenerProductLines(prefFastenerBrandId).length > 0 ? (
+                              <div className="grid grid-cols-1 gap-2">
+                                {/* Always show face screws option first */}
+                                <button
+                                  onClick={() => {
+                                    setFastenerSystemId("none");
+                                    setEdgeBoardType("solid");
+                                  }}
+                                  className={cn(
+                                    "text-left px-3 py-2 rounded-md border transition-all",
+                                    fastenerSystemId === "none"
+                                      ? `${sel.border} ${sel.bg}`
+                                      : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-xs font-semibold text-white">Standard Face Screws</span>
+                                    <span className="text-xs font-mono shrink-0 text-slate-400">Included</span>
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">Traditional visible screws. Fastest install, lowest cost.</div>
+                                </button>
+                                {getFastenerProductLines(prefFastenerBrandId).map((fp) => {
+                                  const isBlocked = fastenerBlocked;
+                                  return (
+                                    <button
+                                      key={fp.id}
+                                      disabled={isBlocked}
+                                      onClick={() => {
+                                        if (isBlocked) return;
+                                        setFastenerSystemId("clip");
+                                        setEdgeBoardType("grooved");
+                                      }}
+                                      className={cn(
+                                        "text-left px-3 py-2 rounded-md border transition-all",
+                                        isBlocked
+                                          ? "border-white/10 bg-white/[0.02] opacity-40 cursor-not-allowed"
+                                          : fastenerSystemId !== "none" && !isBlocked
+                                            ? `${sel.border} ${sel.bg}`
+                                            : "border-white/15 bg-white/[0.02] hover:border-white/25"
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-semibold text-white">{fp.name}</span>
+                                        <span className="text-xs font-mono shrink-0 text-amber-400">
+                                          +${fp.costPerSqFtLow.toFixed(2)}–${fp.costPerSqFtHigh.toFixed(2)}/SF
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-slate-500 mt-0.5">{fp.description}</div>
+                                      {fp.compatibleBrands.length > 0 && (
+                                        <div className="text-xs text-slate-600 mt-0.5">
+                                          Compatible: {fp.compatibleBrands.join(", ")}
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ) : (
                             <div className="grid grid-cols-1 gap-2">
                               {([
                                 {
@@ -2026,6 +2273,7 @@ export default function Home() {
                                 </button>
                               ))}
                             </div>
+                            )}
                           </div>
 
                           {/* Edge board type */}
@@ -2069,7 +2317,7 @@ export default function Home() {
               )}
 
               {/* ── STEP 4: COMPLEXITY ── */}
-              {step === 4 && (
+              {((step === 4 && audience !== "contractor") || (step === 5 && audience === "contractor")) && (
                 <StepCard
                   title="Deck complexity"
                   subtitle={
@@ -2115,7 +2363,7 @@ export default function Home() {
               )}
 
               {/* ── CONTRACTOR STEP 5: FRAMING SYSTEM ── */}
-              {step === 5 && audience === "contractor" && (
+              {step === 6 && audience === "contractor" && (
                 <StepCard
                   title="Framing system"
                   subtitle="The structural framing is the skeleton of your deck. Material choice affects cost, longevity, and installation time."
@@ -2644,7 +2892,7 @@ export default function Home() {
 
               {/* ── DIY / CONTRACTOR: full-detail railing step ── */}
               {/* Contractor Railing is at step 6; DIY Railing is at step 7 */}
-              {((step === 6 && audience === "contractor") || (step === 7 && audience === "diy")) && (
+              {((step === 7 && audience === "contractor") || (step === 7 && audience === "diy")) && (
                 <StepCard
                   title="Railing & extras"
                   subtitle="Railing can represent 15–30% of total project cost."
@@ -2712,7 +2960,64 @@ export default function Home() {
                     {includeRailing && (
                       <>
                       <div>
+                      {/* Railing brand preference indicator */}
+                      {prefRailingBrandId !== "no-preference" && (() => {
+                        const railingBrand = RAILING_BRAND_CATALOG.find(b => b.id === prefRailingBrandId);
+                        return railingBrand ? (
+                          <div className="flex items-center gap-1.5 text-xs text-amber-400 mb-2">
+                            <DynIcon name="Tag" className="w-3 h-3" />
+                            <span>Filtered to {railingBrand.name} product lines</span>
+                          </div>
+                        ) : null;
+                      })()}
                       <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Railing System</div>
+                      {/* Brand-specific product lines when preference is set */}
+                      {prefRailingBrandId !== "no-preference" && getRailingProductLines(prefRailingBrandId).length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {getRailingProductLines(prefRailingBrandId).map((pl) => (
+                            <button
+                              key={pl.id}
+                              onClick={() => {
+                                setPrefRailingProductLineId(pl.id);
+                                // Map to nearest legacy railing system for calculation engine
+                                const systemMap: Record<string, string> = {
+                                  "picket": "composite-select",
+                                  "cable": "cable",
+                                  "glass": "glass",
+                                  "panel": "composite-premium",
+                                };
+                                const legacyId = systemMap[pl.systemType] ?? "composite-select";
+                                if (!confirmedRailing) {
+                                  setRailingId(legacyId);
+                                  setConfirmedRailing(true);
+                                  setConfirmedStep(step);
+                                } else {
+                                  selectOrAdvance(prefRailingProductLineId === pl.id, () => setRailingId(legacyId));
+                                }
+                              }}
+                              aria-pressed={prefRailingProductLineId === pl.id}
+                              className={cn(
+                                "text-left p-3 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
+                                prefRailingProductLineId === pl.id
+                                  ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                                  : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
+                              )}
+                            >
+                              <div className="font-semibold text-sm text-white">{pl.name}</div>
+                              <div className="text-xs text-slate-400 mt-0.5 capitalize">{pl.systemType} system</div>
+                              <div className={`text-xs font-mono ${ac.text} mt-1`}>
+                                ${pl.materialPerLFLow}–${pl.materialPerLFHigh}/LF materials
+                              </div>
+                              {audience !== "diy" && (
+                                <div className="text-xs text-slate-500">
+                                  ${pl.installedPerLFLow}–${pl.installedPerLFHigh}/LF installed
+                                </div>
+                              )}
+                              <div className="text-xs text-slate-500 mt-1">{pl.description}</div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {RAILING_SYSTEMS.map((r) => (
                           <button
@@ -2747,6 +3052,7 @@ export default function Home() {
                           </button>
                         ))}
                       </div>
+                      )}
                     </div>
 
                     <div>
@@ -3277,8 +3583,8 @@ export default function Home() {
                   CONTRACTOR-SPECIFIC STEPS 7–9
               ════════════════════════════════════════════════════════════ */}
 
-              {/* ── CONTRACTOR STEP 7: MARKUP & CREW ── */}
-              {step === 7 && audience === "contractor" && (
+              {/* ── CONTRACTOR STEP 8: MARKUP & CREW ── */}
+              {step === 8 && audience === "contractor" && (
                 <StepCard
                   title="Markup & crew size"
                   subtitle="Set your margin tier and crew to generate a bid range and gross margin estimate."
@@ -3493,7 +3799,7 @@ export default function Home() {
               )}
 
               {/* ── CONTRACTOR STEP 8: PERMIT ── */}
-              {step === 8 && audience === "contractor" && (
+              {step === 9 && audience === "contractor" && (
                 <StepCard
                   title="Permit & Fees"
                   subtitle="Most jurisdictions require a building permit for decks over 200 sq ft or 30 inches off the ground."
