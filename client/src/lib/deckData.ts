@@ -1568,7 +1568,7 @@ export function calculate(inputs: CalculatorInputs): CalculatorResult {
       ? [
           {
             category: catalogDeckingLine
-              ? `${catalogDeckingLine.name} (material delta)`
+              ? catalogDeckingLine.name
               : deckingBrand ? `${deckingBrand.name} Upgrade` : "Brand Adjustment",
             pctOfTotal: 0,
             low: Math.min(brandDeltaLow, brandDeltaHigh),

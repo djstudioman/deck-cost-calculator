@@ -184,6 +184,21 @@ function BreakdownChart({
     color: colors[i % colors.length],
   }));
 
+  // Dynamic left-axis width so no label is clipped (≈7px per char at fontSize 11)
+  const maxLabelLen = Math.max(...chartData.map((d) => (d.category as string).length));
+  const yAxisWidth = Math.min(Math.max(Math.ceil(maxLabelLen * 7.2), 110), 175);
+
+  // Custom tick renderer — truncates at 23 chars to prevent overflow
+  const YTick = ({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) => {
+    const raw = payload?.value ?? "";
+    const label = raw.length > 23 ? raw.slice(0, 22) + "\u2026" : raw;
+    return (
+      <text x={(x ?? 0) - 4} y={y ?? 0} dy={4} textAnchor="end" fill="#94A3B8" fontSize={11}>
+        {label}
+      </text>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -196,7 +211,7 @@ function BreakdownChart({
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
             <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} tick={{ fill: "#64748B", fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="category" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={110} />
+            <YAxis type="category" dataKey="category" tick={<YTick />} axisLine={false} tickLine={false} width={yAxisWidth} />
             <RechartsTooltip content={<CustomTooltip accent={accent} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
             <Bar dataKey="mid" radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
