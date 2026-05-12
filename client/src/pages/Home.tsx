@@ -2070,6 +2070,26 @@ export default function Home() {
                        </button>
                       );
                     })}
+                    {/* ── Inline brand-preference nudge for composite/PVC tiers ── */}
+                    {audience === "contractor" && (tierId === "composite" || tierId === "pvc") && prefDeckingBrandId === "no-preference" && (
+                      <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] text-sm">
+                        <LucideIcons.AlertTriangle className="w-4 h-4 mt-0.5 text-amber-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-amber-200 font-medium leading-snug">
+                            Using generic composite pricing
+                          </p>
+                          <p className="text-slate-400 mt-0.5 leading-snug">
+                            Set a brand preference to get exact $/SF pricing for Trex, TimberTech, Fiberon, and more.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => { setConfirmedStep(null); setStep(3); }}
+                          className="shrink-0 text-xs font-semibold text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors whitespace-nowrap mt-0.5"
+                        >
+                          Set brand →
+                        </button>
+                      </div>
+                    )}
                     {/* ── Contractor-only: Brand, Hidden Fasteners, Edge Board ── */}
                     {audience === "contractor" && (tierId === "composite" || tierId === "pvc") && (() => {
                       const brandsForTier = DECKING_BRANDS.filter(b => b.tierIds.includes(tierId));
