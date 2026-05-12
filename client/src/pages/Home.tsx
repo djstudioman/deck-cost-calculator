@@ -2039,14 +2039,32 @@ export default function Home() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
                             <div className="font-semibold text-sm text-white">{t.label}</div>
-                            <div className="text-xs text-slate-400 mt-1">{t.description}</div>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {t.examples.map((ex) => (
-                                <span key={ex} className="text-xs bg-white/[0.06] text-slate-400 px-2 py-0.5 rounded">
-                                  {ex}
-                                </span>
-                              ))}
-                            </div>
+                            {(() => {
+                              const brandEntry = audience === "contractor" && prefDeckingBrandId !== "no-preference"
+                                ? DECKING_BRAND_CATALOG.find(b => b.id === prefDeckingBrandId)
+                                : null;
+                              const tierMatch = brandEntry ? brandEntry.tierIds.includes(t.id as "pt" | "composite" | "pvc") : false;
+                              if (brandEntry && tierMatch) {
+                                // Show brand-specific description instead of generic examples
+                                return (
+                                  <div className="text-xs text-amber-300/80 mt-1">
+                                    {brandEntry.name} products — see Product Line below
+                                  </div>
+                                );
+                              }
+                              return (
+                                <>
+                                  <div className="text-xs text-slate-400 mt-1">{t.description}</div>
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {t.examples.map((ex) => (
+                                      <span key={ex} className="text-xs bg-white/[0.06] text-slate-400 px-2 py-0.5 rounded">
+                                        {ex}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                           <div className="text-right shrink-0">
                             <div className={`text-xs font-mono ${ac.text} font-semibold`}>
