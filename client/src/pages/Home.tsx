@@ -1889,7 +1889,18 @@ export default function Home() {
                         {DECKING_BRAND_CATALOG.map((brand) => (
                           <button
                             key={brand.id}
-                            onClick={() => setPrefDeckingBrandId(brand.id)}
+                            onClick={() => {
+                              setPrefDeckingBrandId(brand.id);
+                              // Auto-select the brand's primary tier so step 5 reflects the brand
+                              if (brand.id !== "no-preference" && brand.tierIds.length > 0) {
+                                // Pick the first (lowest) tier the brand supports
+                                const primaryTier = brand.tierIds[0];
+                                setTierId(primaryTier);
+                              } else if (brand.id === "no-preference") {
+                                // Reset to PT when clearing brand preference
+                                setTierId("pt");
+                              }
+                            }}
                             aria-pressed={prefDeckingBrandId === brand.id}
                             className={cn(
                               "text-left px-3 py-2.5 rounded-lg border text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
@@ -1975,11 +1986,27 @@ export default function Home() {
                   onBack={goBack}
                   accentBtnClass={ac.btnClass}
                 >
+                  {/* Show a hint when a brand has locked the tier */}
+                  {audience === "contractor" && prefDeckingBrandId !== "no-preference" && (() => {
+                    const brandEntry = DECKING_BRAND_CATALOG.find(b => b.id === prefDeckingBrandId);
+                    if (brandEntry && !brandEntry.tierIds.includes(tierId as "pt" | "composite" | "pvc")) {
+                      // Tier was set before brand was chosen — correct it now
+                      const primaryTier = brandEntry.tierIds[0];
+                      setTimeout(() => setTierId(primaryTier), 0);
+                    }
+                    return null;
+                  })()}
                   <div className="flex flex-col gap-3">
-                    {MATERIAL_TIERS.map((t) => (
+                    {MATERIAL_TIERS.map((t) => {
+                      const brandEntry = audience === "contractor" && prefDeckingBrandId !== "no-preference"
+                        ? DECKING_BRAND_CATALOG.find(b => b.id === prefDeckingBrandId)
+                        : null;
+                      const tierDisabled = brandEntry ? !brandEntry.tierIds.includes(t.id as "pt" | "composite" | "pvc") : false;
+                      return (
                       <button
                         key={t.id}
-                        onClick={() => selectOrAdvance(tierId === t.id, () => {
+                        disabled={tierDisabled}
+                        onClick={() => !tierDisabled && selectOrAdvance(tierId === t.id, () => {
                           setTierId(t.id);
                           // Reset brand when switching tiers so incompatible brands don't persist
                           if (audience === "contractor") {
@@ -1990,11 +2017,14 @@ export default function Home() {
                           }
                         })}
                         aria-pressed={tierId === t.id}
+                        title={tierDisabled && brandEntry ? `${brandEntry.name} doesn't offer ${t.label} products` : undefined}
                         className={cn(
                           "text-left p-4 rounded-lg border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1120]",
-                          tierId === t.id
-                            ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
-                            : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
+                          tierDisabled
+                            ? "border-white/8 bg-white/[0.01] opacity-35 cursor-not-allowed"
+                            : tierId === t.id
+                              ? `${sel.border} ${sel.bg} focus-visible:ring-amber-400`
+                              : "border-white/20 bg-white/[0.03] hover:border-white/30 focus-visible:ring-white/40"
                         )}
                         style={{ backgroundImage:
                           t.id === "pt"
@@ -2037,9 +2067,9 @@ export default function Home() {
                           <span className="flex items-center gap-1"><LucideIcons.Clock className="w-3 h-3" /> {t.lifespan}</span>
                           <span className="flex items-center gap-1"><LucideIcons.Wrench className="w-3 h-3" /> {t.maintenance}</span>
                         </div>
-                      </button>
-                    ))}
-
+                       </button>
+                      );
+                    })}
                     {/* ── Contractor-only: Brand, Hidden Fasteners, Edge Board ── */}
                     {audience === "contractor" && (tierId === "composite" || tierId === "pvc") && (() => {
                       const brandsForTier = DECKING_BRANDS.filter(b => b.tierIds.includes(tierId));
